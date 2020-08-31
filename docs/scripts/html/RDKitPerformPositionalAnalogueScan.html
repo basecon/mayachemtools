@@ -1,0 +1,223 @@
+<html>
+<head>
+<title>MayaChemTools:Documentation:RDKitPerformPositionalAnalogueScan.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../css/MayaChemTools.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./RDKitPerformMinimization.html" title="RDKitPerformMinimization.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./RDKitPerformRGroupDecomposition.html" title="RDKitPerformRGroupDecomposition.html">Next</a></td><td width="34%" align="middle"><strong>RDKitPerformPositionalAnalogueScan.py</strong></td><td width="33%" align="right"><a href="././code/RDKitPerformPositionalAnalogueScan.html" title="View source code">Code</a>&nbsp;|&nbsp;<a href="./../pdf/RDKitPerformPositionalAnalogueScan.pdf" title="PDF US Letter Size">PDF</a>&nbsp;|&nbsp;<a href="./../pdfa4/RDKitPerformPositionalAnalogueScan.pdf" title="PDF A4 Size">PDFA4</a></td></tr>
+</table>
+</div>
+<h1 id="NAME">NAME</h2>
+<p>RDKitPerformPositionalAnalogueScan.py - Positional analogue scanning.</p>
+<h1 id="SYNOPSIS">SYNOPSIS</h2>
+<p>RDKitPerformPositionalAnalogueScan.py [<b>--comboSearchAtoms</b> &lt;number&gt;] [<b>--infileParams</b> &lt;Name,Value,...&gt;] [<b>--mode</b> &lt;ReplaceAtoms, AttachAtoms, AttachSMILES, RxnSMARTS, TandemScan&gt;] [<b>--mp</b> &lt;yes or no&gt;] [<b>--mpParams</b> &lt;Name,Value,...&gt;] [ <b>--nameSuffix</b> &lt;text&gt;] [ <b>--outfileParams</b> &lt;Name,Value,...&gt; ] [<b>--overwrite</b>] [<b>--permuteTandemScan</b> &lt;yes or no&gt;] [<b>--quiet</b> &lt;yes or no&gt;] [<b>--searchPattern</b> &lt;SMARTSPattern&gt;] [<b>--targetPattern</b> &lt;ElementSymbol, SMILES, RxnSMARTS,...&gt;] [<b>--uniqueAnalogues</b> &lt;yes or no&gt; ] [<b>-w</b> &lt;dir&gt;] <b>-i</b> &lt;infile&gt; <b>-o</b> &lt;outfile&gt;</p>
+<p>RDKitPerformPositionalAnalogueScan.py <b>-h</b> | <b>--help</b> | <b>-e</b> | <b>--examples</b></p>
+<h1 id="DESCRIPTION">DESCRIPTION</h2>
+<p>Perform Positional Analogue Scanning (PAS) to generate analogues of molecules by applying chemical transformations to molecules [ Ref 147-148 ]. The chemical transformations are defined using SMARTS, element symbols, SMILES, and RxnSMARTS. Four different types of chemical transformations are available for for generating analogues of molecules: replace atoms, attach atoms, attach SMILES, and RxnSMARTS. Tandem positional analogue scanning may be performed by the concurrent application of multiple chemical transformations.</p>
+<p>A SMARTS search pattern identifies atoms in molecules for attachment or replacement points during positional analogue scanning. It may retrieve multiple substructure matches in a molecule. The first matched atom in each substructure match comprises a set of attachment or replacement points.</p>
+<p>A target pattern encompasses information regarding element symbol, SMILES, and reaction SMARTS for replacing and attaching atoms, attaching SMILES, and applying reaction SMARTS. In addition, multiple concurrent chemical transformations may be specified during tandem positional analogue scanning.</p>
+<p>The supported input file formats are: Mol (.mol), SD (.sdf, .sd), SMILES (.smi, .csv, .tsv .txt)</p>
+<p>The supported output file formats are: SD (.sdf, .sd), SMILES (.smi, .csv, .tsv .txt)</p>
+<h1 id="OPTIONS">OPTIONS</h2>
+<dl>
+<dt id="c---comboSearchAtoms-number-default:-1"><b>-c, --comboSearchAtoms</b> &lt;number&gt; [default: 1]</dt>
+<dd>
+<p>Number of concurrent search pattern match atoms to use as attachment or replacement points during positional analogue scanning in &#39;AttachAtoms&#39;, &#39;AttachSMILES&#39;, and &#39;ReplaceAtoms&#39; modes. This value is ignored during &#39;RxnSMARTS&#39; and &#39;TandemScan&#39; values of &#39;-m, --mode&#39; option.</p>
+</dd>
+<dt id="e---examples"><b>-e, --examples</b></dt>
+<dd>
+<p>Print examples.</p>
+</dd>
+<dt id="h---help"><b>-h, --help</b></dt>
+<dd>
+<p>Print this help message.</p>
+</dd>
+<dt id="i---infile-infile"><b>-i, --infile</b> &lt;infile&gt;</dt>
+<dd>
+<p>Input file name.</p>
+</dd>
+<dt id="infileParams-Name-Value-...-default:-auto"><b>--infileParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for reading molecules from files. The supported parameter names for different file formats, along with their default values, are shown below:</p>
+<div class="OptionsBox">    SD, MOL: removeHydrogens,yes,sanitize,yes,strictParsing,yes
+<br/>    SMILES: smilesColumn,1,smilesNameColumn,2,smilesDelimiter,space,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        smilesTitleLine,auto,sanitize,yes
+<br/>    </div>
+<p>Possible values for smilesDelimiter: space, comma or tab.</p>
+</dd>
+<dt id="m---mode-ReplaceAtoms-AttachAtoms-...-default:-ReplaceAtoms"><b>-m, --mode</b> &lt;ReplaceAtoms, AttachAtoms,...&gt; [default: ReplaceAtoms]</dt>
+<dd>
+<p>Type of operations to perform during positional analogue scanning. The supported values, along with a brief description, are shown below:</p>
+<div class="OptionsBox">    Mode           Description
+<br/>    ReplaceAtoms   Replace atoms with new atoms
+<br/>    AttachAtoms    Attach new atoms to atoms
+<br/>    AttachSMILES   Attach SMILES to atoms
+<br/>    RxnSMARTS      Run reaction SMARTS
+<br/>    TandemScan     Perform tandem scan by combining ReplaceAtoms,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        AttachAtoms, and AttachSMILES                    
+     </div>
+<p>The chemical transformations of input molecules is dependent on the values of &#39;-s, --searchPattern&#39; and &#39;-t, --targetPattern&#39; options. For example, nitrogen-walk or nitrogen scan is performed by &#39;[cH]&#39; and &#39;N&#39; values for &#39;-s, --searchPattern&#39; and &#39;-t, --targetPattern&#39; options.</p>
+</dd>
+<dt id="mp-yes-or-no-default:-no"><b>--mp</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Use multiprocessing.</p>
+<p>By default, input data is retrieved in a lazy manner via mp.Pool.imap() function employing lazy RDKit data iterable. This allows processing of arbitrary large data sets without any additional requirements memory.</p>
+<p>All input data may be optionally loaded into memory by mp.Pool.map() before starting worker processes in a process pool by setting the value of &#39;inputDataMode&#39; to &#39;InMemory&#39; in &#39;--mpParams&#39; option.</p>
+<p>A word to the wise: The default &#39;chunkSize&#39; value of 1 during &#39;Lazy&#39; input data mode may adversely impact the performance. The &#39;--mpParams&#39; section provides additional information to tune the value of &#39;chunkSize&#39;.</p>
+</dd>
+<dt id="mpParams-Name-Value-...-default:-auto"><b>--mpParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for to configure multiprocessing.</p>
+<p>The supported parameter names along with their default and possible values are shown below:</p>
+<div class="OptionsBox">    chunkSize, auto
+<br/>    inputDataMode, Lazy   [ Possible values: InMemory or Lazy ]
+<br/>    numProcesses, auto   [ Default: mp.cpu_count() ]</div>
+<p>These parameters are used by the following functions to configure and control the behavior of multiprocessing: mp.Pool(), mp.Pool.map(), and mp.Pool.imap().</p>
+<p>The chunkSize determines chunks of input data passed to each worker process in a process pool by mp.Pool.map() and mp.Pool.imap() functions. The default value of chunkSize is dependent on the value of &#39;inputDataMode&#39;.</p>
+<p>The mp.Pool.map() function, invoked during &#39;InMemory&#39; input data mode, automatically converts RDKit data iterable into a list, loads all data into memory, and calculates the default chunkSize using the following method as shown in its code:</p>
+<div class="OptionsBox">    chunkSize, extra = divmod(len(dataIterable), len(numProcesses) * 4)
+<br/>    if extra: chunkSize += 1</div>
+<p>For example, the default chunkSize will be 7 for a pool of 4 worker processes and 100 data items.</p>
+<p>The mp.Pool.imap() function, invoked during &#39;Lazy&#39; input data mode, employs &#39;lazy&#39; RDKit data iterable to retrieve data as needed, without loading all the data into memory. Consequently, the size of input data is not known a priori. It&#39;s not possible to estimate an optimal value for the chunkSize. The default chunkSize is set to 1.</p>
+<p>The default value for the chunkSize during &#39;Lazy&#39; data mode may adversely impact the performance due to the overhead associated with exchanging small chunks of data. It is generally a good idea to explicitly set chunkSize to a larger value during &#39;Lazy&#39; input data mode, based on the size of your input data and number of processes in the process pool.</p>
+<p>The mp.Pool.map() function waits for all worker processes to process all the data and return the results. The mp.Pool.imap() function, however, returns the the results obtained from worker processes as soon as the results become available for specified chunks of data.</p>
+<p>The order of data in the results returned by both mp.Pool.map() and mp.Pool.imap() functions always corresponds to the input data.</p>
+</dd>
+<dt id="n---nameSuffix-text-default:-Analogue"><b>-n, --nameSuffix</b> &lt;text&gt; [default: Analogue]</dt>
+<dd>
+<p>Name suffix for generating molecule names of analogues. Format of analogue names: &lt;MolName&gt;_&lt;NameSuffix&gt;_&lt;MolNum&gt;</p>
+</dd>
+<dt id="o---outfile-outfile"><b>-o, --outfile</b> &lt;outfile&gt;</dt>
+<dd>
+<p>Output file name.</p>
+</dd>
+<dt id="outfileParams-Name-Value-...-default:-auto"><b>--outfileParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for writing molecules to files. The supported parameter names for different file formats, along with their default values, are shown below:</p>
+<div class="OptionsBox">    SD: compute2DCoords,auto,kekulize,no
+<br/>    SMILES: kekulize,no,smilesDelimiter,space, smilesIsomeric,yes,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        smilesTitleLine,yes,smilesMolName,yes,smilesMolProps,no
+<br/>    </div>
+</dd>
+<dt id="overwrite"><b>--overwrite</b></dt>
+<dd>
+<p>Overwrite existing files.</p>
+</dd>
+<dt id="p---permuteTandemScan-yes-or-no-default:-yes"><b>-p, --permuteTandemScan</b> &lt;yes or no&gt; [default: yes]</dt>
+<dd>
+<p>Permute atom positions matched by SMARTS search pattern in a molecule to generate all possible analogues during tandem positional analogue scanning.</p>
+<p>This option is only valid for &#39;TandemScan&#39; value of &#39;-m, --mode&#39; option.</p>
+</dd>
+<dt id="q---quiet-yes-or-no-default:-no"><b>-q, --quiet</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Use quiet mode. The warning and information messages will not be printed.</p>
+</dd>
+<dt id="s---searchPattern-SMARTSPattern-default:-auto"><b>-s, --searchPattern</b> &lt;SMARTSPattern&gt; [default: auto]</dt>
+<dd>
+<p>SMARTS search pattern identifying atoms in molecules for attachment or replacement points during positional analogue scanning. The SMARTS search pattern may retrieve multiple substructure matches in a molecule. The first matched atom in each substructure match comprises a set of attachment or replacement points.</p>
+<p>The default values, dependent on the value of &#39;-m, --mode&#39; option, are shown below:</p>
+<div class="OptionsBox">    Mode            Default   Description
+<br/>    ReplaceAtoms    [cH]      Aromatic carbon  
+<br/>    AttachAtoms     [cH]      Aromatic carbon
+<br/>    AttachSMILES    [cH]      Aromatic carbon
+<br/>    RxnSMARTS       None      Not applicable
+<br/>    TandemScan      [cH]      Aromatic carbon
+<br/>    </div>
+<p>This option is ignored during &#39;RxnSMARTS&#39; value of &#39;-m, --mode&#39; option.</p>
+</dd>
+<dt id="t---targetPattern-ElementSymbol-SMILES-RxnSMARTS...-default:-auto"><b>-t, --targetPattern</b> &lt;ElementSymbol, SMILES, RxnSMARTS...&gt; [default: auto]</dt>
+<dd>
+<p>Target pattern for performing chemical transformations during positional analogue scanning. These values are used in conjunction with the value of &#39;-s, --searchPattern&#39; to generate appropriate analogues.</p>
+<p>The default values, dependent on the values of &#39;-m, --mode&#39; and &#39;-s, --searchPattern&#39; options, are shown below:</p>
+<div class="OptionsBox">    Mode            Default        Description
+<br/>    ReplaceAtoms    N              Element symbol for nitrogen
+<br/>    AttachAtoms     F              Element symbol for fluorine
+<br/>    AttachSMILES    C(F)(F)(F)     SMILES for CF3
+<br/>    RxnSMARTS       [cH:1]&gt;&gt;[N:1]  Replace aromatic carbon by nitrogen
+<br/>    TandemScan      ReplaceAtoms,N,AttachAtoms,F  Replace and attach
+<br/>    </div>
+<p>Multiple concurrent chemical transformations are allowed during &#39;TandemScan&#39;. The target pattern specification for &#39;TandemScan&#39; is a comma delimited list of operation type and target pattern. Format: OperationType,TargetPattern,...</p>
+<p>The supported operation types and target pattern are shown below:</p>
+<div class="OptionsBox">    ReplaceAtoms,&lt;ElementSymbol&gt;
+<br/>    AttachAtoms,&lt;ElementSymbol&gt;
+<br/>    AttachSMILES,&lt;SMILES&gt; 
+<br/>    </div>
+<p>For example:</p>
+<div class="OptionsBox">    ReplaceAtoms,N,AttachAtoms,F
+<br/>    ReplaceAtoms,N,AttachAtoms,F,AttachSMILES,C(F)(F)(F) 
+     </div>
+<p>The number of chemical transformations in &#39;TandemScan&#39; must be less than or equal to the total number atoms matched by SMARTS search pattern in a molecule. Otherwise, it is not possible to perform a &#39;TandemScan&#39;. The matched atom positions may be optionally permuted to generate all possible analogues during positional analogue scanning using &#39;-p, --permuteTandemScan&#39; option.</p>
+</dd>
+<dt id="u---uniqueAnalogues-yes-or-no-default:-yes"><b>-u, --uniqueAnalogues</b> &lt;yes or no&gt; [default: yes]</dt>
+<dd>
+<p>Keep only unique analogues of a molecule corresponding to unique SMILES strings. The duplicate SMILES string may be generated during PAS due to symmetric replacement or attachment points in molecules.</p>
+</dd>
+<dt id="w---workingdir-dir"><b>-w, --workingdir</b> &lt;dir&gt;</dt>
+<dd>
+<p>Location of working directory which defaults to the current directory.</p>
+</dd>
+</dl>
+<h1 id="EXAMPLES">EXAMPLES</h2>
+<p>To perform a nitrogen-walk or nitrogen scan by replacing aromatic carbons by nitrogens in molecules in a SMILES file and write out a SMILES file, type:</p>
+<div class="ExampleBox">    % RDKitPerformPositionalAnalogueScan.py  -i Sample.smi -o SampleOut.smi</div>
+<p>To run the first example by explicity specifying search and target patterns for replacing aromatic carbons by nitogens in molecules in a SD file and write out a SD file, type:</p>
+<div class="ExampleBox">    % RDKitPerformPositionalAnalogueScan.py  -m ReplaceAtoms -s &quot;[cH]&quot;
+      -t &quot;N&quot; -i Sample.sdf -o SampleOut.sdf</div>
+<p>To run the first example in multiprocessing mode on all available CPUs without loading all data into memory and write out a SD file, type:</p>
+<div class="ExampleBox">    % RDKitPerformPositionalAnalogueScan.py  -i Sample.smi -o SampleOut.sdf
+      --mp yes
+ </div>
+<p>To run the previous example in multiprocessing mode on all available CPUs by loading all data into memory and write out a SD file, type:</p>
+<div class="ExampleBox">    % RDKitPerformPositionalAnalogueScan.py  -i Sample.smi -o SampleOut.sdf
+      --mp yes --mpParams &quot;inputDataMode,InMemory&quot;
+ </div>
+<p>To run the previous example in multiprocessing mode on specific number of CPUs and chunk size without loading all data into memory and write out a SD file, type:</p>
+<div class="ExampleBox">    % RDKitPerformPositionalAnalogueScan.py  -i Sample.smi -o SampleOut.sdf
+      --mpParams &quot;inputDataMode,Lazy,numProcesses,4,chunkSize,8&quot;
+ </div>
+<p>To perform positional analogue scanning by simultaneously attaching fluorines to two aromatic carbons in molecules in a SMILES file and write out a SD file, type:</p>
+<div class="ExampleBox">    % RDKitPerformPositionalAnalogueScan.py  -m AttachAtoms -s &quot;[cH]&quot;
+      -t &quot;F&quot; -c 2 -i Sample.smi -o SampleOut.sdf</div>
+<p>To perform positional analogue scanning by attaching SMILES for CF3 to aromatic carbons in molecules in a SMILES file and write out a SD file, type:</p>
+<div class="ExampleBox">    % RDKitPerformPositionalAnalogueScan.py  -m AttachSMILES -s &quot;[cH]&quot;
+      -t &quot;C(F)(F)(F)&quot; -i Sample.smi -o SampleOut.sdf</div>
+<p>To perform a nitrogen-walk or nitrogen scan by using reaction SMARTS to replace aromatic carbons by nitrogens in molecules in a SMILES file and write out a SMILES file, type:</p>
+<div class="ExampleBox">    % RDKitPerformPositionalAnalogueScan.py  -m RxnSMARTS
+      -t &quot;[cH:1]&gt;&gt;[N:1]&quot; -i Sample.smi -o SampleOut.smi</div>
+<p>To perform a tandem positional analogue scan by concurrently applying multiple chemical transformations to aromatic carbons, permute all matched search atom positions during analogue generation, and write out a SD file, type:</p>
+<div class="ExampleBox">    % RDKitPerformPositionalAnalogueScan.py  -m TandemScan -s &quot;[cH]&quot;
+      -t &quot;ReplaceAtoms,N,AttachAtoms,F,AttachSMILES,OC&quot;
+      -p yes  -i Sample.smi -o SampleOut.smi</div>
+<p>To perform a nitrogen-walk or nitrogen scan by replacing aromatic carbons by nitrogens in molecules in a SMILES CSV fileS, MILES strings in column 1, name in column 2, and write out a SD file, type:</p>
+<div class="ExampleBox">    % RDKitPerformPositionalAnalogueScan.py  -m ReplaceAtoms -s &quot;[cH]&quot;
+      -t &quot;N&quot; --infileParams &quot;smilesDelimiter,comma, smilesTitleLine,yes,
+      smilesColumn,1,smilesNameColumn,2&quot;
+      -i SampleSMILES.csv -o SampleOut.sdf</div>
+<h1 id="AUTHOR">AUTHOR</h2>
+<p><a href="mailto:msud@san.rr.com">Manish Sud</a></p>
+<h1 id="SEE-ALSO">SEE ALSO</h2>
+<p><a href="./RDKitConvertFileFormat.html">RDKitConvertFileFormat.py</a>, <a href="./RDKitEnumerateCompoundLibrary.html">RDKitEnumerateCompoundLibrary.py</a>, <a href="./RDKitPerformTorsionScan.html">RDKitPerformTorsionScan.py</a></p>
+<h1 id="COPYRIGHT">COPYRIGHT</h2>
+<p>Copyright (C) 2020 Manish Sud. All rights reserved.</p>
+<p>The functionality available in this script is implemented using RDKit, an open source toolkit for cheminformatics developed by Greg Landrum.</p>
+<p>This file is part of MayaChemTools.</p>
+<p>MayaChemTools is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.</p>
+<p>&nbsp</p><p>&nbsp</p><div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./RDKitPerformMinimization.html" title="RDKitPerformMinimization.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./RDKitPerformRGroupDecomposition.html" title="RDKitPerformRGroupDecomposition.html">Next</a></td><td width="34%" align="middle"><strong>August 27, 2020</strong></td><td width="33%" align="right"><strong>RDKitPerformPositionalAnalogueScan.py</strong></td></tr>
+</table>
+</div>
+<br />
+<center>
+<img src="../../images/h2o2.png">
+</center>
+</body>
+</html>

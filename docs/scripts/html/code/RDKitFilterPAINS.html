@@ -1,0 +1,686 @@
+<html>
+<head>
+<title>MayaChemTools:Code:RDKitFilterPAINS.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../../css/MayaChemToolsPythonCode.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<pre>
+   1 <span class="ch">#!/bin/env python</span>
+   2 <span class="c1">#</span>
+   3 <span class="c1"># File: RDKitFilterPAINS.py</span>
+   4 <span class="c1"># Author: Manish Sud &lt;msud@san.rr.com&gt;</span>
+   5 <span class="c1">#</span>
+   6 <span class="c1"># Copyright (C) 2020 Manish Sud. All rights reserved.</span>
+   7 <span class="c1">#</span>
+   8 <span class="c1"># The functionality available in this script is implemented using RDKit, an</span>
+   9 <span class="c1"># open source toolkit for cheminformatics developed by Greg Landrum.</span>
+  10 <span class="c1">#</span>
+  11 <span class="c1"># This file is part of MayaChemTools.</span>
+  12 <span class="c1">#</span>
+  13 <span class="c1"># MayaChemTools is free software; you can redistribute it and/or modify it under</span>
+  14 <span class="c1"># the terms of the GNU Lesser General Public License as published by the Free</span>
+  15 <span class="c1"># Software Foundation; either version 3 of the License, or (at your option) any</span>
+  16 <span class="c1"># later version.</span>
+  17 <span class="c1">#</span>
+  18 <span class="c1"># MayaChemTools is distributed in the hope that it will be useful, but without</span>
+  19 <span class="c1"># any warranty; without even the implied warranty of merchantability of fitness</span>
+  20 <span class="c1"># for a particular purpose.  See the GNU Lesser General Public License for more</span>
+  21 <span class="c1"># details.</span>
+  22 <span class="c1">#</span>
+  23 <span class="c1"># You should have received a copy of the GNU Lesser General Public License</span>
+  24 <span class="c1"># along with MayaChemTools; if not, see &lt;http://www.gnu.org/licenses/&gt; or</span>
+  25 <span class="c1"># write to the Free Software Foundation Inc., 59 Temple Place, Suite 330,</span>
+  26 <span class="c1"># Boston, MA, 02111-1307, USA.</span>
+  27 <span class="c1">#</span>
+  28 
+  29 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+  30 
+  31 <span class="c1"># Add local python path to the global path and import standard library modules...</span>
+  32 <span class="kn">import</span> <span class="nn">os</span>
+  33 <span class="kn">import</span> <span class="nn">sys</span><span class="p">;</span>  <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="s2">&quot;..&quot;</span><span class="p">,</span> <span class="s2">&quot;lib&quot;</span><span class="p">,</span> <span class="s2">&quot;Python&quot;</span><span class="p">))</span>
+  34 <span class="kn">import</span> <span class="nn">time</span>
+  35 <span class="kn">import</span> <span class="nn">re</span>
+  36 <span class="kn">import</span> <span class="nn">multiprocessing</span> <span class="kn">as</span> <span class="nn">mp</span>
+  37 
+  38 <span class="c1"># RDKit imports...</span>
+  39 <span class="k">try</span><span class="p">:</span>
+  40     <span class="kn">from</span> <span class="nn">rdkit</span> <span class="kn">import</span> <span class="n">rdBase</span>
+  41     <span class="kn">from</span> <span class="nn">rdkit</span> <span class="kn">import</span> <span class="n">Chem</span>
+  42     <span class="kn">from</span> <span class="nn">rdkit.Chem</span> <span class="kn">import</span> <span class="n">AllChem</span>
+  43 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+  44     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Failed to import RDKit module/package: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ErrMsg</span><span class="p">)</span>
+  45     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Check/update your RDKit environment and try again.</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+  46     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+  47 
+  48 <span class="c1"># MayaChemTools imports...</span>
+  49 <span class="k">try</span><span class="p">:</span>
+  50     <span class="kn">from</span> <span class="nn">docopt</span> <span class="kn">import</span> <span class="n">docopt</span>
+  51     <span class="kn">import</span> <span class="nn">MiscUtil</span>
+  52     <span class="kn">import</span> <span class="nn">RDKitUtil</span>
+  53 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+  54     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Failed to import MayaChemTools module/package: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ErrMsg</span><span class="p">)</span>
+  55     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Check/update your MayaChemTools environment and try again.</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+  56     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+  57 
+  58 <span class="n">ScriptName</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+  59 <span class="n">Options</span> <span class="o">=</span> <span class="p">{}</span>
+  60 <span class="n">OptionsInfo</span> <span class="o">=</span> <span class="p">{}</span>
+  61 
+  62 <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+  63     <span class="sd">&quot;&quot;&quot;Start execution of the script&quot;&quot;&quot;</span>
+  64     
+  65     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2"> (RDK v</span><span class="si">%s</span><span class="s2">; </span><span class="si">%s</span><span class="s2">): Starting...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ScriptName</span><span class="p">,</span> <span class="n">rdBase</span><span class="o">.</span><span class="n">rdkitVersion</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()))</span>
+  66     
+  67     <span class="p">(</span><span class="n">WallClockTime</span><span class="p">,</span> <span class="n">ProcessorTime</span><span class="p">)</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetWallClockAndProcessorTime</span><span class="p">()</span>
+  68     
+  69     <span class="c1"># Retrieve command line arguments and options...</span>
+  70     <span class="n">RetrieveOptions</span><span class="p">()</span>
+  71     
+  72     <span class="c1"># Process and validate command line arguments and options...</span>
+  73     <span class="n">ProcessOptions</span><span class="p">()</span>
+  74     
+  75     <span class="c1"># Perform actions required by the script...</span>
+  76     <span class="n">PerformFiltering</span><span class="p">()</span>
+  77     
+  78     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2">: Done...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ScriptName</span><span class="p">)</span>
+  79     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Total time: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetFormattedElapsedTime</span><span class="p">(</span><span class="n">WallClockTime</span><span class="p">,</span> <span class="n">ProcessorTime</span><span class="p">))</span>
+  80 
+  81 <span class="k">def</span> <span class="nf">PerformFiltering</span><span class="p">():</span>
+  82     <span class="sd">&quot;&quot;&quot;Filter molecules using SMARTS specified in PAINS filter file.&quot;&quot;&quot;</span>
+  83 
+  84     <span class="c1"># Setup PAINS patterns and pattern mols...</span>
+  85     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Setting up PAINS pattern molecules for performing substructure search...&quot;</span><span class="p">)</span>
+  86     <span class="n">PAINSPatterns</span> <span class="o">=</span> <span class="n">RetrievePAINSPatterns</span><span class="p">()</span>
+  87     <span class="n">PAINSPatternMols</span> <span class="o">=</span> <span class="n">SetupPAINSPatternMols</span><span class="p">(</span><span class="n">PAINSPatterns</span><span class="p">)</span>
+  88     
+  89     <span class="c1"># Setup a molecule reader...</span>
+  90     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Processing file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">])</span>
+  91     <span class="n">Mols</span>  <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">ReadMolecules</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">],</span> <span class="o">**</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileParams&quot;</span><span class="p">])</span>
+  92     
+  93     <span class="c1"># Set up molecule writers...</span>
+  94     <span class="n">Writer</span><span class="p">,</span> <span class="n">WriterFiltered</span> <span class="o">=</span> <span class="n">SetupMoleculeWriters</span><span class="p">()</span>
+  95     
+  96     <span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">RemainingMolCount</span> <span class="o">=</span> <span class="n">ProcessMolecules</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">PAINSPatternMols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">,</span> <span class="n">WriterFiltered</span><span class="p">)</span>
+  97     
+  98     <span class="k">if</span> <span class="n">Writer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+  99         <span class="n">Writer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+ 100     <span class="k">if</span> <span class="n">WriterFiltered</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+ 101         <span class="n">WriterFiltered</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+ 102     
+ 103     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Total number of molecules: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolCount</span><span class="p">)</span>
+ 104     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of valid molecules: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ValidMolCount</span><span class="p">)</span>
+ 105     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of ignored molecules: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MolCount</span> <span class="o">-</span> <span class="n">ValidMolCount</span><span class="p">))</span>
+ 106 
+ 107     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Number of remaining molecules: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">RemainingMolCount</span><span class="p">)</span>
+ 108     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of filtered molecules: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ValidMolCount</span> <span class="o">-</span> <span class="n">RemainingMolCount</span><span class="p">))</span>
+ 109 
+ 110 <span class="k">def</span> <span class="nf">ProcessMolecules</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">PAINSPatternMols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">,</span> <span class="n">WriterFiltered</span><span class="p">):</span>
+ 111     <span class="sd">&quot;&quot;&quot;Process and filter molecules. &quot;&quot;&quot;</span>
+ 112     
+ 113     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MPMode&quot;</span><span class="p">]:</span>
+ 114         <span class="k">return</span> <span class="n">ProcessMoleculesUsingMultipleProcesses</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">PAINSPatternMols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">,</span> <span class="n">WriterFiltered</span><span class="p">)</span>
+ 115     <span class="k">else</span><span class="p">:</span>
+ 116         <span class="k">return</span> <span class="n">ProcessMoleculesUsingSingleProcess</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">PAINSPatternMols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">,</span> <span class="n">WriterFiltered</span><span class="p">)</span>
+ 117 
+ 118 <span class="k">def</span> <span class="nf">ProcessMoleculesUsingSingleProcess</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">PAINSPatternMols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">,</span> <span class="n">WriterFiltered</span><span class="p">):</span>
+ 119     <span class="sd">&quot;&quot;&quot;Process and filter molecules using a single process.&quot;&quot;&quot;</span>
+ 120     
+ 121     <span class="n">NegateMatch</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;NegateMatch&quot;</span><span class="p">]</span>
+ 122     <span class="n">OutfileFilteredMode</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileFilteredMode&quot;</span><span class="p">]</span>
+ 123     <span class="n">Compute2DCoords</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">][</span><span class="s2">&quot;Compute2DCoords&quot;</span><span class="p">]</span>
+ 124     <span class="n">SetSMILESMolProps</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">][</span><span class="s2">&quot;SetSMILESMolProps&quot;</span><span class="p">]</span>
+ 125     
+ 126     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Filtering molecules...&quot;</span><span class="p">)</span>
+ 127     
+ 128     <span class="p">(</span><span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">RemainingMolCount</span><span class="p">)</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">3</span>
+ 129     <span class="n">FirstMol</span> <span class="o">=</span> <span class="bp">True</span>
+ 130     <span class="k">for</span> <span class="n">Mol</span> <span class="ow">in</span> <span class="n">Mols</span><span class="p">:</span>
+ 131         <span class="n">MolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 132 
+ 133         <span class="k">if</span> <span class="n">Mol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 134             <span class="k">continue</span>
+ 135         
+ 136         <span class="k">if</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">IsMolEmpty</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+ 137             <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">)</span>
+ 138             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Ignoring empty molecule: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolName</span><span class="p">)</span>
+ 139             <span class="k">continue</span>
+ 140         
+ 141         <span class="n">ValidMolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 142         <span class="k">if</span> <span class="n">FirstMol</span><span class="p">:</span>
+ 143             <span class="n">FirstMol</span> <span class="o">=</span> <span class="bp">False</span>
+ 144             <span class="k">if</span> <span class="n">SetSMILESMolProps</span><span class="p">:</span>
+ 145                 <span class="k">if</span> <span class="n">Writer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+ 146                     <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">SetWriterMolProps</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">)</span>
+ 147                 <span class="k">if</span> <span class="n">WriterFiltered</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+ 148                     <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">SetWriterMolProps</span><span class="p">(</span><span class="n">WriterFiltered</span><span class="p">,</span> <span class="n">Mol</span><span class="p">)</span>
+ 149         
+ 150         <span class="n">MolMatched</span> <span class="o">=</span> <span class="n">DoesMoleculeContainsPAINSPattern</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">PAINSPatternMols</span><span class="p">)</span>
+ 151         <span class="k">if</span> <span class="n">MolMatched</span> <span class="o">==</span> <span class="n">NegateMatch</span><span class="p">:</span>
+ 152             <span class="n">RemainingMolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 153             <span class="n">WriteMolecule</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">Compute2DCoords</span><span class="p">)</span>
+ 154         <span class="k">else</span><span class="p">:</span>
+ 155             <span class="k">if</span> <span class="n">OutfileFilteredMode</span><span class="p">:</span>
+ 156                 <span class="n">WriteMolecule</span><span class="p">(</span><span class="n">WriterFiltered</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">Compute2DCoords</span><span class="p">)</span>
+ 157     
+ 158     <span class="k">return</span> <span class="p">(</span><span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">RemainingMolCount</span><span class="p">)</span>
+ 159     
+ 160 <span class="k">def</span> <span class="nf">ProcessMoleculesUsingMultipleProcesses</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">PAINSPatternMols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">,</span> <span class="n">WriterFiltered</span><span class="p">):</span>
+ 161     <span class="sd">&quot;&quot;&quot;Process and filter molecules using multiprocessing.&quot;&quot;&quot;</span>
+ 162     
+ 163     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Filtering molecules using multiprocessing...&quot;</span><span class="p">)</span>
+ 164     
+ 165     <span class="n">MPParams</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MPParams&quot;</span><span class="p">]</span>
+ 166     <span class="n">NegateMatch</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;NegateMatch&quot;</span><span class="p">]</span>
+ 167     <span class="n">OutfileFilteredMode</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileFilteredMode&quot;</span><span class="p">]</span>
+ 168     <span class="n">Compute2DCoords</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">][</span><span class="s2">&quot;Compute2DCoords&quot;</span><span class="p">]</span>
+ 169     <span class="n">SetSMILESMolProps</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">][</span><span class="s2">&quot;SetSMILESMolProps&quot;</span><span class="p">]</span>
+ 170     
+ 171     <span class="c1"># Setup data for initializing a worker process...</span>
+ 172     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Encoding options info and PAINS pattern molecules...&quot;</span><span class="p">)</span>
+ 173     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;EncodedPAINSPatternMols&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MolToBase64EncodedMolString</span><span class="p">(</span><span class="n">PatternMol</span><span class="p">)</span> <span class="k">for</span> <span class="n">PatternMol</span> <span class="ow">in</span> <span class="n">PAINSPatternMols</span><span class="p">]</span>
+ 174     <span class="n">InitializeWorkerProcessArgs</span> <span class="o">=</span> <span class="p">(</span><span class="n">MiscUtil</span><span class="o">.</span><span class="n">ObjectToBase64EncodedString</span><span class="p">(</span><span class="n">Options</span><span class="p">),</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ObjectToBase64EncodedString</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">))</span>
+ 175 
+ 176     <span class="c1"># Setup a encoded mols data iterable for a worker process...</span>
+ 177     <span class="n">WorkerProcessDataIterable</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GenerateBase64EncodedMolStrings</span><span class="p">(</span><span class="n">Mols</span><span class="p">)</span>
+ 178 
+ 179     <span class="c1"># Setup process pool along with data initialization for each process...</span>
+ 180     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Configuring multiprocessing using </span><span class="si">%s</span><span class="s2"> method...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="s2">&quot;mp.Pool.imap()&quot;</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^Lazy$&quot;</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="s2">&quot;mp.Pool.map()&quot;</span><span class="p">))</span>
+ 181     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;NumProcesses: </span><span class="si">%s</span><span class="s2">; InputDataMode: </span><span class="si">%s</span><span class="s2">; ChunkSize: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;NumProcesses&quot;</span><span class="p">],</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">],</span> <span class="p">(</span><span class="s2">&quot;automatic&quot;</span> <span class="k">if</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;ChunkSize&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;ChunkSize&quot;</span><span class="p">])))</span>
+ 182     
+ 183     <span class="n">ProcessPool</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;NumProcesses&quot;</span><span class="p">],</span> <span class="n">InitializeWorkerProcess</span><span class="p">,</span> <span class="n">InitializeWorkerProcessArgs</span><span class="p">)</span>
+ 184     
+ 185     <span class="c1"># Start processing...</span>
+ 186     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^Lazy$&quot;</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 187         <span class="n">Results</span> <span class="o">=</span> <span class="n">ProcessPool</span><span class="o">.</span><span class="n">imap</span><span class="p">(</span><span class="n">WorkerProcess</span><span class="p">,</span> <span class="n">WorkerProcessDataIterable</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;ChunkSize&quot;</span><span class="p">])</span>
+ 188     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^InMemory$&quot;</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 189         <span class="n">Results</span> <span class="o">=</span> <span class="n">ProcessPool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">WorkerProcess</span><span class="p">,</span> <span class="n">WorkerProcessDataIterable</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;ChunkSize&quot;</span><span class="p">])</span>
+ 190     <span class="k">else</span><span class="p">:</span>
+ 191         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The value, </span><span class="si">%s</span><span class="s2">, specified for </span><span class="se">\&quot;</span><span class="s2">--inputDataMode</span><span class="se">\&quot;</span><span class="s2"> is not supported.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">]))</span>
+ 192     
+ 193     <span class="p">(</span><span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">RemainingMolCount</span><span class="p">)</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">3</span>
+ 194     <span class="n">FirstMol</span> <span class="o">=</span> <span class="bp">True</span>
+ 195     <span class="k">for</span> <span class="n">Result</span> <span class="ow">in</span> <span class="n">Results</span><span class="p">:</span>
+ 196         <span class="n">MolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 197         <span class="n">MolIndex</span><span class="p">,</span> <span class="n">EncodedMol</span><span class="p">,</span> <span class="n">MolMatched</span> <span class="o">=</span> <span class="n">Result</span>
+ 198         
+ 199         <span class="k">if</span> <span class="n">EncodedMol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 200             <span class="k">continue</span>
+ 201         <span class="n">ValidMolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 202         
+ 203         <span class="n">Mol</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MolFromBase64EncodedMolString</span><span class="p">(</span><span class="n">EncodedMol</span><span class="p">)</span>
+ 204         
+ 205         <span class="k">if</span> <span class="n">FirstMol</span><span class="p">:</span>
+ 206             <span class="n">FirstMol</span> <span class="o">=</span> <span class="bp">False</span>
+ 207             <span class="k">if</span> <span class="n">SetSMILESMolProps</span><span class="p">:</span>
+ 208                 <span class="k">if</span> <span class="n">Writer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+ 209                     <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">SetWriterMolProps</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">)</span>
+ 210                 <span class="k">if</span> <span class="n">WriterFiltered</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+ 211                     <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">SetWriterMolProps</span><span class="p">(</span><span class="n">WriterFiltered</span><span class="p">,</span> <span class="n">Mol</span><span class="p">)</span>
+ 212         
+ 213         <span class="k">if</span> <span class="n">MolMatched</span> <span class="o">==</span> <span class="n">NegateMatch</span><span class="p">:</span>
+ 214             <span class="n">RemainingMolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 215             <span class="n">WriteMolecule</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">Compute2DCoords</span><span class="p">)</span>
+ 216         <span class="k">else</span><span class="p">:</span>
+ 217             <span class="k">if</span> <span class="n">OutfileFilteredMode</span><span class="p">:</span>
+ 218                 <span class="n">WriteMolecule</span><span class="p">(</span><span class="n">WriterFiltered</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">Compute2DCoords</span><span class="p">)</span>
+ 219     
+ 220     <span class="k">return</span> <span class="p">(</span><span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">RemainingMolCount</span><span class="p">)</span>
+ 221 
+ 222 <span class="k">def</span> <span class="nf">InitializeWorkerProcess</span><span class="p">(</span><span class="o">*</span><span class="n">EncodedArgs</span><span class="p">):</span>
+ 223     <span class="sd">&quot;&quot;&quot;Initialize data for a worker process.&quot;&quot;&quot;</span>
+ 224 
+ 225     <span class="k">global</span> <span class="n">Options</span><span class="p">,</span> <span class="n">OptionsInfo</span>
+ 226     
+ 227     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Starting process (PID: </span><span class="si">%s</span><span class="s2">)...&quot;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">())</span>
+ 228 
+ 229     <span class="c1"># Decode Options and OptionInfo...</span>
+ 230     <span class="n">Options</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ObjectFromBase64EncodedString</span><span class="p">(</span><span class="n">EncodedArgs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+ 231     <span class="n">OptionsInfo</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ObjectFromBase64EncodedString</span><span class="p">(</span><span class="n">EncodedArgs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+ 232 
+ 233     <span class="c1"># Decode PAINSPatternMols...</span>
+ 234     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PAINSPatternMols&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MolFromBase64EncodedMolString</span><span class="p">(</span><span class="n">EncodedMol</span><span class="p">)</span> <span class="k">for</span> <span class="n">EncodedMol</span> <span class="ow">in</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;EncodedPAINSPatternMols&quot;</span><span class="p">]]</span>
+ 235     
+ 236 <span class="k">def</span> <span class="nf">WorkerProcess</span><span class="p">(</span><span class="n">EncodedMolInfo</span><span class="p">):</span>
+ 237     <span class="sd">&quot;&quot;&quot;Process data for a worker process.&quot;&quot;&quot;</span>
+ 238     
+ 239     <span class="n">MolIndex</span><span class="p">,</span> <span class="n">EncodedMol</span> <span class="o">=</span> <span class="n">EncodedMolInfo</span>
+ 240     
+ 241     <span class="k">if</span> <span class="n">EncodedMol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 242         <span class="k">return</span> <span class="p">[</span><span class="n">MolIndex</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">False</span><span class="p">]</span>
+ 243         
+ 244     <span class="n">Mol</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MolFromBase64EncodedMolString</span><span class="p">(</span><span class="n">EncodedMol</span><span class="p">)</span>
+ 245     <span class="k">if</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">IsMolEmpty</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+ 246         <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="p">(</span><span class="n">MolIndex</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+ 247         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Ignoring empty molecule: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolName</span><span class="p">)</span>
+ 248         <span class="k">return</span> <span class="p">[</span><span class="n">MolIndex</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">False</span><span class="p">]</span>
+ 249         
+ 250     <span class="n">MolMatched</span> <span class="o">=</span> <span class="n">DoesMoleculeContainsPAINSPattern</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PAINSPatternMols&quot;</span><span class="p">])</span>
+ 251 
+ 252     <span class="k">return</span> <span class="p">[</span><span class="n">MolIndex</span><span class="p">,</span> <span class="n">EncodedMol</span><span class="p">,</span> <span class="n">MolMatched</span><span class="p">]</span>
+ 253     
+ 254 <span class="k">def</span> <span class="nf">WriteMolecule</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">Compute2DCoords</span><span class="p">):</span>
+ 255     <span class="sd">&quot;&quot;&quot;Write out molecule.&quot;&quot;&quot;</span>
+ 256     
+ 257     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CountMode&quot;</span><span class="p">]:</span>
+ 258         <span class="k">return</span>
+ 259     
+ 260     <span class="k">if</span> <span class="n">Compute2DCoords</span><span class="p">:</span>
+ 261         <span class="n">AllChem</span><span class="o">.</span><span class="n">Compute2DCoords</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+ 262     
+ 263     <span class="n">Writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+ 264 
+ 265 <span class="k">def</span> <span class="nf">SetupMoleculeWriters</span><span class="p">():</span>
+ 266     <span class="sd">&quot;&quot;&quot;Setup molecule writers.&quot;&quot;&quot;</span>
+ 267     
+ 268     <span class="n">Writer</span> <span class="o">=</span> <span class="bp">None</span>
+ 269     <span class="n">WriterFiltered</span> <span class="o">=</span> <span class="bp">None</span>
+ 270 
+ 271     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CountMode&quot;</span><span class="p">]:</span>
+ 272         <span class="k">return</span> <span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">WriterFiltered</span><span class="p">)</span>
+ 273 
+ 274     <span class="n">Writer</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MoleculesWriter</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">],</span> <span class="o">**</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">])</span>
+ 275     <span class="k">if</span> <span class="n">Writer</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 276         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Failed to setup a writer for output fie </span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">])</span>
+ 277     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Generating file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">])</span>
+ 278     
+ 279     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileFilteredMode&quot;</span><span class="p">]:</span>
+ 280         <span class="n">WriterFiltered</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MoleculesWriter</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileFiltered&quot;</span><span class="p">],</span> <span class="o">**</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">])</span>
+ 281         <span class="k">if</span> <span class="n">WriterFiltered</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 282             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Failed to setup a writer for output fie </span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileFiltered&quot;</span><span class="p">])</span>
+ 283         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Generating file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileFiltered&quot;</span><span class="p">])</span>
+ 284     
+ 285     <span class="k">return</span> <span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">WriterFiltered</span><span class="p">)</span>
+ 286 
+ 287 <span class="k">def</span> <span class="nf">DoesMoleculeContainsPAINSPattern</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">PAINSPatternMols</span><span class="p">):</span>
+ 288     <span class="sd">&quot;&quot;&quot;Check presence of PAINS pattern in the molecule&quot;&quot;&quot;</span>
+ 289 
+ 290     <span class="n">MolMatched</span> <span class="o">=</span> <span class="bp">False</span>
+ 291     
+ 292     <span class="k">for</span> <span class="n">PatternMol</span> <span class="ow">in</span> <span class="n">PAINSPatternMols</span><span class="p">:</span>
+ 293         <span class="k">if</span> <span class="n">Mol</span><span class="o">.</span><span class="n">HasSubstructMatch</span><span class="p">(</span><span class="n">PatternMol</span><span class="p">,</span> <span class="n">useChirality</span> <span class="o">=</span> <span class="bp">True</span><span class="p">):</span>
+ 294             <span class="n">MolMatched</span> <span class="o">=</span> <span class="bp">True</span>
+ 295             <span class="k">break</span>
+ 296         
+ 297     <span class="k">return</span> <span class="n">MolMatched</span>
+ 298     
+ 299 <span class="k">def</span> <span class="nf">RetrievePAINSPatterns</span><span class="p">():</span>
+ 300     <span class="sd">&quot;&quot;&quot;Retrieve PAINS patterns for specified PAINS mode&quot;&quot;&quot;</span>
+ 301 
+ 302     <span class="n">SMARTSPatterns</span> <span class="o">=</span> <span class="p">[]</span>
+ 303     <span class="k">for</span> <span class="n">FilterType</span> <span class="ow">in</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SpecifiedFilterTypes&quot;</span><span class="p">]:</span>
+ 304         <span class="n">SMARTSPatterns</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PAINSFiltersMap&quot;</span><span class="p">][</span><span class="s2">&quot;SMARTS&quot;</span><span class="p">][</span><span class="n">FilterType</span><span class="p">])</span>
+ 305 
+ 306     <span class="k">return</span> <span class="n">SMARTSPatterns</span>
+ 307 
+ 308 <span class="k">def</span> <span class="nf">SetupPAINSPatternMols</span><span class="p">(</span><span class="n">PAINSPatterns</span><span class="p">):</span>
+ 309     <span class="sd">&quot;&quot;&quot;Set up PAINS pattern mols for substructure search&quot;&quot;&quot;</span>
+ 310 
+ 311     <span class="n">PatternMols</span> <span class="o">=</span> <span class="p">[]</span>
+ 312     <span class="k">for</span> <span class="n">Pattern</span> <span class="ow">in</span> <span class="n">PAINSPatterns</span><span class="p">:</span>
+ 313         <span class="n">PatternMol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmarts</span><span class="p">(</span><span class="n">Pattern</span><span class="p">)</span>
+ 314         <span class="k">if</span> <span class="n">PatternMol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 315             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Failed to convert PAINS pattern, </span><span class="si">%s</span><span class="s2">, into a molecule...&quot;</span> <span class="o">%</span> <span class="n">Pattern</span><span class="p">)</span>
+ 316             <span class="k">continue</span>
+ 317         <span class="n">PatternMols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">PatternMol</span><span class="p">)</span>
+ 318         
+ 319     <span class="k">return</span> <span class="n">PatternMols</span>    
+ 320 
+ 321 <span class="k">def</span> <span class="nf">ProcessPAINSMode</span><span class="p">():</span>
+ 322     <span class="sd">&quot;&quot;&quot;Process specified PAINS mode. &quot;&quot;&quot;</span>
+ 323     
+ 324     <span class="c1"># Retrieve filetrs information...</span>
+ 325     <span class="n">RetrievePAINSFiltersInfo</span><span class="p">()</span>
+ 326     
+ 327     <span class="c1"># Process PAINS mode...</span>
+ 328     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SpecifiedFilterTypes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PAINSFiltersMap&quot;</span><span class="p">][</span><span class="s2">&quot;FilterTypes&quot;</span><span class="p">]</span>
+ 329     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^All$&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PAINSMode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 330         <span class="k">return</span>
+ 331     
+ 332     <span class="n">PAINSMode</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PAINSMode&quot;</span><span class="p">])</span>
+ 333     <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">PAINSMode</span><span class="p">):</span>
+ 334         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The PAINSMode mode specified using </span><span class="se">\&quot;</span><span class="s2">-p, --painsMode</span><span class="se">\&quot;</span><span class="s2"> option are empty.&quot;</span><span class="p">)</span>
+ 335 
+ 336     <span class="n">CanonicalFilterTypesMap</span> <span class="o">=</span> <span class="p">{}</span>
+ 337     <span class="k">for</span> <span class="n">FilterType</span> <span class="ow">in</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PAINSFiltersMap&quot;</span><span class="p">][</span><span class="s2">&quot;FilterTypes&quot;</span><span class="p">]:</span>
+ 338         <span class="n">CanonicalFilterTypesMap</span><span class="p">[</span><span class="n">FilterType</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span> <span class="o">=</span> <span class="n">FilterType</span>
+ 339 
+ 340     <span class="n">SpecifiedFilterTypes</span> <span class="o">=</span> <span class="p">[]</span>
+ 341     <span class="k">for</span> <span class="n">FilterType</span> <span class="ow">in</span> <span class="n">PAINSMode</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">):</span>
+ 342         <span class="n">CanonicalFilterType</span> <span class="o">=</span> <span class="n">FilterType</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+ 343         <span class="k">if</span> <span class="ow">not</span> <span class="n">CanonicalFilterType</span> <span class="ow">in</span> <span class="n">CanonicalFilterTypesMap</span><span class="p">:</span>
+ 344             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The PAINS mode, </span><span class="si">%s</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-p, --PAINSMode</span><span class="se">\&quot;</span><span class="s2"> is not valid. Supported PAINS modes: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">FilterType</span><span class="p">,</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PAINSFiltersMap&quot;</span><span class="p">][</span><span class="s2">&quot;FilterTypes&quot;</span><span class="p">])))</span>
+ 345 
+ 346         <span class="n">SpecifiedFilterTypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">CanonicalFilterTypesMap</span><span class="p">[</span><span class="n">CanonicalFilterType</span><span class="p">])</span>
+ 347 
+ 348     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SpecifiedFilterTypes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">SpecifiedFilterTypes</span>
+ 349 
+ 350 <span class="k">def</span> <span class="nf">RetrievePAINSFiltersInfo</span><span class="p">():</span>
+ 351     <span class="sd">&quot;&quot;&quot;Retrieve information for PAINS filters.&quot;&quot;&quot;</span>
+ 352     
+ 353     <span class="n">MayaChemToolsDataDir</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetMayaChemToolsLibDataPath</span><span class="p">()</span>
+ 354     <span class="n">PAINSFiltersFilePath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">MayaChemToolsDataDir</span><span class="p">,</span> <span class="s2">&quot;PAINSFilters.csv&quot;</span><span class="p">)</span>
+ 355     
+ 356     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Retrieving PAINS SMARTS patterns from file </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">PAINSFiltersFilePath</span><span class="p">))</span>
+ 357 
+ 358     <span class="n">Delimiter</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span>
+ 359     <span class="n">QuoteChar</span> <span class="o">=</span> <span class="s1">&#39;&quot;&#39;</span>
+ 360     <span class="n">IgnoreHeaderLine</span> <span class="o">=</span> <span class="bp">True</span>
+ 361     <span class="n">FilterLinesWords</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetTextLinesWords</span><span class="p">(</span><span class="n">PAINSFiltersFilePath</span><span class="p">,</span> <span class="n">Delimiter</span><span class="p">,</span> <span class="n">QuoteChar</span><span class="p">,</span> <span class="n">IgnoreHeaderLine</span><span class="p">)</span>
+ 362 
+ 363     <span class="n">PAINSFiltersMap</span> <span class="o">=</span> <span class="p">{}</span>
+ 364     <span class="n">PAINSFiltersMap</span><span class="p">[</span><span class="s2">&quot;FilterTypes&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+ 365     <span class="n">PAINSFiltersMap</span><span class="p">[</span><span class="s2">&quot;ID&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+ 366     <span class="n">PAINSFiltersMap</span><span class="p">[</span><span class="s2">&quot;SMARTS&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+ 367 
+ 368     <span class="k">for</span> <span class="n">LineWords</span> <span class="ow">in</span> <span class="n">FilterLinesWords</span><span class="p">:</span>
+ 369         <span class="n">FilterType</span> <span class="o">=</span> <span class="n">LineWords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+ 370         <span class="n">ID</span> <span class="o">=</span> <span class="n">LineWords</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+ 371         <span class="n">SMARTS</span> <span class="o">=</span> <span class="n">LineWords</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+ 372 
+ 373         <span class="k">if</span> <span class="ow">not</span> <span class="n">FilterType</span> <span class="ow">in</span> <span class="n">PAINSFiltersMap</span><span class="p">[</span><span class="s2">&quot;FilterTypes&quot;</span><span class="p">]:</span>
+ 374             <span class="n">PAINSFiltersMap</span><span class="p">[</span><span class="s2">&quot;FilterTypes&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">FilterType</span><span class="p">)</span>
+ 375             <span class="n">PAINSFiltersMap</span><span class="p">[</span><span class="s2">&quot;ID&quot;</span><span class="p">][</span><span class="n">FilterType</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+ 376             <span class="n">PAINSFiltersMap</span><span class="p">[</span><span class="s2">&quot;SMARTS&quot;</span><span class="p">][</span><span class="n">FilterType</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+ 377 
+ 378         <span class="n">PAINSFiltersMap</span><span class="p">[</span><span class="s2">&quot;ID&quot;</span><span class="p">][</span><span class="n">FilterType</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ID</span><span class="p">)</span>
+ 379         <span class="n">PAINSFiltersMap</span><span class="p">[</span><span class="s2">&quot;SMARTS&quot;</span><span class="p">][</span><span class="n">FilterType</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SMARTS</span><span class="p">)</span>
+ 380 
+ 381     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PAINSFiltersMap&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">PAINSFiltersMap</span>
+ 382     
+ 383     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Total number filters: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="nb">len</span><span class="p">(</span><span class="n">FilterLinesWords</span><span class="p">))</span>
+ 384     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of filter family types: </span><span class="si">%d</span><span class="se">\n</span><span class="s2">Filter familty types: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">PAINSFiltersMap</span><span class="p">[</span><span class="s2">&quot;FilterTypes&quot;</span><span class="p">]),</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">PAINSFiltersMap</span><span class="p">[</span><span class="s2">&quot;FilterTypes&quot;</span><span class="p">])))</span>
+ 385 
+ 386     <span class="k">for</span> <span class="n">FilterType</span> <span class="ow">in</span> <span class="n">PAINSFiltersMap</span><span class="p">[</span><span class="s2">&quot;FilterTypes&quot;</span><span class="p">]:</span>
+ 387         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Filter family type: </span><span class="si">%s</span><span class="s2">; Number of filters: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">FilterType</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">PAINSFiltersMap</span><span class="p">[</span><span class="s2">&quot;ID&quot;</span><span class="p">][</span><span class="n">FilterType</span><span class="p">])))</span>
+ 388 
+ 389 <span class="k">def</span> <span class="nf">ProcessOptions</span><span class="p">():</span>
+ 390     <span class="sd">&quot;&quot;&quot;Process and validate command line arguments and options&quot;&quot;&quot;</span>
+ 391     
+ 392     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Processing options...&quot;</span><span class="p">)</span>
+ 393     
+ 394     <span class="c1"># Validate options...</span>
+ 395     <span class="n">ValidateOptions</span><span class="p">()</span>
+ 396     
+ 397     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">]</span>
+ 398     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileParams&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ProcessOptionInfileParameters</span><span class="p">(</span><span class="s2">&quot;--infileParams&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infileParams&quot;</span><span class="p">],</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">])</span>
+ 399     
+ 400     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">]</span>
+ 401     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ProcessOptionOutfileParameters</span><span class="p">(</span><span class="s2">&quot;--outfileParams&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfileParams&quot;</span><span class="p">],</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">],</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">])</span>
+ 402     
+ 403     <span class="n">FileDir</span><span class="p">,</span> <span class="n">FileName</span><span class="p">,</span> <span class="n">FileExt</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ParseFileName</span><span class="p">(</span><span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">])</span>
+ 404     <span class="n">OutfileFiltered</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">_Filtered.</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="n">FileExt</span><span class="p">)</span>
+ 405     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileFiltered&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OutfileFiltered</span>
+ 406     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileFilteredMode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^yes$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfileFiltered&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+ 407     
+ 408     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Overwrite&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--overwrite&quot;</span><span class="p">]</span>
+ 409 
+ 410     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CountMode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^count$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+ 411     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;NegateMatch&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^yes$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--negate&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+ 412 
+ 413     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MPMode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^yes$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mp&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+ 414     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MPParams&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ProcessOptionMultiprocessingParameters</span><span class="p">(</span><span class="s2">&quot;--mpParams&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mpParams&quot;</span><span class="p">])</span>
+ 415 
+ 416     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PAINSMode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--painsMode&quot;</span><span class="p">]</span>
+ 417     <span class="n">ProcessPAINSMode</span><span class="p">()</span>
+ 418     
+ 419 <span class="k">def</span> <span class="nf">RetrieveOptions</span><span class="p">():</span>
+ 420     <span class="sd">&quot;&quot;&quot;Retrieve command line arguments and options&quot;&quot;&quot;</span>
+ 421     
+ 422     <span class="c1"># Get options...</span>
+ 423     <span class="k">global</span> <span class="n">Options</span>
+ 424     <span class="n">Options</span> <span class="o">=</span> <span class="n">docopt</span><span class="p">(</span><span class="n">_docoptUsage_</span><span class="p">)</span>
+ 425     
+ 426     <span class="c1"># Set current working directory to the specified directory...</span>
+ 427     <span class="n">WorkingDir</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--workingdir&quot;</span><span class="p">]</span>
+ 428     <span class="k">if</span> <span class="n">WorkingDir</span><span class="p">:</span>
+ 429         <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">WorkingDir</span><span class="p">)</span>
+ 430     
+ 431     <span class="c1"># Handle examples option...</span>
+ 432     <span class="k">if</span> <span class="s2">&quot;--examples&quot;</span> <span class="ow">in</span> <span class="n">Options</span> <span class="ow">and</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--examples&quot;</span><span class="p">]:</span>
+ 433         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetExamplesTextFromDocOptText</span><span class="p">(</span><span class="n">_docoptUsage_</span><span class="p">))</span>
+ 434         <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+ 435 
+ 436 <span class="k">def</span> <span class="nf">ValidateOptions</span><span class="p">():</span>
+ 437     <span class="sd">&quot;&quot;&quot;Validate option values&quot;&quot;&quot;</span>
+ 438     
+ 439     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFilePath</span><span class="p">(</span><span class="s2">&quot;-i, --infile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">])</span>
+ 440     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFileExt</span><span class="p">(</span><span class="s2">&quot;-i, --infile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">],</span> <span class="s2">&quot;sdf sd smi txt csv tsv&quot;</span><span class="p">)</span>
+ 441     
+ 442     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFileExt</span><span class="p">(</span><span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">],</span> <span class="s2">&quot;sdf sd smi&quot;</span><span class="p">)</span>
+ 443     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionsOutputFileOverwrite</span><span class="p">(</span><span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">],</span> <span class="s2">&quot;--overwrite&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--overwrite&quot;</span><span class="p">])</span>
+ 444     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionsDistinctFileNames</span><span class="p">(</span><span class="s2">&quot;-i, --infile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">],</span> <span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">])</span>
+ 445 
+ 446     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;--outfileFiltered&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfileFiltered&quot;</span><span class="p">],</span> <span class="s2">&quot;yes no&quot;</span><span class="p">)</span>
+ 447     
+ 448     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;-m, --mode&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mode&quot;</span><span class="p">],</span> <span class="s2">&quot;filter count&quot;</span><span class="p">)</span>
+ 449     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^filter$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 450         <span class="k">if</span> <span class="ow">not</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">]:</span>
+ 451             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The outfile must be specified using </span><span class="se">\&quot;</span><span class="s2">-o, --outfile</span><span class="se">\&quot;</span><span class="s2"> during </span><span class="se">\&quot;</span><span class="s2">filter</span><span class="se">\&quot;</span><span class="s2"> value of </span><span class="se">\&quot;</span><span class="s2">-m, --mode</span><span class="se">\&quot;</span><span class="s2"> option&quot;</span><span class="p">)</span>
+ 452         
+ 453     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;--mp&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mp&quot;</span><span class="p">],</span> <span class="s2">&quot;yes no&quot;</span><span class="p">)</span>
+ 454     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;-n, --negate&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--negate&quot;</span><span class="p">],</span> <span class="s2">&quot;yes no&quot;</span><span class="p">)</span>
+ 455     
+ 456 <span class="c1"># Setup a usage string for docopt...</span>
+ 457 <span class="n">_docoptUsage_</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+ 458 <span class="s2">RDKitFilterPAINS.py - Filter PAINS molecules</span>
+ 459 
+ 460 <span class="s2">Usage:</span>
+ 461 <span class="s2">    RDKitFilterPAINS.py  [--infileParams &lt;Name,Value,...&gt;] [--mode &lt;filter or count&gt;]</span>
+ 462 <span class="s2">                         [--mp &lt;yes or no&gt;] [--mpParams &lt;Name.Value,...&gt;]</span>
+ 463 <span class="s2">                         [--outfileFiltered &lt;yes or no&gt;] [ --outfileParams &lt;Name,Value,...&gt; ]</span>
+ 464 <span class="s2">                         [--painsMode &lt;All or A, B, C&gt;] [--negate &lt;yes or no&gt;]</span>
+ 465 <span class="s2">                         [--overwrite] [-w &lt;dir&gt;] -i &lt;infile&gt; -o &lt;outfile&gt;</span>
+ 466 <span class="s2">    RDKitFilterPAINS.py -h | --help | -e | --examples</span>
+ 467 
+ 468 <span class="s2">Description:</span>
+ 469 <span class="s2">    Filter Pan-assay Interference molecules (PAINS) [ Ref 130 - 131 ] from an input</span>
+ 470 <span class="s2">    file by performing a substructure search using SMARTS pattern specified in</span>
+ 471 <span class="s2">    MAYACHEMTOOLS/lib/data/PAINSFilters.csv file and write out appropriate</span>
+ 472 <span class="s2">    molecules to an output file or simply count the number of filtered molecules.</span>
+ 473 
+ 474 <span class="s2">    The supported input file formats are: SD (.sdf, .sd), SMILES (.smi, .csv,</span>
+ 475 <span class="s2">    .tsv, .txt)</span>
+ 476 
+ 477 <span class="s2">    The supported output file formats are: SD (.sdf, .sd), SMILES (.smi)</span>
+ 478 
+ 479 <span class="s2">Options:</span>
+ 480 <span class="s2">    -e, --examples</span>
+ 481 <span class="s2">        Print examples.</span>
+ 482 <span class="s2">    -h, --help</span>
+ 483 <span class="s2">        Print this help message.</span>
+ 484 <span class="s2">    -i, --infile &lt;infile&gt;</span>
+ 485 <span class="s2">        Input file name.</span>
+ 486 <span class="s2">    --infileParams &lt;Name,Value,...&gt;  [default: auto]</span>
+ 487 <span class="s2">        A comma delimited list of parameter name and value pairs for reading</span>
+ 488 <span class="s2">        molecules from files. The supported parameter names for different file</span>
+ 489 <span class="s2">        formats, along with their default values, are shown below:</span>
+ 490 <span class="s2">            </span>
+ 491 <span class="s2">            SD: removeHydrogens,yes,sanitize,yes,strictParsing,yes</span>
+ 492 <span class="s2">            SMILES: smilesColumn,1,smilesNameColumn,2,smilesDelimiter,space,</span>
+ 493 <span class="s2">                smilesTitleLine,auto,sanitize,yes</span>
+ 494 <span class="s2">            </span>
+ 495 <span class="s2">        Possible values for smilesDelimiter: space, comma or tab.</span>
+ 496 <span class="s2">    -m, --mode &lt;filter or count&gt;  [default: filter]</span>
+ 497 <span class="s2">        Specify whether to filter the matched molecules and write out the rest of the </span>
+ 498 <span class="s2">        molecules to an outfile or simply count the number of matched molecules</span>
+ 499 <span class="s2">        marked for filtering.</span>
+ 500 <span class="s2">    --mp &lt;yes or no&gt;  [default: no]</span>
+ 501 <span class="s2">        Use multiprocessing.</span>
+ 502 <span class="s2">         </span>
+ 503 <span class="s2">        By default, input data is retrieved in a lazy manner via mp.Pool.imap()</span>
+ 504 <span class="s2">        function employing lazy RDKit data iterable. This allows processing of</span>
+ 505 <span class="s2">        arbitrary large data sets without any additional requirements memory.</span>
+ 506 <span class="s2">        </span>
+ 507 <span class="s2">        All input data may be optionally loaded into memory by mp.Pool.map()</span>
+ 508 <span class="s2">        before starting worker processes in a process pool by setting the value</span>
+ 509 <span class="s2">        of &#39;inputDataMode&#39; to &#39;InMemory&#39; in &#39;--mpParams&#39; option.</span>
+ 510 <span class="s2">        </span>
+ 511 <span class="s2">        A word to the wise: The default &#39;chunkSize&#39; value of 1 during &#39;Lazy&#39; input</span>
+ 512 <span class="s2">        data mode may adversely impact the performance. The &#39;--mpParams&#39; section</span>
+ 513 <span class="s2">        provides additional information to tune the value of &#39;chunkSize&#39;.</span>
+ 514 <span class="s2">    --mpParams &lt;Name,Value,...&gt;  [default: auto]</span>
+ 515 <span class="s2">        A comma delimited list of parameter name and value pairs for to</span>
+ 516 <span class="s2">        configure multiprocessing.</span>
+ 517 <span class="s2">        </span>
+ 518 <span class="s2">        The supported parameter names along with their default and possible</span>
+ 519 <span class="s2">        values are shown below:</span>
+ 520 <span class="s2">        </span>
+ 521 <span class="s2">            chunkSize, auto</span>
+ 522 <span class="s2">            inputDataMode, Lazy   [ Possible values: InMemory or Lazy ]</span>
+ 523 <span class="s2">            numProcesses, auto   [ Default: mp.cpu_count() ]</span>
+ 524 <span class="s2">        </span>
+ 525 <span class="s2">        These parameters are used by the following functions to configure and</span>
+ 526 <span class="s2">        control the behavior of multiprocessing: mp.Pool(), mp.Pool.map(), and</span>
+ 527 <span class="s2">        mp.Pool.imap().</span>
+ 528 <span class="s2">        </span>
+ 529 <span class="s2">        The chunkSize determines chunks of input data passed to each worker</span>
+ 530 <span class="s2">        process in a process pool by mp.Pool.map() and mp.Pool.imap() functions.</span>
+ 531 <span class="s2">        The default value of chunkSize is dependent on the value of &#39;inputDataMode&#39;.</span>
+ 532 <span class="s2">        </span>
+ 533 <span class="s2">        The mp.Pool.map() function, invoked during &#39;InMemory&#39; input data mode,</span>
+ 534 <span class="s2">        automatically converts RDKit data iterable into a list, loads all data into</span>
+ 535 <span class="s2">        memory, and calculates the default chunkSize using the following method</span>
+ 536 <span class="s2">        as shown in its code:</span>
+ 537 <span class="s2">        </span>
+ 538 <span class="s2">            chunkSize, extra = divmod(len(dataIterable), len(numProcesses) * 4)</span>
+ 539 <span class="s2">            if extra: chunkSize += 1</span>
+ 540 <span class="s2">        </span>
+ 541 <span class="s2">        For example, the default chunkSize will be 7 for a pool of 4 worker processes</span>
+ 542 <span class="s2">        and 100 data items.</span>
+ 543 <span class="s2">        </span>
+ 544 <span class="s2">        The mp.Pool.imap() function, invoked during &#39;Lazy&#39; input data mode, employs</span>
+ 545 <span class="s2">        &#39;lazy&#39; RDKit data iterable to retrieve data as needed, without loading all the</span>
+ 546 <span class="s2">        data into memory. Consequently, the size of input data is not known a priori.</span>
+ 547 <span class="s2">        It&#39;s not possible to estimate an optimal value for the chunkSize. The default </span>
+ 548 <span class="s2">        chunkSize is set to 1.</span>
+ 549 <span class="s2">        </span>
+ 550 <span class="s2">        The default value for the chunkSize during &#39;Lazy&#39; data mode may adversely</span>
+ 551 <span class="s2">        impact the performance due to the overhead associated with exchanging</span>
+ 552 <span class="s2">        small chunks of data. It is generally a good idea to explicitly set chunkSize to</span>
+ 553 <span class="s2">        a larger value during &#39;Lazy&#39; input data mode, based on the size of your input</span>
+ 554 <span class="s2">        data and number of processes in the process pool.</span>
+ 555 <span class="s2">        </span>
+ 556 <span class="s2">        The mp.Pool.map() function waits for all worker processes to process all</span>
+ 557 <span class="s2">        the data and return the results. The mp.Pool.imap() function, however,</span>
+ 558 <span class="s2">        returns the the results obtained from worker processes as soon as the</span>
+ 559 <span class="s2">        results become available for specified chunks of data.</span>
+ 560 <span class="s2">        </span>
+ 561 <span class="s2">        The order of data in the results returned by both mp.Pool.map() and </span>
+ 562 <span class="s2">        mp.Pool.imap() functions always corresponds to the input data.</span>
+ 563 <span class="s2">    -n, --negate &lt;yes or no&gt;  [default: no]</span>
+ 564 <span class="s2">        Specify whether to filter molecules not matching the PAINS filters specified by</span>
+ 565 <span class="s2">        SMARTS patterns.</span>
+ 566 <span class="s2">    -o, --outfile &lt;outfile&gt;</span>
+ 567 <span class="s2">        Output file name.</span>
+ 568 <span class="s2">    --outfileFiltered &lt;yes or no&gt;  [default: no]</span>
+ 569 <span class="s2">        Write out a file containing filtered molecules. Its name is automatically</span>
+ 570 <span class="s2">        generated from the specified output file. Default: &lt;OutfileRoot&gt;_</span>
+ 571 <span class="s2">        Filtered.&lt;OutfileExt&gt;.</span>
+ 572 <span class="s2">    --outfileParams &lt;Name,Value,...&gt;  [default: auto]</span>
+ 573 <span class="s2">        A comma delimited list of parameter name and value pairs for writing</span>
+ 574 <span class="s2">        molecules to files. The supported parameter names for different file</span>
+ 575 <span class="s2">        formats, along with their default values, are shown below:</span>
+ 576 <span class="s2">            </span>
+ 577 <span class="s2">            SD: compute2DCoords,auto,kekulize,no</span>
+ 578 <span class="s2">            SMILES: kekulize,no,smilesDelimiter,space, smilesIsomeric,yes,</span>
+ 579 <span class="s2">                smilesTitleLine,yes,smilesMolName,yes,smilesMolProps,no</span>
+ 580 <span class="s2">            </span>
+ 581 <span class="s2">        Default value for compute2DCoords: yes for SMILES input file; no for all other</span>
+ 582 <span class="s2">        file types.</span>
+ 583 <span class="s2">    --overwrite</span>
+ 584 <span class="s2">        Overwrite existing files.</span>
+ 585 <span class="s2">    -p, --painsMode &lt;All or A, B, or C&gt;  [default: All]</span>
+ 586 <span class="s2">        All or a comma delimited list of PAINS filter family type to used for</span>
+ 587 <span class="s2">        filtering molecules. </span>
+ 588 <span class="s2">    -w, --workingdir &lt;dir&gt;</span>
+ 589 <span class="s2">        Location of working directory which defaults to the current directory.</span>
+ 590 
+ 591 <span class="s2">Examples:</span>
+ 592 <span class="s2">    To count the number of molecules not containing any substructure corresponding to</span>
+ 593 <span class="s2">    PAINS SMARTS patterns and write out a SMILES file, type: </span>
+ 594 
+ 595 <span class="s2">        % RDKitFilterPAINS.py -i Sample.smi -o SampleOut.smi</span>
+ 596 
+ 597 <span class="s2">    To count the number of molecules not containing any substructure corresponding to</span>
+ 598 <span class="s2">    PAINS SMARTS patterns, perform filtering in multiprocessing mode on all available</span>
+ 599 <span class="s2">    CPUs without loading all data into memory, and write out a SMILES file, type: </span>
+ 600 
+ 601 <span class="s2">        % RDKitFilterPAINS.py --mp yes -i Sample.smi -o SampleOut.smi</span>
+ 602 
+ 603 <span class="s2">    To count the number of molecules not containing any substructure corresponding to</span>
+ 604 <span class="s2">    PAINS SMARTS patterns, perform filtering in multiprocessing mode on all available</span>
+ 605 <span class="s2">    CPUs by loading all data into memory, and write out a SMILES file, type: </span>
+ 606 
+ 607 <span class="s2">        % RDKitFilterPAINS.py --mp yes --mpParams &quot;inputDataMode,InMemory&quot;</span>
+ 608 <span class="s2">          -i Sample.smi -o SampleOut.smi</span>
+ 609 
+ 610 <span class="s2">    To count the number of molecules not containing any substructure corresponding to</span>
+ 611 <span class="s2">    PAINS SMARTS patterns, perform filtering in multiprocessing mode on specific</span>
+ 612 <span class="s2">    number of CPUs and chunk size without loading all data into memory, and</span>
+ 613 <span class="s2">    write out a SMILES file, type: </span>
+ 614 
+ 615 <span class="s2">        % RDKitFilterPAINS.py --mp yes --mpParams &quot;inputDataMode,Lazy,</span>
+ 616 <span class="s2">          numProcesses,4,chunkSize,8&quot; -i Sample.smi -o SampleOut.smi</span>
+ 617 
+ 618 <span class="s2">    To count the number of molecules not containing any substructure corresponding to</span>
+ 619 <span class="s2">    PAINS SMARTS patterns and write out a SMILES file containing these and filtered</span>
+ 620 <span class="s2">    molecules, type: </span>
+ 621 
+ 622 <span class="s2">        % RDKitFilterPAINS.py --outfileFiltered yes -i Sample.smi</span>
+ 623 <span class="s2">          -o SampleOut.smi</span>
+ 624 
+ 625 <span class="s2">    To only count the number of molecules not containing any substructure corresponding</span>
+ 626 <span class="s2">    to PAINS SMARTS patterns without writing out any file, type: </span>
+ 627 
+ 628 <span class="s2">        % RDKitFilterPAINS.py -m count -i Sample.sdf -o SampleOut.smi</span>
+ 629 
+ 630 <span class="s2">    To count the number of molecules containing any substructure corresponding to</span>
+ 631 <span class="s2">    PAINS SMARTS patterns and write out a SD file with computed 2D coordinates,</span>
+ 632 <span class="s2">    type: </span>
+ 633 
+ 634 <span class="s2">        % RDKitFilterPAINS.py -n yes -i Sample.smi -o SampleOut.sdf</span>
+ 635 
+ 636 <span class="s2">    To count the number of molecules not containing any substructure corresponding to</span>
+ 637 <span class="s2">    PAINS SMARTS patterns family of Type A in a CSV SMILES file and write out a SD file, type: </span>
+ 638 
+ 639 <span class="s2">        % RDKitFilterPAINS.py --painsMode A --infileParams</span>
+ 640 <span class="s2">          &quot;smilesDelimiter,comma,smilesTitleLine,yes,smilesColumn,1,</span>
+ 641 <span class="s2">          smilesNameColumn,2&quot; --outfileParams &quot;compute2DCoords,yes&quot;</span>
+ 642 <span class="s2">          -i SampleSMILES.csv -o SampleOut.sdf</span>
+ 643 
+ 644 <span class="s2">Author:</span>
+ 645 <span class="s2">    Manish Sud(msud@san.rr.com)</span>
+ 646 
+ 647 <span class="s2">See also:</span>
+ 648 <span class="s2">    RDKitFilterChEMBLAlerts.py, RDKitConvertFileFormat.py, RDKitSearchSMARTS.py</span>
+ 649 
+ 650 <span class="s2">Copyright:</span>
+ 651 <span class="s2">    Copyright (C) 2020 Manish Sud. All rights reserved.</span>
+ 652 
+ 653 <span class="s2">    The functionality available in this script is implemented using RDKit, an</span>
+ 654 <span class="s2">    open source toolkit for cheminformatics developed by Greg Landrum.</span>
+ 655 
+ 656 <span class="s2">    This file is part of MayaChemTools.</span>
+ 657 
+ 658 <span class="s2">    MayaChemTools is free software; you can redistribute it and/or modify it under</span>
+ 659 <span class="s2">    the terms of the GNU Lesser General Public License as published by the Free</span>
+ 660 <span class="s2">    Software Foundation; either version 3 of the License, or (at your option) any</span>
+ 661 <span class="s2">    later version.</span>
+ 662 
+ 663 <span class="s2">&quot;&quot;&quot;</span>
+ 664 
+ 665 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+ 666     <span class="n">main</span><span class="p">()</span>
+</pre>
+<br />
+<center>
+<img src="../../../images/h2o2.png">
+</center>
+</body>
+</html>

@@ -1,0 +1,109 @@
+NAME
+    PyMOLAlignChains.py - Align chains
+
+SYNOPSIS
+    PyMOLAlignChains.py [--alignMethod <align, cealign, super>] [--alignMode
+    <FirstChain or Complex>] [--alignRefFile <filename>] [--outSuffix
+    <text>] [--overwrite] [-w <dir>] -i <infile1,infile2,infile3...>
+
+    PyMOLAlignChains.py -h | --help | -e | --examples
+
+DESCRIPTION
+    Align chains in input files to a reference file and write out aligned
+    files.
+
+    The supported input and output file format are: PDB (.pdb), CIF(.cif)
+
+    The names of the aligned output files are automatically generated from
+    the names of input as shown below:
+
+        <InfileRoot><OutSuffux>.pdb
+        Default: <InfileRoot>_Aligned.pdb
+
+OPTIONS
+    -a, --alignMethod <align, cealign, super> [default: super]
+        Alignment methodology to use for aligning input files to a reference
+        file.
+
+    --alignMode <FirstChain or Complex> [default: FirstChain]
+        Portion of input and reference files to use for spatial alignment of
+        input files against reference file. Possible values: FirstChain or
+        Complex.
+
+        The FirstChain mode allows alignment of the first chain in each
+        input file to the first chain in the reference file along with
+        moving the rest of the complex to coordinate space of the reference
+        file. The complete complex in each input file is aligned to the
+        complete complex in reference file for the Complex mode.
+
+    --alignRefFile <filename> [default: FirstInputFile]
+        Reference input file name. The default is to use the first input
+        file name specified using '-i, --infiles' option.
+
+    -e, --examples
+        Print examples.
+
+    -h, --help
+        Print this help message.
+
+    -i, --infiles <infile1,infile2,...>
+        A comma delimited list of input files. The wildcards are also
+        allowed in file names.
+
+    --outSuffix <text> [default: _Aligned]
+        Suffix to append to input file root for generating name of output
+        file.
+
+    --overwrite
+        Overwrite existing files.
+
+    -w, --workingdir <dir>
+        Location of working directory which defaults to the current
+        directory.
+
+EXAMPLES
+    To align first chain in all input files to the first chain in first
+    input file and write out aligned output files, type:
+
+        % PyMOLAlignChains.py -i "Sample3.pdb,Sample4.pdb,Sample5.pdb"
+
+    To align first chain in all input files to the first chain in specific
+    reference file and write out aligned output files, type:
+
+        % PyMOLAlignChains.py --alignRefFile Sample5.pdb
+          -i "Sample3.pdb,Sample4.pdb,Sample5.pdb"
+
+    To align first chain in all input files to the first chain in first
+    input file using a specific alignment method and write out aligned
+    output files with specific suffix in names, type:
+
+        % PyMOLAlignChains.py --alignMethod cealign --outSuffix "_aligned"
+          -i "Sample3.pdb,Sample4.pdb,Sample5.pdb"
+
+    To align all chains in each input files to all chains in first input
+    file and write out aligned output files, type:
+
+        % PyMOLAlignChains.py --alignMode Complex
+          -i "Sample3.pdb,Sample4.pdb,Sample5.pdb"
+
+AUTHOR
+    Manish Sud(msud@san.rr.com)
+
+SEE ALSO
+    PyMOLCalculateRMSD.py, PyMOLSplitChainsAndLigands.py,
+    PyMOLVisualizeMacromolecules.py
+
+COPYRIGHT
+    Copyright (C) 2020 Manish Sud. All rights reserved.
+
+    The functionality available in this script is implemented using PyMOL, a
+    molecular visualization system on an open source foundation originally
+    developed by Warren DeLano.
+
+    This file is part of MayaChemTools.
+
+    MayaChemTools is free software; you can redistribute it and/or modify it
+    under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or (at
+    your option) any later version.
+

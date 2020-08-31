@@ -1,0 +1,579 @@
+<html>
+<head>
+<title>MayaChemTools:Code:PyMOLCalculateRMSD.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../../css/MayaChemToolsPythonCode.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<pre>
+   1 <span class="ch">#!/bin/env python</span>
+   2 <span class="c1">#</span>
+   3 <span class="c1"># File: PyMOLCalculateRMSD.py</span>
+   4 <span class="c1"># Author: Manish Sud &lt;msud@san.rr.com&gt;</span>
+   5 <span class="c1">#</span>
+   6 <span class="c1"># Copyright (C) 2020 Manish Sud. All rights reserved.</span>
+   7 <span class="c1">#</span>
+   8 <span class="c1"># The functionality available in this script is implemented using PyMOL, a</span>
+   9 <span class="c1"># molecular visualization system on an open source foundation originally</span>
+  10 <span class="c1"># developed by Warren DeLano.</span>
+  11 <span class="c1">#</span>
+  12 <span class="c1"># This file is part of MayaChemTools.</span>
+  13 <span class="c1">#</span>
+  14 <span class="c1"># MayaChemTools is free software; you can redistribute it and/or modify it under</span>
+  15 <span class="c1"># the terms of the GNU Lesser General Public License as published by the Free</span>
+  16 <span class="c1"># Software Foundation; either version 3 of the License, or (at your option) any</span>
+  17 <span class="c1"># later version.</span>
+  18 <span class="c1">#</span>
+  19 <span class="c1"># MayaChemTools is distributed in the hope that it will be useful, but without</span>
+  20 <span class="c1"># any warranty; without even the implied warranty of merchantability of fitness</span>
+  21 <span class="c1"># for a particular purpose.  See the GNU Lesser General Public License for more</span>
+  22 <span class="c1"># details.</span>
+  23 <span class="c1">#</span>
+  24 <span class="c1"># You should have received a copy of the GNU Lesser General Public License</span>
+  25 <span class="c1"># along with MayaChemTools; if not, see &lt;http://www.gnu.org/licenses/&gt; or</span>
+  26 <span class="c1"># write to the Free Software Foundation Inc., 59 Temple Place, Suite 330,</span>
+  27 <span class="c1"># Boston, MA, 02111-1307, USA.</span>
+  28 <span class="c1">#</span>
+  29 
+  30 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+  31 
+  32 <span class="c1"># Add local python path to the global path and import standard library modules...</span>
+  33 <span class="kn">import</span> <span class="nn">os</span>
+  34 <span class="kn">import</span> <span class="nn">sys</span><span class="p">;</span>  <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="s2">&quot;..&quot;</span><span class="p">,</span> <span class="s2">&quot;lib&quot;</span><span class="p">,</span> <span class="s2">&quot;Python&quot;</span><span class="p">))</span>
+  35 <span class="kn">import</span> <span class="nn">time</span>
+  36 <span class="kn">import</span> <span class="nn">re</span>
+  37 
+  38 <span class="c1"># PyMOL imports...</span>
+  39 <span class="k">try</span><span class="p">:</span>
+  40     <span class="kn">import</span> <span class="nn">pymol</span>
+  41     <span class="c1"># Finish launching PyMOL in  a command line mode for batch processing (-c)</span>
+  42     <span class="c1"># along with the following options:  disable loading of pymolrc and plugins (-k);</span>
+  43     <span class="c1"># suppress start up messages (-q)</span>
+  44     <span class="n">pymol</span><span class="o">.</span><span class="n">finish_launching</span><span class="p">([</span><span class="s1">&#39;pymol&#39;</span><span class="p">,</span> <span class="s1">&#39;-ckq&#39;</span><span class="p">])</span>
+  45 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+  46     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Failed to import PyMOL module/package: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ErrMsg</span><span class="p">)</span>
+  47     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Check/update your PyMOL environment and try again.</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+  48     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+  49 
+  50 <span class="c1"># MayaChemTools imports...</span>
+  51 <span class="k">try</span><span class="p">:</span>
+  52     <span class="kn">from</span> <span class="nn">docopt</span> <span class="kn">import</span> <span class="n">docopt</span>
+  53     <span class="kn">import</span> <span class="nn">MiscUtil</span>
+  54     <span class="kn">import</span> <span class="nn">PyMOLUtil</span>
+  55 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+  56     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Failed to import MayaChemTools module/package: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ErrMsg</span><span class="p">)</span>
+  57     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Check/update your MayaChemTools environment and try again.</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+  58     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+  59 
+  60 <span class="n">ScriptName</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+  61 <span class="n">Options</span> <span class="o">=</span> <span class="p">{}</span>
+  62 <span class="n">OptionsInfo</span> <span class="o">=</span> <span class="p">{}</span>
+  63 
+  64 <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+  65     <span class="sd">&quot;&quot;&quot;Start execution of the script&quot;&quot;&quot;</span>
+  66     
+  67     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2"> (PyMOL v</span><span class="si">%s</span><span class="s2">; </span><span class="si">%s</span><span class="s2">) Starting...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ScriptName</span><span class="p">,</span> <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">get_version</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()))</span>
+  68     
+  69     <span class="p">(</span><span class="n">WallClockTime</span><span class="p">,</span> <span class="n">ProcessorTime</span><span class="p">)</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetWallClockAndProcessorTime</span><span class="p">()</span>
+  70     
+  71     <span class="c1"># Retrieve command line arguments and options...</span>
+  72     <span class="n">RetrieveOptions</span><span class="p">()</span>
+  73     
+  74     <span class="c1"># Process and validate command line arguments and options...</span>
+  75     <span class="n">ProcessOptions</span><span class="p">()</span>
+  76 
+  77     <span class="c1"># Perform actions required by the script...</span>
+  78     <span class="n">CalculateRMSDValues</span><span class="p">()</span>
+  79     
+  80     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2">: Done...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ScriptName</span><span class="p">)</span>
+  81     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Total time: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetFormattedElapsedTime</span><span class="p">(</span><span class="n">WallClockTime</span><span class="p">,</span> <span class="n">ProcessorTime</span><span class="p">))</span>
+  82 
+  83 <span class="k">def</span> <span class="nf">CalculateRMSDValues</span><span class="p">():</span>
+  84     <span class="sd">&quot;&quot;&quot;Calculate RMSD between reference and probe files.&quot;&quot;&quot;</span>
+  85 
+  86     <span class="n">Outfile</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">]</span>
+  87     <span class="n">OutDelim</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutDelim&quot;</span><span class="p">]</span>
+  88     
+  89     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Generating file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">Outfile</span><span class="p">)</span>
+  90     <span class="n">OutFH</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">Outfile</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+  91     <span class="k">if</span> <span class="n">OutFH</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  92         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Couldn&#39;t open output file: </span><span class="si">%s</span><span class="s2">.</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">Outfile</span><span class="p">))</span>
+  93 
+  94     <span class="n">WriteColumnLabels</span><span class="p">(</span><span class="n">OutFH</span><span class="p">,</span> <span class="n">OutDelim</span><span class="p">)</span>
+  95     
+  96     <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">reinitialize</span><span class="p">()</span>
+  97     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^OneToOne$&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Mode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  98         <span class="n">CalculateOneToOneRMSDValues</span><span class="p">(</span><span class="n">OutFH</span><span class="p">,</span> <span class="n">OutDelim</span><span class="p">)</span>
+  99     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^AllToAll$&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Mode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 100         <span class="n">CalculateAllToAllRMSDValues</span><span class="p">(</span><span class="n">OutFH</span><span class="p">,</span> <span class="n">OutDelim</span><span class="p">)</span>
+ 101     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^FirstToAll$&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Mode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 102         <span class="n">CalculateFirstToAllRMSDValues</span><span class="p">(</span><span class="n">OutFH</span><span class="p">,</span> <span class="n">OutDelim</span><span class="p">)</span>
+ 103     <span class="k">else</span><span class="p">:</span>
+ 104         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;RMSD couldn&#39;t be calculated: Specified mode, </span><span class="si">%s</span><span class="s2">, is not supported&quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Mode&quot;</span><span class="p">])</span>
+ 105 
+ 106     <span class="n">OutFH</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+ 107 
+ 108 <span class="k">def</span> <span class="nf">CalculateOneToOneRMSDValues</span><span class="p">(</span><span class="n">OutFH</span><span class="p">,</span> <span class="n">OutDelim</span><span class="p">):</span>
+ 109     <span class="sd">&quot;&quot;&quot;Calculate pairwise RMSD values.&quot;&quot;&quot;</span>
+ 110     
+ 111     <span class="n">RefFilesCount</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RefFilesNames&quot;</span><span class="p">])</span>
+ 112     <span class="n">ProbeFilesCount</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ProbeFilesNames&quot;</span><span class="p">])</span>
+ 113 
+ 114     <span class="n">FilesCount</span> <span class="o">=</span> <span class="n">ProbeFilesCount</span> <span class="k">if</span> <span class="n">RefFilesCount</span> <span class="o">&gt;</span> <span class="n">ProbeFilesCount</span> <span class="k">else</span> <span class="n">RefFilesCount</span>
+ 115     
+ 116     <span class="k">if</span> <span class="n">RefFilesCount</span> <span class="o">!=</span> <span class="n">ProbeFilesCount</span><span class="p">:</span>
+ 117         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Number of reference files, </span><span class="si">%d</span><span class="s2">,  is not equal to number of probe files, </span><span class="si">%d</span><span class="s2"> .</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">RefFilesCount</span><span class="p">,</span> <span class="n">ProbeFilesCount</span><span class="p">))</span>
+ 118         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Pairwise RMSD will be calculated only for first </span><span class="si">%s</span><span class="s2"> files.</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">FilesCount</span><span class="p">))</span>
+ 119 
+ 120     <span class="c1"># Process files...</span>
+ 121     <span class="k">for</span> <span class="n">FileIndex</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">FilesCount</span><span class="p">):</span>
+ 122         <span class="n">RefFileIndex</span> <span class="o">=</span> <span class="n">FileIndex</span>
+ 123         <span class="n">ProbeFileIndex</span> <span class="o">=</span> <span class="n">FileIndex</span>
+ 124         
+ 125         <span class="n">LoadRefFile</span><span class="p">(</span><span class="n">RefFileIndex</span><span class="p">)</span>
+ 126         <span class="n">LoadProbeFile</span><span class="p">(</span><span class="n">ProbeFileIndex</span><span class="p">)</span>
+ 127         
+ 128         <span class="n">RMSD</span> <span class="o">=</span> <span class="n">CalculateRMSDValue</span><span class="p">(</span><span class="n">RefFileIndex</span><span class="p">,</span> <span class="n">ProbeFileIndex</span><span class="p">)</span>
+ 129         
+ 130         <span class="n">RefID</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RefFilesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;FilesRoots&quot;</span><span class="p">][</span><span class="n">RefFileIndex</span><span class="p">]</span>
+ 131         <span class="n">ProbeID</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ProbeFilesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;FilesRoots&quot;</span><span class="p">][</span><span class="n">ProbeFileIndex</span><span class="p">]</span>
+ 132         <span class="n">Line</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s%s%s%s%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">RefID</span><span class="p">,</span> <span class="n">OutDelim</span><span class="p">,</span> <span class="n">ProbeID</span><span class="p">,</span> <span class="n">OutDelim</span><span class="p">,</span> <span class="n">RMSD</span><span class="p">)</span>
+ 133         <span class="n">OutFH</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">Line</span><span class="p">)</span>
+ 134         
+ 135         <span class="n">DeleteRefObject</span><span class="p">(</span><span class="n">RefFileIndex</span><span class="p">)</span>
+ 136         <span class="n">DeleteProbeObject</span><span class="p">(</span><span class="n">ProbeFileIndex</span><span class="p">)</span>
+ 137         
+ 138 <span class="k">def</span> <span class="nf">CalculateAllToAllRMSDValues</span><span class="p">(</span><span class="n">OutFH</span><span class="p">,</span> <span class="n">OutDelim</span><span class="p">):</span>
+ 139     <span class="sd">&quot;&quot;&quot;Calculate RMSD values between all pairs of files.&quot;&quot;&quot;</span>
+ 140     
+ 141     <span class="n">RefFilesCount</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RefFilesNames&quot;</span><span class="p">])</span>
+ 142     <span class="n">ProbeFilesCount</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ProbeFilesNames&quot;</span><span class="p">])</span>
+ 143     <span class="n">OutMatrix</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutMatrix&quot;</span><span class="p">]</span>
+ 144     
+ 145     <span class="k">for</span> <span class="n">RefFileIndex</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">RefFilesCount</span><span class="p">):</span>
+ 146         <span class="n">LoadRefFile</span><span class="p">(</span><span class="n">RefFileIndex</span><span class="p">)</span>
+ 147         <span class="n">RefID</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RefFilesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;FilesRoots&quot;</span><span class="p">][</span><span class="n">RefFileIndex</span><span class="p">]</span>
+ 148 
+ 149         <span class="n">LineWords</span> <span class="o">=</span> <span class="p">[]</span>
+ 150         <span class="k">if</span> <span class="n">OutMatrix</span><span class="p">:</span>
+ 151             <span class="n">LineWords</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">RefID</span><span class="p">)</span>
+ 152             
+ 153         <span class="k">for</span> <span class="n">ProbeFileIndex</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">ProbeFilesCount</span><span class="p">):</span>
+ 154             <span class="n">LoadProbeFile</span><span class="p">(</span><span class="n">ProbeFileIndex</span><span class="p">)</span>
+ 155             <span class="n">RMSD</span> <span class="o">=</span> <span class="n">CalculateRMSDValue</span><span class="p">(</span><span class="n">RefFileIndex</span><span class="p">,</span> <span class="n">ProbeFileIndex</span><span class="p">)</span>
+ 156             <span class="n">DeleteProbeObject</span><span class="p">(</span><span class="n">ProbeFileIndex</span><span class="p">)</span>
+ 157             
+ 158             <span class="k">if</span> <span class="n">OutMatrix</span><span class="p">:</span>
+ 159                 <span class="n">LineWords</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">RMSD</span><span class="p">)</span>
+ 160             <span class="k">else</span><span class="p">:</span>
+ 161                 <span class="n">ProbeID</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ProbeFilesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;FilesRoots&quot;</span><span class="p">][</span><span class="n">ProbeFileIndex</span><span class="p">]</span>
+ 162                 <span class="n">Line</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s%s%s%s%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">RefID</span><span class="p">,</span> <span class="n">OutDelim</span><span class="p">,</span> <span class="n">ProbeID</span><span class="p">,</span> <span class="n">OutDelim</span><span class="p">,</span> <span class="n">RMSD</span><span class="p">)</span>
+ 163                 <span class="n">OutFH</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">Line</span><span class="p">)</span>
+ 164         
+ 165         <span class="n">DeleteRefObject</span><span class="p">(</span><span class="n">RefFileIndex</span><span class="p">)</span>
+ 166         
+ 167         <span class="k">if</span> <span class="n">OutMatrix</span><span class="p">:</span>
+ 168             <span class="n">Line</span> <span class="o">=</span> <span class="n">OutDelim</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">LineWords</span><span class="p">)</span>
+ 169             <span class="n">OutFH</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">Line</span><span class="p">)</span>
+ 170 
+ 171 <span class="k">def</span> <span class="nf">CalculateFirstToAllRMSDValues</span><span class="p">(</span><span class="n">OutFH</span><span class="p">,</span> <span class="n">OutDelim</span><span class="p">):</span>
+ 172     <span class="sd">&quot;&quot;&quot;Calculate RMSD values between first reference file and all probe files. &quot;&quot;&quot;</span>
+ 173 
+ 174     <span class="c1"># Setup reference...</span>
+ 175     <span class="n">RefFileIndex</span> <span class="o">=</span> <span class="mi">0</span>
+ 176     <span class="n">RefID</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RefFilesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;FilesRoots&quot;</span><span class="p">][</span><span class="n">RefFileIndex</span><span class="p">]</span>
+ 177     <span class="n">LoadRefFile</span><span class="p">(</span><span class="n">RefFileIndex</span><span class="p">)</span>
+ 178 
+ 179     <span class="c1"># Go over probe files...</span>
+ 180     <span class="k">for</span> <span class="n">ProbeFileIndex</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ProbeFilesNames&quot;</span><span class="p">])):</span>
+ 181         <span class="n">LoadProbeFile</span><span class="p">(</span><span class="n">ProbeFileIndex</span><span class="p">)</span>
+ 182         
+ 183         <span class="n">RMSD</span> <span class="o">=</span> <span class="n">CalculateRMSDValue</span><span class="p">(</span><span class="n">RefFileIndex</span><span class="p">,</span> <span class="n">ProbeFileIndex</span><span class="p">)</span>
+ 184         
+ 185         <span class="n">ProbeID</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ProbeFilesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;FilesRoots&quot;</span><span class="p">][</span><span class="n">ProbeFileIndex</span><span class="p">]</span>
+ 186         <span class="n">Line</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s%s%s%s%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">RefID</span><span class="p">,</span> <span class="n">OutDelim</span><span class="p">,</span> <span class="n">ProbeID</span><span class="p">,</span> <span class="n">OutDelim</span><span class="p">,</span> <span class="n">RMSD</span><span class="p">)</span>
+ 187         <span class="n">OutFH</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">Line</span><span class="p">)</span>
+ 188         
+ 189         <span class="n">DeleteProbeObject</span><span class="p">(</span><span class="n">ProbeFileIndex</span><span class="p">)</span>
+ 190 
+ 191     <span class="n">DeleteRefObject</span><span class="p">(</span><span class="n">RefFileIndex</span><span class="p">)</span>
+ 192 
+ 193 <span class="k">def</span> <span class="nf">WriteColumnLabels</span><span class="p">(</span><span class="n">OutFH</span><span class="p">,</span> <span class="n">OutDelim</span><span class="p">):</span>
+ 194     <span class="sd">&quot;&quot;&quot;Write out column labels. &quot;&quot;&quot;</span>
+ 195 
+ 196     <span class="n">ColLabels</span> <span class="o">=</span> <span class="p">[]</span>
+ 197     
+ 198     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^AllToAll$&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Mode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="ow">and</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutMatrix&quot;</span><span class="p">]:</span>
+ 199         <span class="n">ColLabels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+ 200         <span class="n">ColLabels</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ProbeFilesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;FilesRoots&quot;</span><span class="p">])</span>
+ 201     <span class="k">else</span><span class="p">:</span>
+ 202         <span class="n">ColLabels</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;RefFileID&quot;</span><span class="p">,</span> <span class="s2">&quot;ProbeFileID&quot;</span><span class="p">,</span> <span class="s2">&quot;RMSD&quot;</span><span class="p">]</span>
+ 203     
+ 204     <span class="n">Line</span> <span class="o">=</span> <span class="n">OutDelim</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ColLabels</span><span class="p">)</span>
+ 205     <span class="n">OutFH</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">Line</span><span class="p">)</span>
+ 206     
+ 207 <span class="k">def</span> <span class="nf">LoadRefFile</span><span class="p">(</span><span class="n">RefFileIndex</span><span class="p">):</span>
+ 208     <span class="sd">&quot;&quot;&quot;Load reference file. &quot;&quot;&quot;</span>
+ 209     
+ 210     <span class="n">RefFile</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RefFilesNames&quot;</span><span class="p">][</span><span class="n">RefFileIndex</span><span class="p">]</span>
+ 211     <span class="n">RefName</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RefFilesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;PyMOLObjectNames&quot;</span><span class="p">][</span><span class="n">RefFileIndex</span><span class="p">]</span>
+ 212     <span class="n">LoadFile</span><span class="p">(</span><span class="n">RefFile</span><span class="p">,</span> <span class="n">RefName</span><span class="p">)</span>
+ 213     
+ 214 <span class="k">def</span> <span class="nf">LoadProbeFile</span><span class="p">(</span><span class="n">ProbeFileIndex</span><span class="p">):</span>
+ 215     <span class="sd">&quot;&quot;&quot;Load probe file. &quot;&quot;&quot;</span>
+ 216     
+ 217     <span class="n">ProbeFile</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ProbeFilesNames&quot;</span><span class="p">][</span><span class="n">ProbeFileIndex</span><span class="p">]</span>
+ 218     <span class="n">ProbeName</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ProbeFilesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;PyMOLObjectNames&quot;</span><span class="p">][</span><span class="n">ProbeFileIndex</span><span class="p">]</span>
+ 219     <span class="n">LoadFile</span><span class="p">(</span><span class="n">ProbeFile</span><span class="p">,</span> <span class="n">ProbeName</span><span class="p">)</span>
+ 220 
+ 221 <span class="k">def</span> <span class="nf">LoadFile</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="n">ObjectName</span><span class="p">):</span>
+ 222     <span class="sd">&quot;&quot;&quot;Load a file. &quot;&quot;&quot;</span>
+ 223     
+ 224     <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">FileName</span><span class="p">,</span> <span class="n">ObjectName</span><span class="p">)</span>
+ 225     
+ 226 <span class="k">def</span> <span class="nf">DeleteRefObject</span><span class="p">(</span><span class="n">RefFileIndex</span><span class="p">):</span>
+ 227     <span class="sd">&quot;&quot;&quot;Delete reference object. &quot;&quot;&quot;</span>
+ 228     
+ 229     <span class="n">RefName</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RefFilesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;PyMOLObjectNames&quot;</span><span class="p">][</span><span class="n">RefFileIndex</span><span class="p">]</span>
+ 230     <span class="n">DeleteObject</span><span class="p">(</span><span class="n">RefName</span><span class="p">)</span>
+ 231     
+ 232 <span class="k">def</span> <span class="nf">DeleteProbeObject</span><span class="p">(</span><span class="n">ProbeFileIndex</span><span class="p">):</span>
+ 233     <span class="sd">&quot;&quot;&quot;Delete probe object. &quot;&quot;&quot;</span>
+ 234     
+ 235     <span class="n">ProbeName</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ProbeFilesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;PyMOLObjectNames&quot;</span><span class="p">][</span><span class="n">ProbeFileIndex</span><span class="p">]</span>
+ 236     <span class="n">DeleteObject</span><span class="p">(</span><span class="n">ProbeName</span><span class="p">)</span>
+ 237 
+ 238 <span class="k">def</span> <span class="nf">DeleteObject</span><span class="p">(</span><span class="n">Name</span><span class="p">):</span>
+ 239     <span class="sd">&quot;&quot;&quot;Delete PyMOL object. &quot;&quot;&quot;</span>
+ 240     
+ 241     <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">Name</span><span class="p">)</span>
+ 242     
+ 243 <span class="k">def</span> <span class="nf">CalculateRMSDValue</span><span class="p">(</span><span class="n">RefFileIndex</span><span class="p">,</span> <span class="n">ProbeFileIndex</span><span class="p">):</span>
+ 244     <span class="sd">&quot;&quot;&quot;Calculate RMSD value between referece and probe objects. &quot;&quot;&quot;</span>
+ 245 
+ 246     <span class="n">RefName</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RefFilesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;PyMOLObjectNames&quot;</span><span class="p">][</span><span class="n">RefFileIndex</span><span class="p">]</span>
+ 247     <span class="n">ProbeName</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ProbeFilesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;PyMOLObjectNames&quot;</span><span class="p">][</span><span class="n">ProbeFileIndex</span><span class="p">]</span>
+ 248     
+ 249     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^FirstChain$&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;AlignMode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 250         <span class="n">RefFirstChainID</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RefFilesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;ChainIDs&quot;</span><span class="p">][</span><span class="n">RefFileIndex</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+ 251         <span class="n">RefSelection</span> <span class="o">=</span> <span class="s2">&quot;(</span><span class="si">%s</span><span class="s2"> and chain </span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">RefName</span><span class="p">,</span> <span class="n">RefFirstChainID</span><span class="p">)</span>
+ 252         
+ 253         <span class="n">ProbeFirstChainID</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ProbeFilesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;ChainIDs&quot;</span><span class="p">][</span><span class="n">ProbeFileIndex</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+ 254         <span class="n">ProbeSelection</span> <span class="o">=</span> <span class="s2">&quot;(</span><span class="si">%s</span><span class="s2"> and chain </span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ProbeName</span><span class="p">,</span> <span class="n">ProbeFirstChainID</span><span class="p">)</span>
+ 255     <span class="k">else</span><span class="p">:</span>
+ 256         <span class="n">RefSelection</span> <span class="o">=</span> <span class="n">RefName</span>
+ 257         <span class="n">ProbeSelection</span> <span class="o">=</span> <span class="n">ProbeName</span>
+ 258         
+ 259     <span class="n">RMSD</span> <span class="o">=</span> <span class="n">CalculateRMSD</span><span class="p">(</span><span class="n">RefSelection</span><span class="p">,</span> <span class="n">ProbeSelection</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;AlignMethod&quot;</span><span class="p">])</span>
+ 260 
+ 261     <span class="k">return</span> <span class="n">RMSD</span>
+ 262 
+ 263 <span class="k">def</span> <span class="nf">CalculateRMSD</span><span class="p">(</span><span class="n">RefSelectionName</span><span class="p">,</span> <span class="n">ProbeSelectionName</span><span class="p">,</span> <span class="n">AlignMethod</span><span class="p">):</span>
+ 264     <span class="sd">&quot;&quot;&quot;Calculate RMSD between two selections after aligning the selections.&quot;&quot;&quot;</span>
+ 265     
+ 266     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^super$&quot;</span><span class="p">,</span> <span class="n">AlignMethod</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 267         <span class="n">Results</span> <span class="o">=</span> <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">super</span><span class="p">(</span><span class="n">ProbeSelectionName</span><span class="p">,</span> <span class="n">RefSelectionName</span><span class="p">)</span>
+ 268         <span class="n">RMSD</span> <span class="o">=</span> <span class="n">Results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+ 269     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^cealign$&quot;</span><span class="p">,</span> <span class="n">AlignMethod</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 270         <span class="n">Results</span> <span class="o">=</span> <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">super</span><span class="p">(</span><span class="n">RefSelectionName</span><span class="p">,</span> <span class="n">ProbeSelectionName</span><span class="p">)</span>
+ 271         <span class="n">RMSD</span> <span class="o">=</span> <span class="n">Results</span><span class="p">[</span><span class="s2">&quot;RMSD&quot;</span><span class="p">]</span>
+ 272     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^align$&quot;</span><span class="p">,</span> <span class="n">AlignMethod</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 273         <span class="n">Results</span> <span class="o">=</span> <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">super</span><span class="p">(</span><span class="n">ProbeSelectionName</span><span class="p">,</span> <span class="n">RefSelectionName</span><span class="p">)</span>
+ 274         <span class="n">RMSD</span> <span class="o">=</span> <span class="n">Results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+ 275     <span class="k">else</span><span class="p">:</span>
+ 276         <span class="n">RMSD</span> <span class="o">=</span> <span class="bp">None</span>
+ 277         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Failed to calculate RMSD. Unknown alignment method: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">AlignMethod</span><span class="p">)</span>
+ 278     
+ 279     <span class="k">if</span> <span class="n">RMSD</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+ 280         <span class="n">RMSD</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%.2f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">RMSD</span>
+ 281     
+ 282     <span class="k">return</span> <span class="n">RMSD</span>
+ 283 
+ 284 <span class="k">def</span> <span class="nf">RetrieveProbeFilesInfo</span><span class="p">():</span>
+ 285     <span class="sd">&quot;&quot;&quot;Retrieve information for probe input files.&quot;&quot;&quot;</span>
+ 286 
+ 287     <span class="n">RetrieveInfilesInfo</span><span class="p">(</span><span class="s2">&quot;ProbeFiles&quot;</span><span class="p">)</span>
+ 288     
+ 289 <span class="k">def</span> <span class="nf">RetrieveRefFilesInfo</span><span class="p">():</span>
+ 290     <span class="sd">&quot;&quot;&quot;Retrieve information for reference input files.&quot;&quot;&quot;</span>
+ 291 
+ 292     <span class="n">RetrieveInfilesInfo</span><span class="p">(</span><span class="s2">&quot;RefFiles&quot;</span><span class="p">)</span>
+ 293     
+ 294 <span class="k">def</span> <span class="nf">RetrieveInfilesInfo</span><span class="p">(</span><span class="n">InfilesMode</span><span class="p">):</span>
+ 295     <span class="sd">&quot;&quot;&quot;Retrieve information for input files.&quot;&quot;&quot;</span>
+ 296 
+ 297     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^ProbeFiles$&quot;</span><span class="p">,</span> <span class="n">InfilesMode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 298         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Retrieving information for probe files...&quot;</span><span class="p">)</span>
+ 299         <span class="n">InfilesNames</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ProbeFilesNames&quot;</span><span class="p">]</span>
+ 300         <span class="n">NameSuffix</span> <span class="o">=</span> <span class="s2">&quot;_Probe&quot;</span>
+ 301     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^RefFiles$&quot;</span><span class="p">,</span> <span class="n">InfilesMode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 302         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Retrieving information for reference files...&quot;</span><span class="p">)</span>
+ 303         <span class="n">InfilesNames</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RefFilesNames&quot;</span><span class="p">]</span>
+ 304         <span class="n">NameSuffix</span> <span class="o">=</span> <span class="s2">&quot;_Ref&quot;</span>
+ 305     <span class="k">else</span><span class="p">:</span>
+ 306         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Internal Error: Unknown infiles mode: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">InfilesMode</span><span class="p">)</span>
+ 307     
+ 308     <span class="n">InfilesInfo</span> <span class="o">=</span> <span class="p">{}</span>
+ 309     
+ 310     <span class="n">InfilesInfo</span><span class="p">[</span><span class="s2">&quot;FilesNames&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+ 311     <span class="n">InfilesInfo</span><span class="p">[</span><span class="s2">&quot;FilesRoots&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+ 312     <span class="n">InfilesInfo</span><span class="p">[</span><span class="s2">&quot;ChainIDs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+ 313     <span class="n">InfilesInfo</span><span class="p">[</span><span class="s2">&quot;PyMOLObjectNames&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+ 314 
+ 315     <span class="k">for</span> <span class="n">Infile</span> <span class="ow">in</span> <span class="n">InfilesNames</span><span class="p">:</span>
+ 316         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Retrieving chains information for input file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">Infile</span><span class="p">)</span>
+ 317         
+ 318         <span class="n">FileDir</span><span class="p">,</span> <span class="n">FileName</span><span class="p">,</span> <span class="n">FileExt</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ParseFileName</span><span class="p">(</span><span class="n">Infile</span><span class="p">)</span>
+ 319         <span class="n">InfileRoot</span> <span class="o">=</span> <span class="n">FileName</span>
+ 320         
+ 321         <span class="n">ChainIDs</span> <span class="o">=</span> <span class="n">RetrieveChainIDs</span><span class="p">(</span><span class="n">Infile</span><span class="p">,</span> <span class="n">InfileRoot</span><span class="p">)</span>
+ 322         <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">ChainIDs</span><span class="p">):</span>
+ 323             <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^FirstChain$&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;AlignMode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 324                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The align mode, </span><span class="si">%s</span><span class="s2">, can&#39;t be used for calculating RMSD: No non-empty chain IDs found in input file.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;AlignMode&quot;</span><span class="p">]))</span>
+ 325         
+ 326         <span class="n">InfilesInfo</span><span class="p">[</span><span class="s2">&quot;FilesNames&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Infile</span><span class="p">)</span>
+ 327         <span class="n">InfilesInfo</span><span class="p">[</span><span class="s2">&quot;FilesRoots&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">InfileRoot</span><span class="p">)</span>
+ 328         <span class="n">InfilesInfo</span><span class="p">[</span><span class="s2">&quot;ChainIDs&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ChainIDs</span><span class="p">)</span>
+ 329 
+ 330         <span class="n">Name</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">InfileRoot</span><span class="p">,</span> <span class="n">NameSuffix</span><span class="p">)</span>
+ 331         <span class="n">InfilesInfo</span><span class="p">[</span><span class="s2">&quot;PyMOLObjectNames&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Name</span><span class="p">)</span>
+ 332 
+ 333     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^ProbeFiles$&quot;</span><span class="p">,</span> <span class="n">InfilesMode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 334         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ProbeFilesInfo&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">InfilesInfo</span>
+ 335     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^RefFiles$&quot;</span><span class="p">,</span> <span class="n">InfilesMode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 336         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RefFilesInfo&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">InfilesInfo</span>
+ 337         
+ 338 <span class="k">def</span> <span class="nf">RetrieveChainIDs</span><span class="p">(</span><span class="n">Infile</span><span class="p">,</span> <span class="n">InfileRoot</span><span class="p">):</span>
+ 339     <span class="sd">&quot;&quot;&quot;Retrieve chains IDs for an input file.&quot;&quot;&quot;</span>
+ 340 
+ 341     <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">reinitialize</span><span class="p">()</span>
+ 342     
+ 343     <span class="n">MolName</span> <span class="o">=</span> <span class="n">InfileRoot</span>
+ 344     <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">Infile</span><span class="p">,</span> <span class="n">MolName</span><span class="p">)</span>
+ 345 
+ 346     <span class="n">ChainIDs</span> <span class="o">=</span> <span class="n">PyMOLUtil</span><span class="o">.</span><span class="n">GetChains</span><span class="p">(</span><span class="n">MolName</span><span class="p">,</span> <span class="n">RemoveEmpty</span> <span class="o">=</span> <span class="bp">True</span><span class="p">)</span>
+ 347     <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">MolName</span><span class="p">)</span>
+ 348 
+ 349     <span class="k">if</span> <span class="n">ChainIDs</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 350         <span class="n">ChainIDs</span> <span class="o">=</span> <span class="p">[]</span>
+ 351 
+ 352     <span class="c1"># Print out chain and ligand IDs...</span>
+ 353     <span class="n">ChainInfo</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ChainIDs</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ChainIDs</span><span class="p">)</span> <span class="k">else</span> <span class="s2">&quot;None&quot;</span>
+ 354     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Chain IDs: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ChainInfo</span><span class="p">)</span>
+ 355                          
+ 356     <span class="k">return</span> <span class="n">ChainIDs</span>
+ 357 
+ 358 <span class="k">def</span> <span class="nf">ProcessOptions</span><span class="p">():</span>
+ 359     <span class="sd">&quot;&quot;&quot;Process and validate command line arguments and options&quot;&quot;&quot;</span>
+ 360 
+ 361     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Processing options...&quot;</span><span class="p">)</span>
+ 362     
+ 363     <span class="c1"># Validate options...</span>
+ 364     <span class="n">ValidateOptions</span><span class="p">()</span>
+ 365     
+ 366     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;AlignMethod&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--alignMethod&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+ 367     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;AlignMode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--alignMode&quot;</span><span class="p">]</span>
+ 368 
+ 369     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Mode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mode&quot;</span><span class="p">]</span>
+ 370     
+ 371     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ProbeFiles&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--probefiles&quot;</span><span class="p">]</span>
+ 372     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ProbeFilesNames&quot;</span><span class="p">]</span> <span class="o">=</span>  <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--probeFilesNames&quot;</span><span class="p">]</span>
+ 373 
+ 374     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RefFiles&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--reffiles&quot;</span><span class="p">]</span>
+ 375     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RefFilesNames&quot;</span><span class="p">]</span> <span class="o">=</span>  <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--refFilesNames&quot;</span><span class="p">]</span>
+ 376     
+ 377     <span class="n">RetrieveProbeFilesInfo</span><span class="p">()</span>
+ 378     <span class="n">RetrieveRefFilesInfo</span><span class="p">()</span>
+ 379     
+ 380     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">]</span>
+ 381     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutMatrix&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^Yes$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outMatrix&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+ 382     
+ 383     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Overwrite&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--overwrite&quot;</span><span class="p">]</span>
+ 384     
+ 385     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutDelim&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+ 386     <span class="k">if</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">CheckFileExt</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">],</span> <span class="s2">&quot;csv&quot;</span><span class="p">):</span>
+ 387         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutDelim&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span>
+ 388     <span class="k">elif</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">CheckFileExt</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">],</span> <span class="s2">&quot;tsv txt&quot;</span><span class="p">):</span>
+ 389         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutDelim&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span>
+ 390     <span class="k">else</span><span class="p">:</span>
+ 391         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The file name specified , </span><span class="si">%s</span><span class="s2">, for option </span><span class="se">\&quot;</span><span class="s2">--outfile</span><span class="se">\&quot;</span><span class="s2"> is not valid. Supported file formats: csv tsv txt</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">]))</span>
+ 392 
+ 393 <span class="k">def</span> <span class="nf">RetrieveOptions</span><span class="p">():</span> 
+ 394     <span class="sd">&quot;&quot;&quot;Retrieve command line arguments and options&quot;&quot;&quot;</span>
+ 395     
+ 396     <span class="c1"># Get options...</span>
+ 397     <span class="k">global</span> <span class="n">Options</span>
+ 398     <span class="n">Options</span> <span class="o">=</span> <span class="n">docopt</span><span class="p">(</span><span class="n">_docoptUsage_</span><span class="p">)</span>
+ 399     
+ 400     <span class="c1"># Set current working directory to the specified directory...</span>
+ 401     <span class="n">WorkingDir</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--workingdir&quot;</span><span class="p">]</span>
+ 402     <span class="k">if</span> <span class="n">WorkingDir</span><span class="p">:</span>
+ 403         <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">WorkingDir</span><span class="p">)</span>
+ 404     
+ 405     <span class="c1"># Handle examples option...</span>
+ 406     <span class="k">if</span> <span class="s2">&quot;--examples&quot;</span> <span class="ow">in</span> <span class="n">Options</span> <span class="ow">and</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--examples&quot;</span><span class="p">]:</span>
+ 407         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetExamplesTextFromDocOptText</span><span class="p">(</span><span class="n">_docoptUsage_</span><span class="p">))</span>
+ 408         <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+ 409 
+ 410 <span class="k">def</span> <span class="nf">ValidateOptions</span><span class="p">():</span>
+ 411     <span class="sd">&quot;&quot;&quot;Validate option values&quot;&quot;&quot;</span>
+ 412     
+ 413     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;-a, --alignMethod&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--alignMethod&quot;</span><span class="p">],</span> <span class="s2">&quot;align cealign super&quot;</span><span class="p">)</span>
+ 414     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;--alignMode&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--alignMode&quot;</span><span class="p">],</span> <span class="s2">&quot;FirstChain Complex&quot;</span><span class="p">)</span>
+ 415 
+ 416     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;-m, --mode&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mode&quot;</span><span class="p">],</span> <span class="s2">&quot;OneToOne AllToAll FirstToAll&quot;</span><span class="p">)</span>
+ 417     
+ 418     <span class="c1"># Expand reffiles to handle presence of multiple input files...</span>
+ 419     <span class="n">RefFilesNames</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ExpandFileNames</span><span class="p">(</span><span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--reffiles&quot;</span><span class="p">],</span> <span class="s2">&quot;,&quot;</span><span class="p">)</span>
+ 420 
+ 421     <span class="c1"># Validate file extensions...</span>
+ 422     <span class="k">for</span> <span class="n">RefFile</span> <span class="ow">in</span> <span class="n">RefFilesNames</span><span class="p">:</span>
+ 423         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFilePath</span><span class="p">(</span><span class="s2">&quot;-r, --reffiles&quot;</span><span class="p">,</span> <span class="n">RefFile</span><span class="p">)</span>
+ 424         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFileExt</span><span class="p">(</span><span class="s2">&quot;-r, --reffiles&quot;</span><span class="p">,</span> <span class="n">RefFile</span><span class="p">,</span> <span class="s2">&quot;pdb cif&quot;</span><span class="p">)</span>
+ 425     <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--refFilesNames&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">RefFilesNames</span>
+ 426 
+ 427     <span class="c1"># Expand probefiles to handle presence of multiple input files...</span>
+ 428     <span class="n">ProbeFilesNames</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ExpandFileNames</span><span class="p">(</span><span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--probefiles&quot;</span><span class="p">],</span> <span class="s2">&quot;,&quot;</span><span class="p">)</span>
+ 429 
+ 430     <span class="c1"># Validate file extensions...</span>
+ 431     <span class="k">for</span> <span class="n">ProbeFile</span> <span class="ow">in</span> <span class="n">ProbeFilesNames</span><span class="p">:</span>
+ 432         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFilePath</span><span class="p">(</span><span class="s2">&quot;-p, --probefiles&quot;</span><span class="p">,</span> <span class="n">ProbeFile</span><span class="p">)</span>
+ 433         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFileExt</span><span class="p">(</span><span class="s2">&quot;-p, --probefiles&quot;</span><span class="p">,</span> <span class="n">ProbeFile</span><span class="p">,</span> <span class="s2">&quot;pdb cif&quot;</span><span class="p">)</span>
+ 434     <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--probeFilesNames&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ProbeFilesNames</span>
+ 435 
+ 436     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFileExt</span><span class="p">(</span><span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">],</span> <span class="s2">&quot;csv tsv txt&quot;</span><span class="p">)</span>
+ 437     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionsOutputFileOverwrite</span><span class="p">(</span><span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">],</span> <span class="s2">&quot;--overwrite&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--overwrite&quot;</span><span class="p">])</span>
+ 438     
+ 439     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;--outMatrix&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outMatrix&quot;</span><span class="p">],</span> <span class="s2">&quot;Yes No&quot;</span><span class="p">)</span>
+ 440     
+ 441 <span class="c1"># Setup a usage string for docopt...</span>
+ 442 <span class="n">_docoptUsage_</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+ 443 <span class="s2">PyMOLCalculateRMSD.py - Calculate RMSD between macromolecules</span>
+ 444 
+ 445 <span class="s2">Usage:</span>
+ 446 <span class="s2">    PyMOLCalculateRMSD.py [--alignMethod &lt;align, cealign, super&gt;]</span>
+ 447 <span class="s2">                          [--alignMode &lt;FirstChain or Complex&gt;] [--mode &lt;OneToOne, AllToAll, FirstToAll&gt;]</span>
+ 448 <span class="s2">                          [--outMatrix &lt;yes or no&gt;] [--overwrite]</span>
+ 449 <span class="s2">                          [-w &lt;dir&gt;] -p &lt;probefile1,probefile2,probefile3...&gt; -r &lt;reffile1,reffile2,reffile3...&gt; -o &lt;outfile&gt;</span>
+ 450 <span class="s2">    PyMOLCalculateRMSD.py -h | --help | -e | --examples</span>
+ 451 
+ 452 <span class="s2">Description:</span>
+ 453 <span class="s2">    Calculate Root Mean Square Distance (RMSD) between a set of similar</span>
+ 454 <span class="s2">    macromolecules in reference and probe input files. The probe and reference</span>
+ 455 <span class="s2">    files are spatially aligned before the the calculation of RMSD values.</span>
+ 456 
+ 457 <span class="s2">    The supported input  file format are: PDB (.pdb), mmCIF (.cif)</span>
+ 458 
+ 459 <span class="s2">    The supported output file formats are:  CSV (.csv), TSV (.tsv, .txt)</span>
+ 460 
+ 461 <span class="s2">Options:</span>
+ 462 <span class="s2">    -a, --alignMethod &lt;align, cealign, super&gt;  [default: super]</span>
+ 463 <span class="s2">        Alignment methodology to use for aligning probe input files to</span>
+ 464 <span class="s2">        reference files.</span>
+ 465 <span class="s2">    --alignMode &lt;FirstChain or Complex&gt;  [default: FirstChain]</span>
+ 466 <span class="s2">        Portion of probe and reference files to use for spatial alignment of</span>
+ 467 <span class="s2">        probe files against reference files.  Possible values: FirstChain or</span>
+ 468 <span class="s2">        Complex.</span>
+ 469 <span class="s2">        </span>
+ 470 <span class="s2">        The FirstChain mode allows alignment of the first chain in probe files</span>
+ 471 <span class="s2">        to the first chain in reference files along with moving the rest of the</span>
+ 472 <span class="s2">        complex to coordinate space of the reference files. The complete</span>
+ 473 <span class="s2">        complex in probe files is aligned to the complete complex in reference</span>
+ 474 <span class="s2">        files for the Complex mode.</span>
+ 475 <span class="s2">    -e, --examples</span>
+ 476 <span class="s2">        Print examples.</span>
+ 477 <span class="s2">    -h, --help</span>
+ 478 <span class="s2">        Print this help message.</span>
+ 479 <span class="s2">    -m, --mode &lt;OneToOne, AllToAll, FirstToAll&gt;  [default: OneToOne]</span>
+ 480 <span class="s2">        Specify how reference and probe input files are handled during the calculation</span>
+ 481 <span class="s2">        of RMSD between reference and probe files.  Possible values: OneToOne,</span>
+ 482 <span class="s2">        AllToAll and AllToFirst. For OneToOne mode, the number of reference input</span>
+ 483 <span class="s2">        files must be equal to the number of probe input files. The RMSD is</span>
+ 484 <span class="s2">        calculated for each pair of reference and probe file and written to the</span>
+ 485 <span class="s2">        output file. For AllToAll mode, the RMSD is calculated for each reference</span>
+ 486 <span class="s2">        input file against all probe input files. For FirstToAll mode, however, the RMSD</span>
+ 487 <span class="s2">        is only calculated for the first reference input file against all probe files.</span>
+ 488 <span class="s2">    -p, --probefiles &lt;probefile1,probefile2,probelfile3...&gt;</span>
+ 489 <span class="s2">        A comma delimited list of probe input files. The wildcards are also allowed</span>
+ 490 <span class="s2">        in file names.</span>
+ 491 <span class="s2">    -r, --reffiles &lt;reffile1,reffile2,reffile3...&gt;</span>
+ 492 <span class="s2">        A comma delimited list of reference input files. The wildcards are also allowed</span>
+ 493 <span class="s2">        in file names.</span>
+ 494 <span class="s2">    -o, --outfile &lt;outfile&gt;</span>
+ 495 <span class="s2">        Output file name for writing out RMSD values. Supported text file extensions:</span>
+ 496 <span class="s2">        csv, tsv or txt.</span>
+ 497 <span class="s2">    --outMatrix &lt;yes or no&gt;  [default: yes]</span>
+ 498 <span class="s2">        Output file in a matrix format during &#39;AllToAll&#39; value for &#39;-m, --mode&#39; option.</span>
+ 499 <span class="s2">    --overwrite</span>
+ 500 <span class="s2">        Overwrite existing files.</span>
+ 501 <span class="s2">    -w, --workingdir &lt;dir&gt;</span>
+ 502 <span class="s2">        Location of working directory which defaults to the current directory.</span>
+ 503 
+ 504 <span class="s2">Examples:</span>
+ 505 <span class="s2">    To calculate RMSD between pair of macromolecules in reference and probe files</span>
+ 506 <span class="s2">    using only first chain in each file and write out a CSV file containing calculated RMSD</span>
+ 507 <span class="s2">    values along with IDs, type:</span>
+ 508 
+ 509 <span class="s2">        % PyMOLCalculateRMSD.py  -r &quot;Sample3.pdb,Sample4.pdb,Sample5.pdb&quot;</span>
+ 510 <span class="s2">          -p &quot;Sample3.pdb,Sample4.pdb,Sample5.pdb&quot; -o SampleOut.csv </span>
+ 511 
+ 512 <span class="s2">    To calculate RMSD between all macromolecules in reference and probe files using</span>
+ 513 <span class="s2">    complete complex and write out a CSV matrix file, type:</span>
+ 514 
+ 515 <span class="s2">        % PyMOLCalculateRMSD.py  -m AllToAll --alignMode Complex</span>
+ 516 <span class="s2">           --outMatrix Yes -r &quot;Sample3.pdb,Sample4.pdb,Sample5.pdb&quot;</span>
+ 517 <span class="s2">          -p &quot;Sample3.pdb,Sample4.pdb&quot; -o SampleOut.csv </span>
+ 518 
+ 519 <span class="s2">    To calculate RMSD between macromolecule in first reference against all probe files</span>
+ 520 <span class="s2">    using only first chain in each file and write out a TSV file containing calculated RMSD</span>
+ 521 <span class="s2">    values along with IDs, type:</span>
+ 522 
+ 523 <span class="s2">        % PyMOLCalculateRMSD.py  -m FirstToAll</span>
+ 524 <span class="s2">          -r &quot;Sample3.pdb,Sample4.pdb,Sample5.pdb&quot;</span>
+ 525 <span class="s2">          -p &quot;Sample3.pdb,Sample4.pdb,Sample5.pdb&quot; -o SampleOut.tsv </span>
+ 526 
+ 527 <span class="s2">    To calculate RMSD between pair of macromolecules in reference and probe files</span>
+ 528 <span class="s2">    using only first chain in each file along with a specific alignment method and write</span>
+ 529 <span class="s2">    out a CSV file containing calculated RMSD values, type:</span>
+ 530 
+ 531 <span class="s2">        % PyMOLCalculateRMSD.py  --alignMethod align</span>
+ 532 <span class="s2">          -r &quot;Sample3.pdb,Sample4.pdb,Sample5.pdb&quot;</span>
+ 533 <span class="s2">          -p &quot;Sample3.pdb,Sample4.pdb,Sample5.pdb&quot; -o SampleOut.csv </span>
+ 534 
+ 535 <span class="s2">Author:</span>
+ 536 <span class="s2">    Manish Sud(msud@san.rr.com)</span>
+ 537 
+ 538 <span class="s2">See also:</span>
+ 539 <span class="s2">    PyMOLAlignChains.py, PyMOLSplitChainsAndLigands.py,</span>
+ 540 <span class="s2">    PyMOLVisualizeMacromolecules.py</span>
+ 541 
+ 542 <span class="s2">Copyright:</span>
+ 543 <span class="s2">    Copyright (C) 2020 Manish Sud. All rights reserved.</span>
+ 544 
+ 545 <span class="s2">    The functionality available in this script is implemented using PyMOL, a</span>
+ 546 <span class="s2">    molecular visualization system on an open source foundation originally</span>
+ 547 <span class="s2">    developed by Warren DeLano.</span>
+ 548 
+ 549 <span class="s2">    This file is part of MayaChemTools.</span>
+ 550 
+ 551 <span class="s2">    MayaChemTools is free software; you can redistribute it and/or modify it under</span>
+ 552 <span class="s2">    the terms of the GNU Lesser General Public License as published by the Free</span>
+ 553 <span class="s2">    Software Foundation; either version 3 of the License, or (at your option) any</span>
+ 554 <span class="s2">    later version.</span>
+ 555 
+ 556 <span class="s2">&quot;&quot;&quot;</span>
+ 557 
+ 558 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+ 559     <span class="n">main</span><span class="p">()</span>
+</pre>
+<br />
+<center>
+<img src="../../../images/h2o2.png">
+</center>
+</body>
+</html>

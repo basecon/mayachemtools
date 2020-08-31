@@ -1,0 +1,105 @@
+NAME
+    PyMOLMutateNucleicAcids.py - Mutate nucleic acids
+
+SYNOPSIS
+    PyMOLMutateNucleicAcids.py [--mutations <Spec1,Spec2,...>] [--overwrite]
+    [-w <dir>] -i <infile> -o <outfile>
+
+    PyMOLMutateNucleicAcids.py -h | --help | -e | --examples
+
+DESCRIPTION
+    Mutate nucleic acids in macromolecules. The mutations are performed
+    using nucleic acids mutagenesis wizard available in PyMOL starting V2.2.
+
+    The supported input and output file format is: PDB (.pdb)
+
+OPTIONS
+    -m, --mutations <Spec1,Spec2,...> [default: None]
+        Comma delimited list of specifications for mutating nucleic acids.
+
+        The format of mutation specification is as follows:
+
+            <ChainID>:<ResNum><BaseName>,...
+
+        A chain ID in the first specification of a mutation is required. It
+        may be skipped in subsequent specifications. The most recent chain
+        ID is used for the missing chain ID. The residue number corresponds
+        to the residue to be mutated and must be present in the current
+        chain. The base name represents the new base.
+
+        Examples:
+
+            A:9Thy, A:10Thy
+            A:9Thy,10Thy,11Thy
+            A:9Thy,10Thy,B:5Ade,6Ade
+
+        The base names must be valid for mutating nucleic acids. No
+        validation validation is performed before mutating residues via
+        nucleic acids mutagenesis wizard available in PyMOL. The current
+        version of the wizard supports the following base names:
+
+            Adenine, Ade
+            Cytosine, Cyt
+            Guanine, Gua
+            Thymine, Thy
+            Uracil, Ura
+
+    -e, --examples
+        Print examples.
+
+    -h, --help
+        Print this help message.
+
+    -i, --infile <infile>
+        Input file name.
+
+    -o, --outfile <outfile>
+        Output file name.
+
+    --overwrite
+        Overwrite existing files.
+
+    -w, --workingdir <dir>
+        Location of working directory which defaults to the current
+        directory.
+
+EXAMPLES
+    To mutate a single residue in a specific chain and write a PDB file,
+    type:
+
+        % PyMOLMutateNucleicAcids.py -m "A:9Thy" -i Sample9.pdb
+          -o Sample9Out.pdb
+
+    To mutate multiple residues in a single chain and write a PDB file,
+    type:
+
+        % PyMOLMutateNucleicAcids.py -m "A:9Thy,10Thy,11Thy" -i Sample9.pdb
+          -o Sample9Out.pdb
+
+    To mutate multiple residues across multiple chains and write a PDB file,
+    type:
+
+        % PyMOLMutateNucleicAcids.py -m "A:9Thy,10Thy,B:5Ade,6Ade"
+          -i Sample9.pdb -o Sample9Out.pdb
+
+AUTHOR
+    Manish Sud(msud@san.rr.com)
+
+SEE ALSO
+    DownloadPDBFiles.pl, PyMOLMutateAminoAcids.py,
+    PyMOLVisualizeMacromolecules.py
+
+COPYRIGHT
+    Copyright (C) 2020 Manish Sud. All rights reserved.
+
+    The functionality available in this script is implemented using PyMOL, a
+    molecular visualization system on an open source foundation originally
+    developed by Warren DeLano.
+
+    This file is part of MayaChemTools.
+
+    MayaChemTools is free software; you can redistribute it and/or modify it
+    under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or (at
+    your option) any later version.
+

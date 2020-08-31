@@ -1,0 +1,267 @@
+<html>
+<head>
+<title>MayaChemTools:Documentation:RDKitPerformTorsionScan.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../css/MayaChemTools.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./RDKitPerformRGroupDecomposition.html" title="RDKitPerformRGroupDecomposition.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./RDKitPickDiverseMolecules.html" title="RDKitPickDiverseMolecules.html">Next</a></td><td width="34%" align="middle"><strong>RDKitPerformTorsionScan.py</strong></td><td width="33%" align="right"><a href="././code/RDKitPerformTorsionScan.html" title="View source code">Code</a>&nbsp;|&nbsp;<a href="./../pdf/RDKitPerformTorsionScan.pdf" title="PDF US Letter Size">PDF</a>&nbsp;|&nbsp;<a href="./../pdfa4/RDKitPerformTorsionScan.pdf" title="PDF A4 Size">PDFA4</a></td></tr>
+</table>
+</div>
+<h1 id="NAME">NAME</h2>
+<p>RDKitPerformTorsionScan.py - Perform torsion scan</p>
+<h1 id="SYNOPSIS">SYNOPSIS</h2>
+<p>RDKitPerformTorsionScan.py [<b>--addHydrogens</b> &lt;yes or no&gt;] [<b>--conformerGenerator</b> &lt;SDG, ETDG, KDG, ETKDG&gt;] [<b>--forceField</b> &lt;UFF, or MMFF&gt;] [<b>--forceFieldMMFFVariant</b> &lt;MMFF94 or MMFF94s&gt;] [<b>--enforceChirality</b> &lt;yes or no&gt;] [<b>--infile3D</b> &lt;yes or no&gt;] [<b>--infileParams</b> &lt;Name,Value,...&gt;] [<b>--modeMols</b> &lt;First or All&gt;] [<b>--modeTorsions</b> &lt;First or All&gt; ] [<b>--maxConfs</b> &lt;number&gt;] [<b>--maxConfsTorsion</b> &lt;number&gt;] [<b>--maxIters</b> &lt;number&gt;] [<b>--mp</b> &lt;yes or no&gt;] [<b>--mpParams</b> &lt;Name.Value,...&gt;] [<b>--outfileMolName</b> &lt;yes or no&gt;] [<b>--outfileParams</b> &lt;Name,Value,...&gt;] [<b>--outPlotParams</b> &lt;Name,Value,...&gt;] [<b>--outPlotTitleTorsionSpec</b> &lt;yes or no&gt;] [<b>--overwrite</b>] [<b>--quiet</b> &lt;yes or no&gt;] [<b>--removeHydrogens</b> &lt;yes or no&gt;] [<b>--randomSeed</b> &lt;number&gt;] [<b>--torsionMaxMatches</b> &lt;number&gt;] [<b>--torsionMinimize</b> &lt;yes or no&gt;] [<b>--torsionRange</b> &lt;Start,Stop,Step&gt;] [<b>--useChirality</b> &lt;yes or no&gt;] [<b>--useTethers</b> &lt;yes or no&gt;] [<b>-w</b> &lt;dir&gt;] <b>-t</b> &lt;torsions&gt; <b>-i</b> &lt;infile&gt; <b>-o</b> &lt;outfile&gt;</p>
+<p>RDKitPerformTorsionScan.py <b>-h</b> | <b>--help</b> | <b>-e</b> | <b>--examples</b></p>
+<h1 id="DESCRIPTION">DESCRIPTION</h2>
+<p>Perform torsion scan for molecules around torsion angles specified using SMILES/SMARTS patterns. A molecule is optionally minimized before performing a torsion scan. A set of initial 3D structures are generated for a molecule by scanning the torsion angle across the specified range and updating the 3D coordinates of the molecule. A conformation ensemble is optionally generated for each 3D structure representing a specific torsion angle. The conformation with the lowest energy is selected to represent the torsion angle. An option is available to skip the generation of the conformation ensemble and simply calculate the energy for the initial 3D structure for a specific torsion angle</p>
+<p>The torsions are specified using SMILES or SMARTS patterns. A substructure match is performed to select torsion atoms in a molecule. The SMILES pattern match must correspond to four torsion atoms. The SMARTS patterns containing atom indices may match more than four atoms. The atoms indices, however, must match exactly four torsion atoms. For example: [s:1][c:2]([aX2,cH1])!@[CX3:3](O)=[O:4] for thiophene esters and carboxylates as specified in Torsion Library (TorLib) [Ref 146].</p>
+<p>A set of four output files is generated for each torsion match in each molecule. The names of the output files are generated using the root of the specified output file. They may either contain sequential molecule numbers or molecule names as shown below:</p>
+<div class="OptionsBox">    &lt;OutfileRoot&gt;_Mol&lt;Num&gt;.sdf
+<br/>    &lt;OutfileRoot&gt;_Mol&lt;Num&gt;_Torsion&lt;Num&gt;_Match&lt;Num&gt;.sdf
+<br/>    &lt;OutfileRoot&gt;_Mol&lt;Num&gt;_Torsion&lt;Num&gt;_Match&lt;Num&gt;_Energies.csv
+<br/>    &lt;OutfileRoot&gt;_Mol&lt;Num&gt;_Torsion&lt;Num&gt;_Match&lt;Num&gt;_Plot.&lt;ImgExt&gt;
+<br/>    
+<br/>    or
+<br/>    
+<br/>    &lt;OutfileRoot&gt;_&lt;MolName&gt;.sdf
+<br/>    &lt;OutfileRoot&gt;_&lt;MolName&gt;_Torsion&lt;Num&gt;_Match&lt;Num&gt;.sdf
+<br/>    &lt;OutfileRoot&gt;_&lt;MolName&gt;_Torsion&lt;Num&gt;_Match&lt;Num&gt;_Energies.csv
+<br/>    &lt;OutfileRoot&gt;_&lt;MolName&gt;_Torsion&lt;Num&gt;_Match&lt;Num&gt;_Plot.&lt;ImgExt&gt;
+<br/>    </div>
+<p>The supported input file formats are: Mol (.mol), SD (.sdf, .sd), .csv, .tsv .txt)</p>
+<p>The supported output file formats are: SD (.sdf, .sd)</p>
+<h1 id="OPTIONS">OPTIONS</h2>
+<dl>
+<dt id="a---addHydrogens-yes-or-no-default:-yes"><b>-a, --addHydrogens</b> &lt;yes or no&gt; [default: yes]</dt>
+<dd>
+<p>Add hydrogens before minimization.</p>
+</dd>
+<dt id="c---conformerGenerator-SDG-ETDG-KDG-ETKDG-default:-ETKDG"><b>-c, --conformerGenerator</b> &lt;SDG, ETDG, KDG, ETKDG&gt; [default: ETKDG]</dt>
+<dd>
+<p>Conformation generation methodology for generating initial 3D structure of a molecule and conformation ensemble representing a specific torsion angle. No conformation ensemble is generated for &#39;No&#39; value of &#39;--torsionMinimize&#39; option.</p>
+<p>Possible values: Standard Distance Geometry, (SDG), Experimental Torsion-angle preference with Distance Geometry (ETDG), basic Knowledge-terms with Distance Geometry (KDG), and Experimental Torsion-angle preference along with basic Knowledge-terms with Distance Geometry (ETKDG) [Ref 129] .</p>
+</dd>
+<dt id="f---forceField-UFF-MMFF-default:-MMFF"><b>-f, --forceField</b> &lt;UFF, MMFF&gt; [default: MMFF]</dt>
+<dd>
+<p>Forcefield method to use for energy minimization of initial 3D structure of a molecule and conformation ensemble representing a specific torsion. No conformation ensemble is generated during for &#39;No&#39; value of &#39;--torsionMinimze&#39; option and constrained energy minimization is not performed. Possible values: Universal Force Field (UFF) [ Ref 81 ] or Merck Molecular Mechanics Force Field [ Ref 83-87 ] .</p>
+</dd>
+<dt id="forceFieldMMFFVariant-MMFF94-or-MMFF94s-default:-MMFF94"><b>--forceFieldMMFFVariant</b> &lt;MMFF94 or MMFF94s&gt; [default: MMFF94]</dt>
+<dd>
+<p>Variant of MMFF forcefield to use for energy minimization.</p>
+</dd>
+<dt id="enforceChirality-yes-or-no-default:-Yes"><b>--enforceChirality</b> &lt;yes or no&gt; [default: Yes]</dt>
+<dd>
+<p>Enforce chirality for defined chiral centers during generation of conformers.</p>
+</dd>
+<dt id="e---examples"><b>-e, --examples</b></dt>
+<dd>
+<p>Print examples.</p>
+</dd>
+<dt id="h---help"><b>-h, --help</b></dt>
+<dd>
+<p>Print this help message.</p>
+</dd>
+<dt id="i---infile-infile"><b>-i, --infile</b> &lt;infile&gt;</dt>
+<dd>
+<p>Input file name.</p>
+</dd>
+<dt id="infile3D-yes-or-no-default:-no"><b>--infile3D</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Skip generation and minimization of initial 3D structures for molecules in input file containing 3D coordinates.</p>
+</dd>
+<dt id="infileParams-Name-Value-...-default:-auto"><b>--infileParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for reading molecules from files. The supported parameter names for different file formats, along with their default values, are shown below:</p>
+<div class="OptionsBox">    SD, MOL: removeHydrogens,yes,sanitize,yes,strictParsing,yes
+<br/>    
+<br/>    SMILES: smilesColumn,1,smilesNameColumn,2,smilesDelimiter,space,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        smilesTitleLine,auto,sanitize,yes
+<br/>    </div>
+<p>Possible values for smilesDelimiter: space, comma or tab.</p>
+</dd>
+<dt id="modeMols-First-or-All-default:-First"><b>--modeMols</b> &lt;First or All&gt; [default: First]</dt>
+<dd>
+<p>Perform torsion scan for the first molecule or all molecules in input file.</p>
+</dd>
+<dt id="modeTorsions-First-or-All-default:-First"><b>--modeTorsions</b> &lt;First or All&gt; [default: First]</dt>
+<dd>
+<p>Perform torsion scan for the first or all specified torsion pattern in molecules up to a maximum number of matches for each torsion specification as indicated by &#39;--torsionMaxMatches&#39; option.</p>
+</dd>
+<dt id="maxConfs-number-default:-250"><b>--maxConfs</b> &lt;number&gt; [default: 250]</dt>
+<dd>
+<p>Maximum number of conformations to generate for initial 3D structure of a molecule. The lowest energy conformation is written to the output file.</p>
+</dd>
+<dt id="maxConfsTorsion-number-default:-50"><b>--maxConfsTorsion</b> &lt;number&gt; [default: 50]</dt>
+<dd>
+<p>Maximum number of conformations to generate for conformation ensemble representing a specific torsion. A constrained minimization is performed using the coordinates of the specified torsion and the lowest energy conformation is written to the output file.</p>
+</dd>
+<dt id="maxIters-number-default:-500"><b>--maxIters</b> &lt;number&gt; [default: 500]</dt>
+<dd>
+<p>Maximum number of iterations to perform for a molecule during minimization to generation initial 3D structures. This option is ignored during &#39;yes&#39; value of &#39;--infile3D&#39; option.</p>
+</dd>
+<dt id="mp-yes-or-no-default:-no"><b>--mp</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Use multiprocessing.</p>
+<p>By default, input data is retrieved in a lazy manner via mp.Pool.imap() function employing lazy RDKit data iterable. This allows processing of arbitrary large data sets without any additional requirements memory.</p>
+<p>All input data may be optionally loaded into memory by mp.Pool.map() before starting worker processes in a process pool by setting the value of &#39;inputDataMode&#39; to &#39;InMemory&#39; in &#39;--mpParams&#39; option.</p>
+<p>A word to the wise: The default &#39;chunkSize&#39; value of 1 during &#39;Lazy&#39; input data mode may adversely impact the performance. The &#39;--mpParams&#39; section provides additional information to tune the value of &#39;chunkSize&#39;.</p>
+</dd>
+<dt id="mpParams-Name-Value-...-default:-auto"><b>--mpParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for to configure multiprocessing.</p>
+<p>The supported parameter names along with their default and possible values are shown below:</p>
+<div class="OptionsBox">    chunkSize, auto
+<br/>    inputDataMode, Lazy   [ Possible values: InMemory or Lazy ]
+<br/>    numProcesses, auto   [ Default: mp.cpu_count() ]</div>
+<p>These parameters are used by the following functions to configure and control the behavior of multiprocessing: mp.Pool(), mp.Pool.map(), and mp.Pool.imap().</p>
+<p>The chunkSize determines chunks of input data passed to each worker process in a process pool by mp.Pool.map() and mp.Pool.imap() functions. The default value of chunkSize is dependent on the value of &#39;inputDataMode&#39;.</p>
+<p>The mp.Pool.map() function, invoked during &#39;InMemory&#39; input data mode, automatically converts RDKit data iterable into a list, loads all data into memory, and calculates the default chunkSize using the following method as shown in its code:</p>
+<div class="OptionsBox">    chunkSize, extra = divmod(len(dataIterable), len(numProcesses) * 4)
+<br/>    if extra: chunkSize += 1</div>
+<p>For example, the default chunkSize will be 7 for a pool of 4 worker processes and 100 data items.</p>
+<p>The mp.Pool.imap() function, invoked during &#39;Lazy&#39; input data mode, employs &#39;lazy&#39; RDKit data iterable to retrieve data as needed, without loading all the data into memory. Consequently, the size of input data is not known a priori. It&#39;s not possible to estimate an optimal value for the chunkSize. The default chunkSize is set to 1.</p>
+<p>The default value for the chunkSize during &#39;Lazy&#39; data mode may adversely impact the performance due to the overhead associated with exchanging small chunks of data. It is generally a good idea to explicitly set chunkSize to a larger value during &#39;Lazy&#39; input data mode, based on the size of your input data and number of processes in the process pool.</p>
+<p>The mp.Pool.map() function waits for all worker processes to process all the data and return the results. The mp.Pool.imap() function, however, returns the the results obtained from worker processes as soon as the results become available for specified chunks of data.</p>
+<p>The order of data in the results returned by both mp.Pool.map() and mp.Pool.imap() functions always corresponds to the input data.</p>
+</dd>
+<dt id="o---outfile-outfile"><b>-o, --outfile</b> &lt;outfile&gt;</dt>
+<dd>
+<p>Output file name. The output file root is used for generating the names of the output files corresponding to structures, energies, and plots during the torsion scan.</p>
+</dd>
+<dt id="outfileMolName-yes-or-no-default:-no"><b>--outfileMolName</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Append molecule name to output file root during the generation of the names for output files. The default is to use &lt;MolNum&gt;. The non alphabetical characters in molecule names are replaced by underscores.</p>
+</dd>
+<dt id="outfileParams-Name-Value-...-default:-auto"><b>--outfileParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for writing molecules to files. The supported parameter names for different file formats, along with their default values, are shown below:</p>
+<div class="OptionsBox">    SD: kekulize,no
+<br/>    </div>
+</dd>
+<dt id="outPlotParams-Name-Value-...-default:-auto"><b>--outPlotParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for generating plots using Seaborn module. The supported parameter names along with their default values are shown below:</p>
+<div class="OptionsBox">    type,linepoint,outExt,svg,width,10,height,5.6,
+<br/>    title,auto,xlabel,auto,ylabel,auto,titleWeight,bold,labelWeight,bold
+<br/>    style,darkgrid,palette,deep,font,sans-serif,fontScale,1,
+<br/>    context,notebook
+<br/>    </div>
+<p>Possible values:</p>
+<div class="OptionsBox">    type: linepoint, scatter, or line. Both points and lines are drawn
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        for linepoint plot type.
+<br/>    outExt: Any valid format supported by Python module Matplotlib.
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        For example: PDF (.pdf), PNG (.png), PS (.ps), SVG (.svg)
+<br/>    titleWeight, labelWeight: Font weight for title and axes labels.
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        Any valid value.
+<br/>    style: darkgrid, whitegrid, dark, white, ticks
+<br/>    palette: deep, muted, pastel, dark, bright, colorblind
+<br/>    font: Any valid font name
+<br/>
+ --outPlotTitleTorsionSpec &lt;yes or no&gt;  [default: yes]
+Append torsion specification to the title of the torsion plot.</div>
+</dd>
+<dt id="overwrite"><b>--overwrite</b></dt>
+<dd>
+<p>Overwrite existing files.</p>
+</dd>
+<dt id="q---quiet-yes-or-no-default:-no"><b>-q, --quiet</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Use quiet mode. The warning and information messages will not be printed.</p>
+</dd>
+<dt id="randomSeed-number-default:-auto"><b>--randomSeed</b> &lt;number&gt; [default: auto]</dt>
+<dd>
+<p>Seed for the random number generator for generating initial 3D coordinates. Default is to use a random seed.</p>
+</dd>
+<dt id="removeHydrogens-yes-or-no-default:-Yes"><b>--removeHydrogens</b> &lt;yes or no&gt; [default: Yes]</dt>
+<dd>
+<p>Remove hydrogens after minimization.</p>
+</dd>
+<dt id="t---torsions-SMILES-SMARTS"><b>-t, --torsions</b> &lt;SMILES/SMARTS,...,...&gt;</dt>
+<dd>
+<p>SMILES/SMARTS patterns corresponding to torsion specifications. It&#39;s a comma delimited list of valid SMILES/SMART patterns.</p>
+<p>A substructure match is performed to select torsion atoms in a molecule. The SMILES pattern match must correspond to four torsion atoms. The SMARTS patterns contain atom indices may match more than four atoms. The atoms indices, however, must match exactly four torsion atoms. For example: [s:1][c:2]([aX2,cH1])!@[CX3:3](O)=[O:4] for thiophene esters and carboxylates as specified in Torsion Library (TorLib) [Ref 146].</p>
+</dd>
+<dt id="torsionMaxMatches-number-default:-5"><b>--torsionMaxMatches</b> &lt;number&gt; [default: 5]</dt>
+<dd>
+<p>Maximum number of torsions to match for each torsion specification in a molecule.</p>
+</dd>
+<dt id="torsionMinimize-yes-or-no-default:-no"><b>--torsionMinimize</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Perform constrained energy minimization on a conformation ensemble for a specific torsion angle and select the lowest energy conformation representing the torsion angle.</p>
+</dd>
+<dt id="torsionRange-Start-Stop-Step-default:-0-360-5"><b>--torsionRange</b> &lt;Start,Stop,Step&gt; [default: 0,360,5]</dt>
+<dd>
+<p>Start, stop, and step size angles in degrees for a torsion scan. In addition, you may specify values using start and stop angles from -180 to 180.</p>
+</dd>
+<dt id="useChirality-yes-or-no-default:-no"><b>--useChirality</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Use chirrality during substructure matches for identification of torsions. --useTethers &lt;yes or no&gt; [default: yes] Use tethers to optimize the final conformation by applying a series of extra forces to align matching atoms to the positions of the core atoms. Otherwise, use simple distance constraints during the optimization.</p>
+</dd>
+<dt id="w---workingdir-dir"><b>-w, --workingdir</b> &lt;dir&gt;</dt>
+<dd>
+<p>Location of working directory which defaults to the current directory.</p>
+</dd>
+</dl>
+<h1 id="EXAMPLES">EXAMPLES</h2>
+<p>To perform a torsion scan on first molecule in a SMILES file using a minimum energy structure of the molecule selected from an ensemble of conformations, skipping generation of conformation ensembles for specific torsion angles and constrained energy minimization of the ensemble, generate output files corresponding to structure, energy and torsion plot, type:</p>
+<div class="ExampleBox">    % RDKitPerformTorsionScan.py  -t &quot;O=CNC&quot; -i SampleSeriesD3R.smi 
+      -o SampleOut.sdf</div>
+<p>To run the previous example on all molecules in a SD file, type:</p>
+<div class="ExampleBox">    % RDKitPerformTorsionScan.py  -t &quot;O=CNC&quot; --modeMols All
+      -i SampleSeriesD3R.sdf -o SampleOut.sdf</div>
+<p>To perform a torsion scan on first molecule in a SMILES file using a minimum energy structure of the molecule selected from an ensemble of conformations, generation of conformation ensembles for specific torsion angles and constrained energy minimization of the ensemble, generate output files corresponding to structure, energy and torsion plot, type:</p>
+<div class="ExampleBox">    % RDKitPerformTorsionScan.py  -t &quot;O=CNC&quot; --torsionMinimize Yes
+       -i SampleSeriesD3R.smi -o SampleOut.sdf</div>
+<p>To run the previous example on all molecules in a SD file, type:</p>
+<div class="ExampleBox">    % RDKitPerformTorsionScan.py  -t &quot;O=CNC&quot; --modeMols All
+       --torsionMinimize Yes -i SampleSeriesD3R.sdf -o SampleOut.sdf</div>
+<p>To run the previous example in multiprocessing mode on all available CPUs without loading all data into memory and write out a SD file, type:</p>
+<div class="ExampleBox">    % RDKitPerformTorsionScan.py  -t &quot;O=CNC&quot; -i SampleSeriesD3R.smi 
+      -o SampleOut.sdf --modeMols All --torsionMinimize Yes --mp yes</div>
+<p>To run the previous example in multiprocessing mode on all available CPUs by loading all data into memory and write out a SD file, type:</p>
+<div class="ExampleBox">    % RDKitPerformTorsionScan.py  -t &quot;O=CNC&quot; -i SampleSeriesD3R.smi 
+      -o SampleOut.sdf --modeMols All --torsionMinimize Yes --mp yes
+      --mpParams &quot;inputDataMode,InMemory&quot;</div>
+<p>To run the previous example in multiprocessing mode on specific number of CPUs and chunk size without loading all data into memory and write out a SD file, type:</p>
+<div class="ExampleBox">    % RDKitPerformTorsionScan.py  -t &quot;O=CNC&quot; -i SampleSeriesD3R.smi 
+      -o SampleOut.sdf --modeMols All --torsionMinimize Yes --mp yes
+      --mpParams &quot;inputDataMode,Lazy,numProcesses,4,chunkSize,8&quot;</div>
+<p>To perform a torsion scan on first molecule in a SD file containing 3D coordinates, skipping generation of conformation ensembles for specific torsion angles and constrained energy minimization of the ensemble, generate output files corresponding to structure, energy and torsion plot, type:</p>
+<div class="ExampleBox">    % RDKitPerformTorsionScan.py  -t &quot;O=CNC&quot;  --infile3D yes
+      -i SampleSeriesD3R3D.sdf -o SampleOut.sdf</div>
+<p>To perform a torsion scan using multiple torsion specifications on all molecules in a SD file containing 3D coordinates, generation of conformation ensembles for specific torsion angles and constrained energy minimization of the ensemble, generate output files corresponding to structure, energy and torsion plot, type:</p>
+<div class="ExampleBox">    % RDKitPerformTorsionScan.py  -t &quot;O=CNC,[O:1]=[C:2](c)[N:3][C:4]&quot;
+      --infile3D yes --modeMols All  --modeTorsions All
+      --torsionMinimize Yes -i SampleSeriesD3R3D.sdf -o SampleOut.sdf</div>
+<p>To run the previous example using a specific torsion scan range, type:</p>
+<div class="ExampleBox">    % RDKitPerformTorsionScan.py  -t &quot;O=CNC,[O:1]=[C:2](c)[N:3][C:4]&quot;
+      --infile3D yes --modeMols All --modeTorsions All --torsionMinimize
+      Yes --torsionRange 0,360,10 -i SampleSeriesD3R.smi -o SampleOut.sdf</div>
+<h1 id="AUTHOR">AUTHOR</h2>
+<p><a href="mailto:msud@san.rr.com">Manish Sud</a></p>
+<h1 id="SEE-ALSO">SEE ALSO</h2>
+<p><a href="./RDKitCalculateRMSD.html">RDKitCalculateRMSD.py</a>, <a href="./RDKitCalculateMolecularDescriptors.html">RDKitCalculateMolecularDescriptors.py</a>, <a href="./RDKitCompareMoleculeShapes.html">RDKitCompareMoleculeShapes.py</a>, <a href="./RDKitConvertFileFormat.html">RDKitConvertFileFormat.py</a>, <a href="./RDKitPerformConstrainedMinimization.html">RDKitPerformConstrainedMinimization.py</a></p>
+<h1 id="COPYRIGHT">COPYRIGHT</h2>
+<p>Copyright (C) 2020 Manish Sud. All rights reserved.</p>
+<p>The functionality available in this script is implemented using RDKit, an open source toolkit for cheminformatics developed by Greg Landrum.</p>
+<p>This file is part of MayaChemTools.</p>
+<p>MayaChemTools is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.</p>
+<p>&nbsp</p><p>&nbsp</p><div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./RDKitPerformRGroupDecomposition.html" title="RDKitPerformRGroupDecomposition.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./RDKitPickDiverseMolecules.html" title="RDKitPickDiverseMolecules.html">Next</a></td><td width="34%" align="middle"><strong>August 27, 2020</strong></td><td width="33%" align="right"><strong>RDKitPerformTorsionScan.py</strong></td></tr>
+</table>
+</div>
+<br />
+<center>
+<img src="../../images/h2o2.png">
+</center>
+</body>
+</html>

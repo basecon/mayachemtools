@@ -1,0 +1,498 @@
+<html>
+<head>
+<title>MayaChemTools:Code:PyMOLCalculatePhiPsiAngles.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../../css/MayaChemToolsPythonCode.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<pre>
+   1 <span class="ch">#!/bin/env python</span>
+   2 <span class="c1">#</span>
+   3 <span class="c1"># File: PyMOLCalculatePhiPsiAngles.py</span>
+   4 <span class="c1"># Author: Manish Sud &lt;msud@san.rr.com&gt;</span>
+   5 <span class="c1">#</span>
+   6 <span class="c1"># Copyright (C) 2020 Manish Sud. All rights reserved.</span>
+   7 <span class="c1">#</span>
+   8 <span class="c1"># The functionality available in this script is implemented using PyMOL, a</span>
+   9 <span class="c1"># molecular visualization system on an open source foundation originally</span>
+  10 <span class="c1"># developed by Warren DeLano.</span>
+  11 <span class="c1">#</span>
+  12 <span class="c1"># This file is part of MayaChemTools.</span>
+  13 <span class="c1">#</span>
+  14 <span class="c1"># MayaChemTools is free software; you can redistribute it and/or modify it under</span>
+  15 <span class="c1"># the terms of the GNU Lesser General Public License as published by the Free</span>
+  16 <span class="c1"># Software Foundation; either version 3 of the License, or (at your option) any</span>
+  17 <span class="c1"># later version.</span>
+  18 <span class="c1">#</span>
+  19 <span class="c1"># MayaChemTools is distributed in the hope that it will be useful, but without</span>
+  20 <span class="c1"># any warranty; without even the implied warranty of merchantability of fitness</span>
+  21 <span class="c1"># for a particular purpose.  See the GNU Lesser General Public License for more</span>
+  22 <span class="c1"># details.</span>
+  23 <span class="c1">#</span>
+  24 <span class="c1"># You should have received a copy of the GNU Lesser General Public License</span>
+  25 <span class="c1"># along with MayaChemTools; if not, see &lt;http://www.gnu.org/licenses/&gt; or</span>
+  26 <span class="c1"># write to the Free Software Foundation Inc., 59 Temple Place, Suite 330,</span>
+  27 <span class="c1"># Boston, MA, 02111-1307, USA.</span>
+  28 <span class="c1">#</span>
+  29 
+  30 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+  31 
+  32 <span class="c1"># Add local python path to the global path and import standard library modules...</span>
+  33 <span class="kn">import</span> <span class="nn">os</span>
+  34 <span class="kn">import</span> <span class="nn">sys</span><span class="p">;</span>  <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="s2">&quot;..&quot;</span><span class="p">,</span> <span class="s2">&quot;lib&quot;</span><span class="p">,</span> <span class="s2">&quot;Python&quot;</span><span class="p">))</span>
+  35 <span class="kn">import</span> <span class="nn">time</span>
+  36 <span class="kn">import</span> <span class="nn">re</span>
+  37 
+  38 <span class="c1"># PyMOL imports...</span>
+  39 <span class="k">try</span><span class="p">:</span>
+  40     <span class="kn">import</span> <span class="nn">pymol</span>
+  41     <span class="c1"># Finish launching PyMOL in  a command line mode for batch processing (-c)</span>
+  42     <span class="c1"># along with the following options:  disable loading of pymolrc and plugins (-k);</span>
+  43     <span class="c1"># suppress start up messages (-q)</span>
+  44     <span class="n">pymol</span><span class="o">.</span><span class="n">finish_launching</span><span class="p">([</span><span class="s1">&#39;pymol&#39;</span><span class="p">,</span> <span class="s1">&#39;-ckq&#39;</span><span class="p">])</span>
+  45 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+  46     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Failed to import PyMOL module/package: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ErrMsg</span><span class="p">)</span>
+  47     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Check/update your PyMOL environment and try again.</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+  48     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+  49 
+  50 <span class="c1"># MayaChemTools imports...</span>
+  51 <span class="k">try</span><span class="p">:</span>
+  52     <span class="kn">from</span> <span class="nn">docopt</span> <span class="kn">import</span> <span class="n">docopt</span>
+  53     <span class="kn">import</span> <span class="nn">MiscUtil</span>
+  54     <span class="kn">import</span> <span class="nn">PyMOLUtil</span>
+  55 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+  56     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Failed to import MayaChemTools module/package: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ErrMsg</span><span class="p">)</span>
+  57     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Check/update your MayaChemTools environment and try again.</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+  58     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+  59 
+  60 <span class="n">ScriptName</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+  61 <span class="n">Options</span> <span class="o">=</span> <span class="p">{}</span>
+  62 <span class="n">OptionsInfo</span> <span class="o">=</span> <span class="p">{}</span>
+  63 
+  64 <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+  65     <span class="sd">&quot;&quot;&quot;Start execution of the script&quot;&quot;&quot;</span>
+  66     
+  67     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2"> (PyMOL v</span><span class="si">%s</span><span class="s2">; </span><span class="si">%s</span><span class="s2">) Starting...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ScriptName</span><span class="p">,</span> <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">get_version</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()))</span>
+  68     
+  69     <span class="p">(</span><span class="n">WallClockTime</span><span class="p">,</span> <span class="n">ProcessorTime</span><span class="p">)</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetWallClockAndProcessorTime</span><span class="p">()</span>
+  70     
+  71     <span class="c1"># Retrieve command line arguments and options...</span>
+  72     <span class="n">RetrieveOptions</span><span class="p">()</span>
+  73     
+  74     <span class="c1"># Process and validate command line arguments and options...</span>
+  75     <span class="n">ProcessOptions</span><span class="p">()</span>
+  76     
+  77     <span class="c1"># Perform actions required by the script...</span>
+  78     <span class="n">CalculatePhiPsiAngles</span><span class="p">()</span>
+  79     
+  80     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2">: Done...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ScriptName</span><span class="p">)</span>
+  81     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Total time: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetFormattedElapsedTime</span><span class="p">(</span><span class="n">WallClockTime</span><span class="p">,</span> <span class="n">ProcessorTime</span><span class="p">))</span>
+  82 
+  83 <span class="k">def</span> <span class="nf">CalculatePhiPsiAngles</span><span class="p">():</span>
+  84     <span class="sd">&quot;&quot;&quot;Calculate phi and psi angles for macromolecules containing amino acids.&quot;&quot;&quot;</span>
+  85     
+  86     <span class="n">SetupOutputFiles</span><span class="p">()</span>
+  87     <span class="n">WriteColumnLabels</span><span class="p">()</span>
+  88     
+  89     <span class="n">Infile</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">]</span>
+  90     <span class="n">MolName</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileRoot&quot;</span><span class="p">]</span>
+  91     
+  92     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Calculating phi and psi torsion angles for input file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">Infile</span><span class="p">)</span>
+  93     
+  94     <span class="c1"># Load infile</span>
+  95     <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">Infile</span><span class="p">,</span> <span class="n">MolName</span><span class="p">)</span>
+  96 
+  97     <span class="n">OutDelim</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutDelim&quot;</span><span class="p">]</span>
+  98     <span class="n">Precision</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Precision&quot;</span><span class="p">]</span>
+  99 
+ 100     <span class="c1"># Go over specified chain IDs..</span>
+ 101     <span class="k">for</span> <span class="n">ChainID</span> <span class="ow">in</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SpecifiedChainsAndLigandsInfo&quot;</span><span class="p">][</span><span class="s2">&quot;ChainIDs&quot;</span><span class="p">]:</span>
+ 102         <span class="c1"># Write out information for combined file...</span>
+ 103         <span class="n">PhiPsiInfo</span> <span class="o">=</span> <span class="n">PyMOLUtil</span><span class="o">.</span><span class="n">GetPhiPsiResiduesInfo</span><span class="p">(</span><span class="n">MolName</span><span class="p">,</span> <span class="n">ChainID</span><span class="p">,</span> <span class="n">Categorize</span> <span class="o">=</span> <span class="bp">True</span><span class="p">)</span>
+ 104         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileResCount&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">PhiPsiInfo</span><span class="p">[</span><span class="s2">&quot;ResNums&quot;</span><span class="p">])</span>
+ 105         <span class="n">WritePhiPsiInfo</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutFH&quot;</span><span class="p">],</span> <span class="n">MolName</span><span class="p">,</span> <span class="n">ChainID</span><span class="p">,</span> <span class="n">PhiPsiInfo</span><span class="p">,</span> <span class="n">OutDelim</span><span class="p">,</span> <span class="n">Precision</span><span class="p">)</span>
+ 106 
+ 107         <span class="c1"># Write out information for category fies...</span>
+ 108         <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MultipleOutFiles&quot;</span><span class="p">]:</span>
+ 109             <span class="n">PhiPsiInfoList</span> <span class="o">=</span> <span class="p">[]</span>
+ 110             <span class="n">GeneralPhiPsiInfo</span><span class="p">,</span> <span class="n">GlycinePhiPsiInfo</span><span class="p">,</span> <span class="n">ProlinePhiPsiInfo</span><span class="p">,</span> <span class="n">PreProlinePhiPsiInfo</span> <span class="o">=</span> <span class="n">PyMOLUtil</span><span class="o">.</span><span class="n">GetPhiPsiCategoriesResiduesInfo</span><span class="p">(</span><span class="n">MolName</span><span class="p">,</span> <span class="n">ChainID</span><span class="p">)</span>
+ 111             <span class="n">PhiPsiInfoList</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">GeneralPhiPsiInfo</span><span class="p">,</span> <span class="n">GlycinePhiPsiInfo</span><span class="p">,</span> <span class="n">ProlinePhiPsiInfo</span><span class="p">,</span> <span class="n">PreProlinePhiPsiInfo</span><span class="p">])</span>
+ 112             
+ 113             <span class="k">for</span> <span class="n">Index</span><span class="p">,</span> <span class="n">Category</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Categories&quot;</span><span class="p">]):</span>
+ 114                 <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CategoriesResCount&quot;</span><span class="p">][</span><span class="n">Category</span><span class="p">]</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">PhiPsiInfoList</span><span class="p">[</span><span class="n">Index</span><span class="p">][</span><span class="s2">&quot;ResNums&quot;</span><span class="p">])</span>
+ 115                 <span class="n">WritePhiPsiInfo</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CategoriesOutFHs&quot;</span><span class="p">][</span><span class="n">Category</span><span class="p">],</span> <span class="n">MolName</span><span class="p">,</span> <span class="n">ChainID</span><span class="p">,</span> <span class="n">PhiPsiInfoList</span><span class="p">[</span><span class="n">Index</span><span class="p">],</span> <span class="n">OutDelim</span><span class="p">,</span> <span class="n">Precision</span><span class="p">)</span>
+ 116     
+ 117     <span class="c1"># Delete MolName object</span>
+ 118     <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">MolName</span><span class="p">)</span>
+ 119 
+ 120     <span class="c1"># Close all files...</span>
+ 121     <span class="n">CloseOutputFiles</span><span class="p">()</span>
+ 122 
+ 123     <span class="c1"># List number of phi and psi angles in output files...</span>
+ 124     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Number of phi and psi angles in output file </span><span class="si">%s</span><span class="s2">: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">],</span>  <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileResCount&quot;</span><span class="p">]))</span>
+ 125     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MultipleOutFiles&quot;</span><span class="p">]:</span>
+ 126         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+ 127         <span class="k">for</span> <span class="n">Index</span><span class="p">,</span> <span class="n">Category</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Categories&quot;</span><span class="p">]):</span>
+ 128             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of phi and psi angles in output file </span><span class="si">%s</span><span class="s2">: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CategoriesOutfiles&quot;</span><span class="p">][</span><span class="n">Category</span><span class="p">],</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CategoriesResCount&quot;</span><span class="p">][</span><span class="n">Category</span><span class="p">]))</span>
+ 129 
+ 130 <span class="k">def</span> <span class="nf">WritePhiPsiInfo</span><span class="p">(</span><span class="n">OutFH</span><span class="p">,</span> <span class="n">MolName</span><span class="p">,</span> <span class="n">ChainID</span><span class="p">,</span> <span class="n">PhiPsiResiduesInfo</span><span class="p">,</span> <span class="n">OutDelim</span><span class="p">,</span> <span class="n">Precision</span><span class="p">):</span>
+ 131     <span class="sd">&quot;&quot;&quot;Write out phi and psi information.&quot;&quot;&quot;</span>
+ 132 
+ 133     <span class="k">for</span> <span class="n">ResNum</span> <span class="ow">in</span> <span class="n">PhiPsiResiduesInfo</span><span class="p">[</span><span class="s2">&quot;ResNums&quot;</span><span class="p">]:</span>
+ 134         <span class="n">ResName</span> <span class="o">=</span> <span class="n">PhiPsiResiduesInfo</span><span class="p">[</span><span class="s2">&quot;ResName&quot;</span><span class="p">][</span><span class="n">ResNum</span><span class="p">]</span>
+ 135         <span class="n">Phi</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%.*f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">Precision</span><span class="p">,</span> <span class="n">PhiPsiResiduesInfo</span><span class="p">[</span><span class="s2">&quot;Phi&quot;</span><span class="p">][</span><span class="n">ResNum</span><span class="p">])</span>
+ 136         <span class="n">Psi</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%.*f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">Precision</span><span class="p">,</span> <span class="n">PhiPsiResiduesInfo</span><span class="p">[</span><span class="s2">&quot;Psi&quot;</span><span class="p">][</span><span class="n">ResNum</span><span class="p">])</span>
+ 137         <span class="n">Category</span> <span class="o">=</span> <span class="n">PhiPsiResiduesInfo</span><span class="p">[</span><span class="s2">&quot;Category&quot;</span><span class="p">][</span><span class="n">ResNum</span><span class="p">]</span>
+ 138 
+ 139         <span class="n">LineWords</span> <span class="o">=</span> <span class="p">[]</span>
+ 140         <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutChainID&quot;</span><span class="p">]:</span>
+ 141             <span class="n">LineWords</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ChainID</span><span class="p">)</span>
+ 142         
+ 143         <span class="n">LineWords</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">ResNum</span><span class="p">,</span> <span class="n">ResName</span><span class="p">,</span> <span class="n">Phi</span><span class="p">,</span> <span class="n">Psi</span><span class="p">])</span>
+ 144         
+ 145         <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutCategory&quot;</span><span class="p">]:</span>
+ 146             <span class="n">LineWords</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Category</span><span class="p">)</span>
+ 147             
+ 148         <span class="n">Line</span> <span class="o">=</span> <span class="n">OutDelim</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">LineWords</span><span class="p">)</span>
+ 149         
+ 150         <span class="n">OutFH</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">Line</span><span class="p">)</span>
+ 151 
+ 152 <span class="k">def</span> <span class="nf">WriteColumnLabels</span><span class="p">():</span>
+ 153     <span class="sd">&quot;&quot;&quot;Write out column labels. &quot;&quot;&quot;</span>
+ 154     
+ 155     <span class="n">OutDelim</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutDelim&quot;</span><span class="p">]</span>
+ 156 
+ 157     <span class="n">ColLabels</span> <span class="o">=</span> <span class="p">[]</span>
+ 158     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutChainID&quot;</span><span class="p">]:</span>
+ 159         <span class="n">ColLabels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;ChainID&quot;</span><span class="p">)</span>
+ 160     
+ 161     <span class="n">ColLabels</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="s2">&quot;ResNum&quot;</span><span class="p">,</span> <span class="s2">&quot;ResName&quot;</span><span class="p">,</span> <span class="s2">&quot;Phi&quot;</span><span class="p">,</span> <span class="s2">&quot;Psi&quot;</span><span class="p">])</span>
+ 162     
+ 163     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutCategory&quot;</span><span class="p">]:</span>
+ 164         <span class="n">ColLabels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;Category&quot;</span><span class="p">)</span>
+ 165     
+ 166     <span class="n">Line</span> <span class="o">=</span> <span class="n">OutDelim</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ColLabels</span><span class="p">)</span>
+ 167 
+ 168     <span class="c1"># Write column labels for combined file...</span>
+ 169     <span class="n">OutFH</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutFH&quot;</span><span class="p">]</span>
+ 170     <span class="n">OutFH</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">Line</span><span class="p">)</span>
+ 171 
+ 172     <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MultipleOutFiles&quot;</span><span class="p">]:</span>
+ 173         <span class="k">return</span>
+ 174     
+ 175     <span class="c1"># Write columns labels for category files...</span>
+ 176     <span class="k">for</span> <span class="n">Category</span> <span class="ow">in</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Categories&quot;</span><span class="p">]:</span>
+ 177         <span class="n">CategoryOutFH</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CategoriesOutFHs&quot;</span><span class="p">][</span><span class="n">Category</span><span class="p">]</span>
+ 178         <span class="n">CategoryOutFH</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">Line</span><span class="p">)</span>
+ 179 
+ 180 <span class="k">def</span> <span class="nf">SetupOutputFiles</span><span class="p">():</span>
+ 181     <span class="sd">&quot;&quot;&quot;Open output files.&quot;&quot;&quot;</span>
+ 182 
+ 183     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MultipleOutFiles&quot;</span><span class="p">]:</span>
+ 184         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Generating output files: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfilesList&quot;</span><span class="p">])))</span>
+ 185     <span class="k">else</span><span class="p">:</span>
+ 186         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Generating output file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">]))</span>
+ 187         
+ 188     <span class="c1"># Open combined output file...</span>
+ 189     <span class="n">Outfile</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">]</span>
+ 190     <span class="n">OutFH</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">Outfile</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+ 191     <span class="k">if</span> <span class="n">OutFH</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 192         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Couldn&#39;t open output file: </span><span class="si">%s</span><span class="s2">.</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">Outfile</span><span class="p">))</span>
+ 193     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutFH&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OutFH</span>
+ 194     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileResCount&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+ 195 
+ 196     <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MultipleOutFiles&quot;</span><span class="p">]:</span>
+ 197         <span class="k">return</span>
+ 198     
+ 199     <span class="c1"># Open output files for different categories...</span>
+ 200     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CategoriesOutFHs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+ 201     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CategoriesResCount&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+ 202     <span class="k">for</span> <span class="n">Category</span> <span class="ow">in</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Categories&quot;</span><span class="p">]:</span>
+ 203         <span class="n">CategoryOutfile</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CategoriesOutfiles&quot;</span><span class="p">][</span><span class="n">Category</span><span class="p">]</span>
+ 204         <span class="n">CategoryOutFH</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">CategoryOutfile</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
+ 205         <span class="k">if</span> <span class="n">CategoryOutfile</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 206             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Couldn&#39;t open output file: </span><span class="si">%s</span><span class="s2">.</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">CategoryOutfile</span><span class="p">))</span>
+ 207         
+ 208         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CategoriesOutFHs&quot;</span><span class="p">][</span><span class="n">Category</span><span class="p">]</span> <span class="o">=</span> <span class="n">CategoryOutFH</span>
+ 209         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CategoriesResCount&quot;</span><span class="p">][</span><span class="n">Category</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+ 210     
+ 211 <span class="k">def</span> <span class="nf">CloseOutputFiles</span><span class="p">():</span>
+ 212     <span class="sd">&quot;&quot;&quot;Close output files.&quot;&quot;&quot;</span>
+ 213     
+ 214     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutFH&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+ 215     
+ 216     <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MultipleOutFiles&quot;</span><span class="p">]:</span>
+ 217         <span class="k">return</span>
+ 218     
+ 219     <span class="k">for</span> <span class="n">Category</span> <span class="ow">in</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Categories&quot;</span><span class="p">]:</span>
+ 220         <span class="n">CategoryOutFH</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CategoriesOutFHs&quot;</span><span class="p">][</span><span class="n">Category</span><span class="p">]</span>
+ 221         <span class="n">CategoryOutFH</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+ 222 
+ 223 <span class="k">def</span> <span class="nf">RetrieveInfileInfo</span><span class="p">():</span>
+ 224     <span class="sd">&quot;&quot;&quot;Retrieve information for input file.&quot;&quot;&quot;</span>
+ 225     
+ 226     <span class="n">Infile</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">]</span>
+ 227     <span class="n">InfileRoot</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileRoot&quot;</span><span class="p">]</span>
+ 228     
+ 229     <span class="n">ChainsAndLigandsInfo</span> <span class="o">=</span> <span class="n">PyMOLUtil</span><span class="o">.</span><span class="n">GetChainsAndLigandsInfo</span><span class="p">(</span><span class="n">Infile</span><span class="p">,</span> <span class="n">InfileRoot</span><span class="p">)</span>
+ 230     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ChainsAndLigandsInfo&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ChainsAndLigandsInfo</span>
+ 231 
+ 232 <span class="k">def</span> <span class="nf">ProcessChainIDs</span><span class="p">():</span>
+ 233     <span class="sd">&quot;&quot;&quot;Process specified chain IDs for infile.&quot;&quot;&quot;</span>
+ 234     
+ 235     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Processing specified chain IDs for input file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">])</span>        
+ 236     <span class="n">ChainsAndLigandsInfo</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ChainsAndLigandsInfo&quot;</span><span class="p">]</span>
+ 237     <span class="n">SpecifiedChainsAndLigandsInfo</span> <span class="o">=</span> <span class="n">PyMOLUtil</span><span class="o">.</span><span class="n">ProcessChainsAndLigandsOptionsInfo</span><span class="p">(</span><span class="n">ChainsAndLigandsInfo</span><span class="p">,</span> <span class="s2">&quot;-c, --chainIDs&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ChainIDs&quot;</span><span class="p">],</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+ 238     
+ 239     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SpecifiedChainsAndLigandsInfo&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">SpecifiedChainsAndLigandsInfo</span>
+ 240     
+ 241     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Specified chain IDs: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">SpecifiedChainsAndLigandsInfo</span><span class="p">[</span><span class="s2">&quot;ChainIDs&quot;</span><span class="p">])))</span>
+ 242 
+ 243 <span class="k">def</span> <span class="nf">SetupCategoryOutfiles</span><span class="p">():</span>
+ 244     <span class="sd">&quot;&quot;&quot;Setup output file names for different categories of phi and psi angles. &quot;&quot;&quot;</span>
+ 245 
+ 246     <span class="c1"># Initialize...</span>
+ 247     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfilesList&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+ 248     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfilesList&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">])</span>
+ 249     
+ 250     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Categories&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;General&quot;</span><span class="p">,</span> <span class="s2">&quot;Glycine&quot;</span><span class="p">,</span> <span class="s2">&quot;Proline&quot;</span><span class="p">,</span> <span class="s2">&quot;PreProline&quot;</span><span class="p">]</span>
+ 251     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CategoriesOutfiles&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+ 252     <span class="k">for</span> <span class="n">Category</span> <span class="ow">in</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Categories&quot;</span><span class="p">]:</span>
+ 253         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CategoriesOutfiles&quot;</span><span class="p">][</span><span class="n">Category</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+ 254 
+ 255     <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MultipleOutFiles&quot;</span><span class="p">]:</span>
+ 256         <span class="k">return</span>
+ 257 
+ 258     <span class="n">FileDir</span><span class="p">,</span> <span class="n">FileName</span><span class="p">,</span> <span class="n">FileExt</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ParseFileName</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">])</span>
+ 259     <span class="n">OutfileRoot</span> <span class="o">=</span> <span class="n">FileName</span>
+ 260     <span class="n">OutfileExt</span> <span class="o">=</span> <span class="n">FileExt</span>
+ 261     
+ 262     <span class="k">for</span> <span class="n">Category</span> <span class="ow">in</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Categories&quot;</span><span class="p">]:</span>
+ 263         <span class="n">CategoryOutfile</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">_</span><span class="si">%s</span><span class="s2">.</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">OutfileRoot</span><span class="p">,</span> <span class="n">Category</span><span class="p">,</span> <span class="n">OutfileExt</span><span class="p">)</span>
+ 264         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">CategoryOutfile</span><span class="p">):</span>
+ 265             <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Overwrite&quot;</span><span class="p">]:</span>
+ 266                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The category output file, </span><span class="si">%s</span><span class="s2">, already exist. Use option </span><span class="se">\&quot;</span><span class="s2">--ov</span><span class="se">\&quot;</span><span class="s2"> or </span><span class="se">\&quot;</span><span class="s2">--overwrite</span><span class="se">\&quot;</span><span class="s2"> and try again.</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">CategoryOutfile</span><span class="p">))</span>
+ 267                 
+ 268         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;CategoriesOutfiles&quot;</span><span class="p">][</span><span class="n">Category</span><span class="p">]</span> <span class="o">=</span> <span class="n">CategoryOutfile</span>
+ 269         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfilesList&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">CategoryOutfile</span><span class="p">)</span>
+ 270         
+ 271 <span class="k">def</span> <span class="nf">ProcessOptions</span><span class="p">():</span>
+ 272     <span class="sd">&quot;&quot;&quot;Process and validate command line arguments and options&quot;&quot;&quot;</span>
+ 273 
+ 274     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Processing options...&quot;</span><span class="p">)</span>
+ 275     
+ 276     <span class="c1"># Validate options...</span>
+ 277     <span class="n">ValidateOptions</span><span class="p">()</span>
+ 278 
+ 279     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">]</span>
+ 280     <span class="n">FileDir</span><span class="p">,</span> <span class="n">FileName</span><span class="p">,</span> <span class="n">FileExt</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ParseFileName</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">])</span>
+ 281     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileRoot&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">FileName</span>
+ 282     
+ 283     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">]</span>
+ 284     <span class="n">FileDir</span><span class="p">,</span> <span class="n">FileName</span><span class="p">,</span> <span class="n">FileExt</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ParseFileName</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">])</span>
+ 285     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileRoot&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">FileName</span>
+ 286     
+ 287     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Overwrite&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--overwrite&quot;</span><span class="p">]</span>
+ 288     
+ 289     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutDelim&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span>
+ 290     <span class="k">if</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">CheckFileExt</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">],</span> <span class="s2">&quot;csv&quot;</span><span class="p">):</span>
+ 291         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutDelim&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;,&quot;</span>
+ 292     <span class="k">elif</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">CheckFileExt</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">],</span> <span class="s2">&quot;tsv txt&quot;</span><span class="p">):</span>
+ 293         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutDelim&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">&quot;</span>
+ 294     <span class="k">else</span><span class="p">:</span>
+ 295         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The file name specified , </span><span class="si">%s</span><span class="s2">, for option </span><span class="se">\&quot;</span><span class="s2">--outfile</span><span class="se">\&quot;</span><span class="s2"> is not valid. Supported file formats: csv tsv txt</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">]))</span>
+ 296     
+ 297     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutMode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outMode&quot;</span><span class="p">]</span>
+ 298     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MultipleOutFiles&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^MultipleFiles$&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutMode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+ 299     
+ 300     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutChainID&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^Yes$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outChainID&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+ 301     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutCategory&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^Yes$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outCategory&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+ 302     
+ 303     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Overwrite&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--overwrite&quot;</span><span class="p">]</span>
+ 304     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Precision&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--precision&quot;</span><span class="p">])</span>
+ 305     
+ 306     <span class="n">RetrieveInfileInfo</span><span class="p">()</span>
+ 307     
+ 308     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ChainIDs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--chainIDs&quot;</span><span class="p">]</span>
+ 309     <span class="n">ProcessChainIDs</span><span class="p">()</span>
+ 310     
+ 311     <span class="n">SetupCategoryOutfiles</span><span class="p">()</span>
+ 312 
+ 313 <span class="k">def</span> <span class="nf">RetrieveOptions</span><span class="p">():</span> 
+ 314     <span class="sd">&quot;&quot;&quot;Retrieve command line arguments and options&quot;&quot;&quot;</span>
+ 315     
+ 316     <span class="c1"># Get options...</span>
+ 317     <span class="k">global</span> <span class="n">Options</span>
+ 318     <span class="n">Options</span> <span class="o">=</span> <span class="n">docopt</span><span class="p">(</span><span class="n">_docoptUsage_</span><span class="p">)</span>
+ 319     
+ 320     <span class="c1"># Set current working directory to the specified directory...</span>
+ 321     <span class="n">WorkingDir</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--workingdir&quot;</span><span class="p">]</span>
+ 322     <span class="k">if</span> <span class="n">WorkingDir</span><span class="p">:</span>
+ 323         <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">WorkingDir</span><span class="p">)</span>
+ 324     
+ 325     <span class="c1"># Handle examples option...</span>
+ 326     <span class="k">if</span> <span class="s2">&quot;--examples&quot;</span> <span class="ow">in</span> <span class="n">Options</span> <span class="ow">and</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--examples&quot;</span><span class="p">]:</span>
+ 327         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetExamplesTextFromDocOptText</span><span class="p">(</span><span class="n">_docoptUsage_</span><span class="p">))</span>
+ 328         <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+ 329 
+ 330 <span class="k">def</span> <span class="nf">ValidateOptions</span><span class="p">():</span>
+ 331     <span class="sd">&quot;&quot;&quot;Validate option values&quot;&quot;&quot;</span>
+ 332 
+ 333     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFilePath</span><span class="p">(</span><span class="s2">&quot;-i, --infile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">])</span>
+ 334     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFileExt</span><span class="p">(</span><span class="s2">&quot;-i, --infile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">],</span> <span class="s2">&quot;pdb cif&quot;</span><span class="p">)</span>
+ 335 
+ 336     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFileExt</span><span class="p">(</span><span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">],</span> <span class="s2">&quot;csv tsv txt&quot;</span><span class="p">)</span>
+ 337     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionsOutputFileOverwrite</span><span class="p">(</span><span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">],</span> <span class="s2">&quot;--overwrite&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--overwrite&quot;</span><span class="p">])</span>
+ 338     
+ 339     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;--outMode&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outMode&quot;</span><span class="p">],</span> <span class="s2">&quot;SingleFile MultipleFiles&quot;</span><span class="p">)</span>
+ 340     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;--outChainID&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outChainID&quot;</span><span class="p">],</span> <span class="s2">&quot;yes no&quot;</span><span class="p">)</span>
+ 341     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;--outCategory&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outCategory&quot;</span><span class="p">],</span> <span class="s2">&quot;yes no&quot;</span><span class="p">)</span>
+ 342     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionIntegerValue</span><span class="p">(</span><span class="s2">&quot;-p, --precision&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--precision&quot;</span><span class="p">],</span> <span class="p">{</span><span class="s2">&quot;&gt;&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span>
+ 343     
+ 344 <span class="c1"># Setup a usage string for docopt...</span>
+ 345 <span class="n">_docoptUsage_</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+ 346 <span class="s2">PyMOLCalculatePhiPsiAngles.py - Calculate phi and psi torsion angles</span>
+ 347 
+ 348 <span class="s2">Usage:</span>
+ 349 <span class="s2">    PyMOLCalculatePhiPsiAngles.py [--chainIDs &lt;First, All or ID1,ID2...&gt;]</span>
+ 350 <span class="s2">                                  [--outMode &lt;SingleFile or MultipleFies&gt;] [--outChainID &lt;yes or no&gt;]</span>
+ 351 <span class="s2">                                  [--outCategory &lt;yes or no&gt;] [--overwrite] [--precision &lt;number&gt;]</span>
+ 352 <span class="s2">                                  [-w &lt;dir&gt;] -i &lt;infile&gt; -o &lt;outfile&gt;</span>
+ 353 <span class="s2">    PyMOLCalculatePhiPsiAngles.py -h | --help | -e | --examples</span>
+ 354 
+ 355 <span class="s2">Description:</span>
+ 356 <span class="s2">    Calculate phi and psi torsion angels for amino acid residues present</span>
+ 357 <span class="s2">    in macromolecules.</span>
+ 358 
+ 359 <span class="s2">    The phi and psi angles are categorized into the following groups</span>
+ 360 <span class="s2">    corresponding to four types of Ramachandran plots:</span>
+ 361 <span class="s2">    </span>
+ 362 <span class="s2">        General: All residues except glycine, proline, or pre-proline</span>
+ 363 <span class="s2">        Glycine: Only glycine residues</span>
+ 364 <span class="s2">        Proline: Only proline residues</span>
+ 365 <span class="s2">        Pre-Proline: Only residues before proline not including glycine or</span>
+ 366 <span class="s2">            proline</span>
+ 367 <span class="s2">    </span>
+ 368 <span class="s2">    The supported input  file format are: PDB (.pdb), mmCIF (.cif)</span>
+ 369 
+ 370 <span class="s2">    The supported output file formats are:  CSV (.csv), TSV (.tsv, .txt)</span>
+ 371 
+ 372 <span class="s2">Options:</span>
+ 373 <span class="s2">    -c, --chainIDs &lt;First, All or ID1,ID2...&gt;  [default: All]</span>
+ 374 <span class="s2">        List of chain IDs to use for calculating phi and psi angles for residues</span>
+ 375 <span class="s2">        in chains. Possible values: First, All, or a comma delimited list of chain</span>
+ 376 <span class="s2">        IDs. The default is to use all chain IDs in input file.</span>
+ 377 <span class="s2">    -e, --examples</span>
+ 378 <span class="s2">        Print examples.</span>
+ 379 <span class="s2">    -h, --help</span>
+ 380 <span class="s2">        Print this help message.</span>
+ 381 <span class="s2">    -i, --infile &lt;infile&gt;</span>
+ 382 <span class="s2">        Input file name.</span>
+ 383 <span class="s2">    -o, --outfile &lt;outfile&gt;</span>
+ 384 <span class="s2">        Output file name for writing out calculated values. Supported text file</span>
+ 385 <span class="s2">        extensions: csv, tsv or txt.</span>
+ 386 <span class="s2">        </span>
+ 387 <span class="s2">        In addition to the specified outfile containing phi and psi angles for all</span>
+ 388 <span class="s2">        residues, a set of additional output files is generated for &#39;MultipleFiles&#39;</span>
+ 389 <span class="s2">        value of &#39;--outMode&#39; option. The names of these output files are</span>
+ 390 <span class="s2">        automatically generated from the the name of the specified output</span>
+ 391 <span class="s2">        file as shown below:</span>
+ 392 <span class="s2">        </span>
+ 393 <span class="s2">            General: &lt;OutfileRoot&gt;_General.&lt;OutfileExt&gt;</span>
+ 394 <span class="s2">            Glycine: &lt;OutfileRoot&gt;_Glycine.&lt;OutfileExt&gt;</span>
+ 395 <span class="s2">            Proline: &lt;OutfileRoot&gt;_Proline.&lt;OutfileExt&gt;</span>
+ 396 <span class="s2">            Pre-Proline: &lt;OutfileRoot&gt;_PreProline.&lt;OutfileExt&gt;</span>
+ 397 <span class="s2">        </span>
+ 398 <span class="s2">    --outMode &lt;SingleFile or MultipleFiles&gt;  [default: SingleFile]</span>
+ 399 <span class="s2">        A single output file containing phi and psi angles for all residues or</span>
+ 400 <span class="s2">        multiple output files corresponding to different categories of angles.</span>
+ 401 <span class="s2">        </span>
+ 402 <span class="s2">        The phi and psi angles are categorized into the following groups</span>
+ 403 <span class="s2">        corresponding to four types of Ramachandran plots:</span>
+ 404 <span class="s2">        </span>
+ 405 <span class="s2">            General: All residues except glycine, proline, or pre-proline</span>
+ 406 <span class="s2">            Glycine: Only glycine residues</span>
+ 407 <span class="s2">            Proline: Only proline residues</span>
+ 408 <span class="s2">            Pre-Proline: Only residues before proline not including glycine or</span>
+ 409 <span class="s2">                proline</span>
+ 410 <span class="s2">        </span>
+ 411 <span class="s2">        The output files contain the following information:</span>
+ 412 <span class="s2">        </span>
+ 413 <span class="s2">            ChainID ResNum ResName Phi Psi Category</span>
+ 414 <span class="s2">        </span>
+ 415 <span class="s2">    --outChainID &lt;yes or no&gt;  [default: yes]</span>
+ 416 <span class="s2">        Write chain IDs to output file.</span>
+ 417 <span class="s2">    --outCategory &lt;yes or no&gt;  [default: yes]</span>
+ 418 <span class="s2">        Write phi and psi category to output file.</span>
+ 419 <span class="s2">    --overwrite</span>
+ 420 <span class="s2">        Overwrite existing files.</span>
+ 421 <span class="s2">    -p, --precision &lt;number&gt;  [default: 2]</span>
+ 422 <span class="s2">        Floating point precision for writing the calculated phi and psi angles.</span>
+ 423 <span class="s2">    -w, --workingdir &lt;dir&gt;</span>
+ 424 <span class="s2">        Location of working directory which defaults to the current directory.</span>
+ 425 
+ 426 <span class="s2">Examples:</span>
+ 427 <span class="s2">    To calculate phi and psi angles for all residues across all chains in input</span>
+ 428 <span class="s2">    file and write out a single CSV file containing calculated values along with</span>
+ 429 <span class="s2">    chain IDs, residue names and numbers, and category of angles corresponding</span>
+ 430 <span class="s2">    to Ramachandran plots, type:</span>
+ 431 
+ 432 <span class="s2">        % PyMOLCalculatePhiPsiAngles.py -i Sample3.pdb -o Sample3Out.csv</span>
+ 433 
+ 434 <span class="s2">    To calculate phi and psi angles for all residues across all chains in input</span>
+ 435 <span class="s2">    file and write out a multiple CSV files corresponding to categories of angles</span>
+ 436 <span class="s2">    for Ramachandran plots along with other relevant information, type:</span>
+ 437 
+ 438 <span class="s2">        % PyMOLCalculatePhiPsiAngles.py --outMode MultipleFiles -i Sample3.pdb</span>
+ 439 <span class="s2">          -o Sample3Out.csv</span>
+ 440 
+ 441 <span class="s2">    To calculate phi and psi angles for all residues in a specific chain in input</span>
+ 442 <span class="s2">    file and write out a single TSV file containing calculated values along with</span>
+ 443 <span class="s2">    other relevant information, type:</span>
+ 444 
+ 445 <span class="s2">        % PyMOLCalculatePhiPsiAngles.py -c E  -i Sample3.pdb -o Sample3Out.csv</span>
+ 446 
+ 447 <span class="s2">    To calculate phi and psi angles for all residues in a specific chain in input</span>
+ 448 <span class="s2">    file and write out a multiple TSV files containing calculated values at a specific</span>
+ 449 <span class="s2">    precision along with other relevant information, type:</span>
+ 450 
+ 451 <span class="s2">        % PyMOLCalculatePhiPsiAngles.py --outMode MultipleFiles --chainIDs I</span>
+ 452 <span class="s2">          -i Sample3.pdb -o Sample3Out.csv</span>
+ 453 
+ 454 <span class="s2">Author:</span>
+ 455 <span class="s2">    Manish Sud(msud@san.rr.com)</span>
+ 456 
+ 457 <span class="s2">See also:</span>
+ 458 <span class="s2">    DownloadPDBFiles.pl, PyMOLCalculateRMSD.py, PyMOLCalculateProperties.py,</span>
+ 459 <span class="s2">    PyMOLGenerateRamachandranPlots.py</span>
+ 460 
+ 461 <span class="s2">Copyright:</span>
+ 462 <span class="s2">    Copyright (C) 2020 Manish Sud. All rights reserved.</span>
+ 463 
+ 464 <span class="s2">    The functionality available in this script is implemented using PyMOL, a</span>
+ 465 <span class="s2">    molecular visualization system on an open source foundation originally</span>
+ 466 <span class="s2">    developed by Warren DeLano.</span>
+ 467 
+ 468 <span class="s2">    This file is part of MayaChemTools.</span>
+ 469 
+ 470 <span class="s2">    MayaChemTools is free software; you can redistribute it and/or modify it under</span>
+ 471 <span class="s2">    the terms of the GNU Lesser General Public License as published by the Free</span>
+ 472 <span class="s2">    Software Foundation; either version 3 of the License, or (at your option) any</span>
+ 473 <span class="s2">    later version.</span>
+ 474 
+ 475 <span class="s2">&quot;&quot;&quot;</span>
+ 476 
+ 477 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+ 478     <span class="n">main</span><span class="p">()</span>
+</pre>
+<br />
+<center>
+<img src="../../../images/h2o2.png">
+</center>
+</body>
+</html>

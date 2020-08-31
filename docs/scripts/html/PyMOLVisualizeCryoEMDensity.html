@@ -1,0 +1,338 @@
+<html>
+<head>
+<title>MayaChemTools:Documentation:PyMOLVisualizeCryoEMDensity.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../css/MayaChemTools.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./PyMOLVisualizeCavities.html" title="PyMOLVisualizeCavities.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./PyMOLVisualizeElectronDensity.html" title="PyMOLVisualizeElectronDensity.html">Next</a></td><td width="34%" align="middle"><strong>PyMOLVisualizeCryoEMDensity.py</strong></td><td width="33%" align="right"><a href="././code/PyMOLVisualizeCryoEMDensity.html" title="View source code">Code</a>&nbsp;|&nbsp;<a href="./../pdf/PyMOLVisualizeCryoEMDensity.pdf" title="PDF US Letter Size">PDF</a>&nbsp;|&nbsp;<a href="./../pdfa4/PyMOLVisualizeCryoEMDensity.pdf" title="PDF A4 Size">PDFA4</a></td></tr>
+</table>
+</div>
+<h1 id="NAME">NAME</h2>
+<p>PyMOLVisualizeCryoEMDensity.py - Visualize cryo-EM density</p>
+<h1 id="SYNOPSIS">SYNOPSIS</h2>
+<p>PyMOLVisualizeCryoEMDensity.py [<b>--align</b> &lt;yes or no&gt;] [<b>--alignMethod</b> &lt;align, cealign, super&gt;] [<b>--alignMode</b> &lt;FirstChain or Complex&gt;] [<b>--alignRefFile</b> &lt;filename&gt;] [<b>--allowEmptyObjects</b> &lt;yes or no&gt;] [<b>--BFactorChainCartoonPutty</b> &lt;yes or no&gt;] [<b>--BFactorColorPalette</b> &lt;text&gt; ] [<b>--chainIDs</b> &lt;First, All or ID1,ID2...&gt;] [<b>--densityMapFiles</b> &lt;file1,file2,file3,...&gt;] [<b>--ligandIDs</b> &lt;Largest, All or ID1,ID2...&gt;] [<b>--labelFontID</b> &lt;number&gt;] [<b>--meshCarveRadius</b> &lt;number&gt;] [<b>--meshComplex</b> &lt;yes or no&gt;] [<b>--meshChainComplex</b> &lt;yes, no, or auto&gt;] [<b>--meshColor</b> &lt;text&gt;] [<b>--meshLevel</b> &lt;number&gt;] [<b>--meshWidth</b> &lt;number&gt;] [<b>--PMLOut</b> &lt;yes or no&gt;] [<b>--pocketContactsLigandColor</b> &lt;text&gt;] [<b>--pocketContactsLigandHydrophobicColor</b> &lt;text&gt;] [<b>--pocketContactsSolventColor</b> &lt;text&gt;] [<b>--pocketContactsCutoff</b> &lt;number&gt;] [<b>--pocketContactsInorganicColor</b> &lt;text&gt;] [<b>--pocketDistanceCutoff</b> &lt;number&gt;] [<b>--pocketLabelColor</b> &lt;text&gt;] [<b>--pocketSurface</b> &lt;yes or no&gt;] [<b>--selectionsChain</b> &lt;ObjectName,SelectionSpec,...&gt;] [<b>--selectionsChainStyle</b> &lt;DisplayStyle&gt;] [<b>--surfaceComplex</b> &lt;yes or no&gt;] [<b>--surfaceChainComplex</b> &lt;yes, no or auto&gt;] [<b>--surfaceTransparency</b> &lt;number&gt;] [<b>--volumeCarveRadius</b> &lt;number&gt;] [<b>--volumeComplex</b> &lt;yes or no&gt;] [<b>--volumeChainComplex</b> &lt;yes, no, or auto&gt;] [<b>--volumeColorRamp</b> &lt;text&gt;] [<b>--overwrite</b>] [<b>-w</b> &lt;dir&gt;] <b>-i</b> &lt;infile1,infile2,...&gt; <b>-o</b> &lt;outfile&gt;</p>
+<p>PyMOLVisualizeCryoEMDensity.py <b>-h</b> | <b>--help</b> | <b>-e</b> | <b>--examples</b></p>
+<h1 id="DESCRIPTION">DESCRIPTION</h2>
+<p>Generate PyMOL visualization files for viewing electron microscopy (EM) or cryo-EM density around chains, ligands, and ligand binding pockets in macromolecules including proteins and nucleic acids.</p>
+<p>The supported input file formats are: Macromolecule - PDB (.pdb) or CIF(.cif), Cryo-EM Density - Collaborative Computational Project Number 4 (CCP4) ( .map)</p>
+<p>The supported output file formats are: PyMOL script file (.pml), PyMOL session file (.pse)</p>
+<p>The cryo-EM density and header files along with PDB files may be downloaded from appropriate servers using DownloadPDBFiles.pl script.</p>
+<p>A variety of PyMOL groups and objects may be created for visualization of cryo-EM density present in map files. These groups and objects correspond to maps, volumes, meshes, surfaces,chains, ligands, inorganics, ligand binding pockets, polar interactions, and pocket hydrophobic surfaces. A complete hierarchy of all possible PyMOL groups and objects is shown below:</p>
+<div class="OptionsBox">    &lt;PDBFileRoot&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        .Complex
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .Complex
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .CryoEM
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Map
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Volume
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Mesh
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        .Chain&lt;ID&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .Complex
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Complex
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .CryoEM
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Volume
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Mesh
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .Chain
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Chain
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .BFactor
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Selections
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .&lt;Name1&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Selection
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .CryoEM
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Volume
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Mesh
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .&lt;Name2&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        ... ... ..
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .Solvent
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .Inorganic
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .Ligand&lt;ID&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Ligand
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Ligand
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .CryoEM
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Volume
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Mesh
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Pocket
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Pocket
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .CryoEM
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Volume
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Mesh
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Polar_Contacts
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Hydrophobic_Contacts
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Pocket_Solvent
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Pocket_Solvent
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .CryoEM
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Volume
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Mesh
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Polar_Contacts
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Pocket_Inorganic
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Pocket_Inorganic
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .CryoEM
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Volume
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Mesh
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Polar_Contacts
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .Ligand&lt;ID&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Ligand
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    ... ... ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Pocket
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    ... ... ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Pocket_Solvent
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    ... ... ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Pocket_Inorganic
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    ... ... ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        .Chain&lt;ID&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            ... ... ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .Ligand&lt;ID&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                ... ... ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .Ligand&lt;ID&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                ... ... ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        .Chain&lt;ID&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            ... ... ...
+<br/>    &lt;PDBFileRoot&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        .Complex
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            ... ... ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        .Chain&lt;ID&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            ... ... ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .Ligand&lt;ID&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                ... ... ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .Ligand&lt;ID&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                ... ... ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        .Chain&lt;ID&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            ... ... ...</div>
+<p>The meshes, volumes, and surfaces are not created for complete complex in input files by default. A word to the wise: The creation of these mesh, volume, and surface objects may slow down loading of PML file and generation of PSE file, based on the size of input complex and map files. The generation of PSE file may also fail. In addition, you may want to interactively manipulate the contour level for meshes, volumes, and surfaces. The recommended value for contour level is automatically retrieved from header files available from EM density server. The recommended value may not always work.</p>
+<h1 id="OPTIONS">OPTIONS</h2>
+<dl>
+<dt id="a---align-yes-or-no-default:-no"><b>-a, --align</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Align input files to a reference file before visualization along with available cryo-EM density map files.</p>
+</dd>
+<dt id="alignMethod-align-cealign-super-default:-super"><b>--alignMethod</b> &lt;align, cealign, super&gt; [default: super]</dt>
+<dd>
+<p>Alignment methodology to use for aligning input files to a reference file.</p>
+</dd>
+<dt id="alignMode-FirstChain-or-Complex-default:-FirstChain"><b>--alignMode</b> &lt;FirstChain or Complex&gt; [default: FirstChain]</dt>
+<dd>
+<p>Portion of input and reference files to use for spatial alignment of input files against reference file. Possible values: FirstChain or Complex.</p>
+<p>The FirstChain mode allows alignment of the first chain in each input file to the first chain in the reference file along with moving the rest of the complex to coordinate space of the reference file. The complete complex in each input file is aligned to the complete complex in reference file for the Complex mode.</p>
+</dd>
+<dt id="alignRefFile-filename-default:-FirstInputFile"><b>--alignRefFile</b> &lt;filename&gt; [default: FirstInputFile]</dt>
+<dd>
+<p>Reference input file name. The default is to use the first input file name specified using &#39;-i, --infiles&#39; option.</p>
+</dd>
+<dt id="allowEmptyObjects-yes-or-no-default:-no"><b>--allowEmptyObjects</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Allow creation of empty PyMOL objects corresponding to solvent and inorganic atom selections across chains, ligands, and ligand binding pockets in input file(s).</p>
+</dd>
+<dt id="b---BFactorChainCartoonPutty-yes-or-no-default:-yes"><b>-b, --BFactorChainCartoonPutty</b> &lt;yes or no&gt; [default: yes]</dt>
+<dd>
+<p>A cartoon putty around individual chains colored by B factors. The minimum and maximum values for B factors are automatically detected. These values indicate spread of cryo-EM density around atoms. The &#39;blue_white_red&#39; color palette is deployed for coloring the cartoon putty.</p>
+</dd>
+<dt id="BFactorColorPalette-text-default:-blue_white_red"><b>--BFactorColorPalette</b> &lt;text&gt; [default: blue_white_red]</dt>
+<dd>
+<p>Color palette for coloring cartoon putty around chains generated using B factors. Any valid PyMOL color palette name is allowed. No validation is performed. The complete list of valid color palette names is a available at: pymolwiki.org/index.php/Spectrum. Examples: blue_white_red, blue_white_magenta, blue_red, green_white_red, green_red.</p>
+</dd>
+<dt id="c---chainIDs-First-All-or-ID1-ID2...-default:-First"><b>-c, --chainIDs</b> &lt;First, All or ID1,ID2...&gt; [default: First]</dt>
+<dd>
+<p>List of chain IDs to use for visualizing cryo-EM density. Possible values: First, All, or a comma delimited list of chain IDs. The default is to use the chain ID for the first chain in each input file.</p>
+</dd>
+<dt id="d---densityMapFiles-file1-file2-file3-...-default:-auto"><b>-d, --densityMapFiles</b> &lt;file1,file2,file3,...&gt; [default: auto]</dt>
+<dd>
+<p>CryoEM density map file names. The EMDB ID is retrieved from PDB and CIF file to set the cryo-EM density file name during automatic detection of density files. The format of the file name is as follows:</p>
+<div class="OptionsBox">    emd_&lt;EMDBID&gt;.map.gz or emd_&lt;EMDBID&gt;.map
+ </div>
+<p>The density files must be present in the working directory.</p>
+</dd>
+<dt id="e---examples"><b>-e, --examples</b></dt>
+<dd>
+<p>Print examples.</p>
+</dd>
+<dt id="h---help"><b>-h, --help</b></dt>
+<dd>
+<p>Print this help message.</p>
+</dd>
+<dt id="i---infiles-infile1-infile2-infile3"><b>-i, --infiles</b> &lt;infile1,infile2,infile3...&gt;</dt>
+<dd>
+<p>Input file names.</p>
+</dd>
+<dt id="l---ligandIDs-Largest-All-or-ID1-ID2...-default:-Largest"><b>-l, --ligandIDs</b> &lt;Largest, All or ID1,ID2...&gt; [default: Largest]</dt>
+<dd>
+<p>List of ligand IDs present in chains for visualizing cryo-EM density across ligands and ligand binding pockets. Possible values: Largest, All, or a comma delimited list of ligand IDs. The default is to use the largest ligand present in all or specified chains in each input file.</p>
+<p>Ligands are identified using organic selection operator available in PyMOL. It&#39;ll also identify buffer molecules as ligands. The largest ligand contains the highest number of heavy atoms.</p>
+</dd>
+<dt id="labelFontID-number-default:-7"><b>--labelFontID</b> &lt;number&gt; [default: 7]</dt>
+<dd>
+<p>Font ID for drawing labels. Default: 7 (Sans Bold). Valid values: 5 to 16. The specified value must be a valid PyMOL font ID. No validation is performed. The complete lists of valid font IDs is available at: pymolwiki.org/index.php/Label_font_id. Examples: 5 - Sans; 7 - Sans Bold; 9 - Serif; 10 - Serif Bold.</p>
+</dd>
+<dt id="meshCarveRadius-number-default:-1.6"><b>--meshCarveRadius</b> &lt;number&gt; [default: 1.6]</dt>
+<dd>
+<p>Radius in Angstroms around atoms for including cryo-EM density.</p>
+</dd>
+<dt id="meshComplex-yes-or-no-default:-no"><b>--meshComplex</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Create meshes for complete complex in each input file using corresponding density map file.</p>
+</dd>
+<dt id="meshChainComplex-yes-no-or-auto-default:-auto"><b>--meshChainComplex</b> &lt;yes, no, or auto&gt; [default: auto]</dt>
+<dd>
+<p>Create meshes for individual chain complex in each input file using corresponding density map file. By default, the meshes are automatically created for chain complexes without any ligands.</p>
+</dd>
+<dt id="meshColor-text-default:-blue"><b>--meshColor</b> &lt;text&gt; [default: blue]</dt>
+<dd>
+<p>Line color for meshes corresponding to density maps.. The specified value must be valid color. No validation is performed.</p>
+</dd>
+<dt id="meshLevel-number1-number2-...-default:-auto"><b>--meshLevel</b> &lt;number1,number2,...&gt; [default: auto]</dt>
+<dd>
+<p>Comma delimited list of contour levels in sigma units for generating meshes for each input file using corresponding density map file. The default is to automatically retrieve the recommended contour levels for each input file. The header file emd-&lt;EMDBID&gt;.xml corresponding to an input file must be present in the working directory to automatically retrieve recommended value for mesh contour level. Otherwise, the default contour level is set to 1.</p>
+<p>You may want to interactively manipulate the contour level for meshes and surfaces. The default recommended value may not always work.</p>
+</dd>
+<dt id="meshWidth-number-default:-0.5"><b>--meshWidth</b> &lt;number&gt; [default: 0.5]</dt>
+<dd>
+<p>Line width for mesh lines corresponding to density maps.</p>
+</dd>
+<dt id="o---outfile-outfile"><b>-o, --outfile</b> &lt;outfile&gt;</dt>
+<dd>
+<p>Output file name.</p>
+</dd>
+<dt id="p---PMLOut-yes-or-no-default:-yes"><b>-p, --PMLOut</b> &lt;yes or no&gt; [default: yes]</dt>
+<dd>
+<p>Save PML file during generation of PSE file.</p>
+</dd>
+<dt id="pocketContactsLigandColor-text-default:-orange"><b>--pocketContactsLigandColor</b> &lt;text&gt; [default: orange]</dt>
+<dd>
+<p>Color for drawing polar contacts between ligand and pocket residues. The specified value must be valid color. No validation is performed.</p>
+</dd>
+<dt id="pocketContactsLigandHydrophobicColor-text-default:-purpleblue"><b>--pocketContactsLigandHydrophobicColor</b> &lt;text&gt; [default: purpleblue]</dt>
+<dd>
+<p>Color for drawing hydrophobic contacts between ligand and pocket residues. The specified value must be valid color. No validation is performed. The hydrophobic contacts are shown between pairs of carbon atoms not connected to hydrogen bond donor or acceptors atoms as identified by PyMOL.</p>
+</dd>
+<dt id="pocketContactsSolventColor-text-default:-marine"><b>--pocketContactsSolventColor</b> &lt;text&gt; [default: marine]</dt>
+<dd>
+<p>Color for drawing polar contacts between solvent and pocket residues. The specified value must be valid color. No validation is performed.</p>
+</dd>
+<dt id="pocketContactsInorganicColor-text-default:-deepsalmon"><b>--pocketContactsInorganicColor</b> &lt;text&gt; [default: deepsalmon]</dt>
+<dd>
+<p>Color for drawing polar contacts between inorganic and pocket residues. The specified value must be valid color. No validation is performed.</p>
+</dd>
+<dt id="pocketContactsCutoff-number-default:-4.0"><b>--pocketContactsCutoff</b> &lt;number&gt; [default: 4.0]</dt>
+<dd>
+<p>Distance in Angstroms for identifying polar and hyrdophobic contacts between atoms in pocket residues and ligands.</p>
+</dd>
+<dt id="pocketDistanceCutoff-number-default:-5.0"><b>--pocketDistanceCutoff</b> &lt;number&gt; [default: 5.0]</dt>
+<dd>
+<p>Distance in Angstroms for identifying pocket residues around ligands.</p>
+</dd>
+<dt id="pocketLabelColor-text-default:-magenta"><b>--pocketLabelColor</b> &lt;text&gt; [default: magenta]</dt>
+<dd>
+<p>Color for drawing residue or atom level labels for a pocket. The specified value must be valid color. No validation is performed.</p>
+</dd>
+<dt id="pocketSurface-yes-or-no-default:-yes"><b>--pocketSurface</b> &lt;yes or no&gt; [default: yes]</dt>
+<dd>
+<p>Hydrophobic surface around pocket. The pocket surface is colored by hydrophobicity. It is only valid for proteins. The color of amino acids is set using the Eisenberg hydrophobicity scale. The color varies from red to white, red being the most hydrophobic amino acid.</p>
+</dd>
+<dt id="selectionsChain-ObjectName-SelectionSpec-...-default:-None"><b>--selectionsChain</b> &lt;ObjectName,SelectionSpec,...&gt; [default: None]</dt>
+<dd>
+<p>Custom selections for chains. It is a pairwise list of comma delimited values corresponding to PyMOL object names and selection specifications. The selection specification must be a valid PyMOL specification. No validation is performed.</p>
+<p>The PyMOL objects are created for each chain corresponding to the specified selections. The display style for PyMOL objects is set using value of &#39;--selectionsChainStyle&#39; option.</p>
+<p>The specified selection specification is automatically appended to appropriate chain specification before creating PyMOL objects.</p>
+<p>For example, the following specification for &#39;--selectionsChain&#39; option will generate PyMOL objects for chains containing Cysteines and Serines:</p>
+<div class="OptionsBox">    Cysteines,resn CYS,Serines,resn SER
+<br/>    </div>
+</dd>
+<dt id="selectionsChainStyle-DisplayStyle-default:-sticks"><b>--selectionsChainStyle</b> &lt;DisplayStyle&gt; [default: sticks]</dt>
+<dd>
+<p>Display style for PyMOL objects created for &#39;--selectionsChain&#39; option. It must be a valid PyMOL display style. No validation is performed.</p>
+</dd>
+<dt id="surfaceComplex-yes-or-no-default:-no"><b>--surfaceComplex</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Create surfaces for complete complex in input file(s) corresponding to density map.</p>
+</dd>
+<dt id="surfaceChainComplex-yes-no-or-auto-default:-auto"><b>--surfaceChainComplex</b> &lt;yes, no or auto&gt; [default: auto]</dt>
+<dd>
+<p>Create surfaces for individual chain complexes in each input file using corresponding density map file. By default, the surfaces are automatically created for chain complexes without any ligands.</p>
+</dd>
+<dt id="surfaceTransparency-number-default:-0.25"><b>--surfaceTransparency</b> &lt;number&gt; [default: 0.25]</dt>
+<dd>
+<p>Surface transparency for molecular and cryo-EM density surfaces.</p>
+</dd>
+<dt id="overwrite"><b>--overwrite</b></dt>
+<dd>
+<p>Overwrite existing files.</p>
+</dd>
+<dt id="volumeCarveRadius-number-default:-1.6"><b>--volumeCarveRadius</b> &lt;number&gt; [default: 1.6]</dt>
+<dd>
+<p>Radius in Angstroms around atoms for including cryo-EM density.</p>
+</dd>
+<dt id="volumeComplex-yes-or-no-default:-no"><b>--volumeComplex</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Create volumes for complete complex in each input file using corresponding density map file.</p>
+</dd>
+<dt id="volumeChainComplex-yes-no-or-auto-default:-auto"><b>--volumeChainComplex</b> &lt;yes, no, or auto&gt; [default: auto]</dt>
+<dd>
+<p>Create volumes for individual chain complex in each input file using corresponding density map file. By default, the volumes are automatically created for chain complexes without any ligands.</p>
+</dd>
+<dt id="volumeColorRamp-text-default:-auto"><b>--volumeColorRamp</b> &lt;text&gt; [default: auto]</dt>
+<dd>
+<p>Name of a volume color ramp for density map files. The specified value must be a valid name. No validation is performed. The following volume color ramps are currently available in PyMOL: default, 2fofc, fofc, rainbow, and rainbow2.</p>
+<p>The default is to automatically create a new volume color ramp for the first input file using recommended contour level with an offset of 0.3 around this value. The header file emd-&lt;EMDBID&gt;.xml must be present in the working directory to automatically retrieve recommended contour level and generate a volume color ramp. Otherwise, PyMOL default volume color ramp is employed to color volumes.</p>
+<p>The volume color ramp automatically created for the first input file is used for all other input files.</p>
+</dd>
+<dt id="w---workingdir-dir"><b>-w, --workingdir</b> &lt;dir&gt;</dt>
+<dd>
+<p>Location of working directory which defaults to the current directory.</p>
+</dd>
+</dl>
+<h1 id="EXAMPLES">EXAMPLES</h2>
+<p>To download structure and cryo-EM data for 5K12, 5UMD, 5W81, and 5UAK before running the following examples, type:</p>
+<div class="ExampleBox">    % DownloadPDBFiles.pl --DensityMap yes 5K12,5UMD,5W81,5UAK</div>
+<p>To visualize cryo-EM density at recommended contour level for the first chain complex in a PDB file using corresponding density map and header file, and generate a PML file type:</p>
+<div class="ExampleBox">    % PyMOLVisualizeCryoEMDensity.py -i 5K12.pdb -o 5K12.pml</div>
+<p>To visualize cryo-EM density at recommended contour level for the first chain complex in a PDB file and highlighting densities for all cysteines and serines using corresponding density map and header file, and generate a PML file type:</p>
+<div class="ExampleBox">    % PyMOLVisualizeCryoEMDensity.py -i 5K12.pdb -o 5K12.pml
+      --selectionsChain &quot;Csysteines,resn cys,Serines,resn ser&quot;</div>
+<p>To visualize electron density for the largest ligand in chain K, and ligand binding pocket to highlight ligand interactions with pockect residues, solvents and inorganics, in a PDB and using corresponding map files, and generate a PML file, type:</p>
+<div class="ExampleBox">    % PyMOLVisualizeCryoEMDensity.py -c K -i 5UMD.cif -o 5UMD.pml</div>
+<p>To visualize cryo-EM density for all chains along with any solvents in a PDB file and using corresponding map files, and generate a PML file, type:</p>
+<div class="ExampleBox">    % PyMOLVisualizeCryoEMDensity.py -c all -i 5K12.pdb -o 5K12.pml</div>
+<p>To visualize cryo-EM density at a specific contour level for the first chain complex along with volume and surface in a PDB file using corresponding to a specific density map file, and generate a PML file, type:</p>
+<div class="ExampleBox">    % PyMOLVisualizeCryoEMDensity.py -d emd_8194.map.gz --meshLevel 1.0
+      --surfaceChainComplex yes --volumeChainComplex yes -i 5K12.pdb
+      -o 5K12.pml</div>
+<p>To align and visualize cryo-EM density at recommended contour levels for the largest ligand in the first chain along with pockets or the first chain complex in input files using corresponding maps and header files, type:</p>
+<div class="ExampleBox">    % PyMOLVisualizeCryoEMDensity.py -a yes -i &quot;5W81.pdb,5UAK.pdb&quot;
+      -o SampleOut.pml</div>
+<p>To align and visualize cryo-EM density at recommended contour levels for all chains and ligands in input files using specified density files, type: in input files using corresponding maps and header files, type:</p>
+<div class="ExampleBox">    % PyMOLVisualizeCryoEMDensity.py -a yes -i &quot;5W81.pdb,5UAK.pdb&quot;
+      -o SampleOut.pml -c all -l all -d &quot;emd_8782.map.gz,emd_8516.map.gz&quot;</div>
+<h1 id="AUTHOR">AUTHOR</h2>
+<p><a href="mailto:msud@san.rr.com">Manish Sud</a></p>
+<h1 id="SEE-ALSO">SEE ALSO</h2>
+<p><a href="./DownloadPDBFiles.html">DownloadPDBFiles.pl</a>, <a href="./PyMOLVisualizeCavities.html">PyMOLVisualizeCavities.py</a>, <a href="./PyMOLVisualizeElectronDensity.html">PyMOLVisualizeElectronDensity.py</a>, <a href="./PyMOLVisualizeInterfaces.html">PyMOLVisualizeInterfaces.py</a>, <a href="./PyMOLVisualizeMacromolecules.html">PyMOLVisualizeMacromolecules.py</a>, <a href="./PyMOLVisualizeSurfaceAndBuriedResidues.html">PyMOLVisualizeSurfaceAndBuriedResidues.py</a></p>
+<h1 id="COPYRIGHT">COPYRIGHT</h2>
+<p>Copyright (C) 2020 Manish Sud. All rights reserved.</p>
+<p>The functionality available in this script is implemented using PyMOL, a molecular visualization system on an open source foundation originally developed by Warren DeLano.</p>
+<p>This file is part of MayaChemTools.</p>
+<p>MayaChemTools is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.</p>
+<p>&nbsp</p><p>&nbsp</p><div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./PyMOLVisualizeCavities.html" title="PyMOLVisualizeCavities.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./PyMOLVisualizeElectronDensity.html" title="PyMOLVisualizeElectronDensity.html">Next</a></td><td width="34%" align="middle"><strong>August 27, 2020</strong></td><td width="33%" align="right"><strong>PyMOLVisualizeCryoEMDensity.py</strong></td></tr>
+</table>
+</div>
+<br />
+<center>
+<img src="../../images/h2o2.png">
+</center>
+</body>
+</html>

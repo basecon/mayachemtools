@@ -1,0 +1,165 @@
+<html>
+<head>
+<title>MayaChemTools:Documentation:PyMOLInfoMacromolecules.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../css/MayaChemTools.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./PyMOLGenerateRamachandranPlots.html" title="PyMOLGenerateRamachandranPlots.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./PyMOLMutateAminoAcids.html" title="PyMOLMutateAminoAcids.html">Next</a></td><td width="34%" align="middle"><strong>PyMOLInfoMacromolecules.py</strong></td><td width="33%" align="right"><a href="././code/PyMOLInfoMacromolecules.html" title="View source code">Code</a>&nbsp;|&nbsp;<a href="./../pdf/PyMOLInfoMacromolecules.pdf" title="PDF US Letter Size">PDF</a>&nbsp;|&nbsp;<a href="./../pdfa4/PyMOLInfoMacromolecules.pdf" title="PDF A4 Size">PDFA4</a></td></tr>
+</table>
+</div>
+<h1 id="NAME">NAME</h2>
+<p>PyMOLInfoMacromolecules.py - List information about macromolecules</p>
+<h1 id="SYNOPSIS">SYNOPSIS</h2>
+<p>PyMOLInfoMacromolecules.py [<b>--all</b>] [<b>--boundingBox</b>] [<b>--chains</b>] [<b>--countResidues</b>] [<b>--header</b>] [<b>--inorganics</b>] [<b>--interfaceResidues</b>] [<b>--interfaceResiduesChains</b> &lt;ChainID1,ChainD2,...&gt;] [<b>--interfaceResiduesMethod</b> &lt;text&gt;] [<b>--interfaceResiduesCutoff</b> &lt;number&gt;] [<b>--ligands</b>] [<b>--pocketLigands</b>] [<b>--pocketDistanceCutoff</b> &lt;number&gt;] [<b>--pocketSolvents</b>] [<b>--pocketInorganics</b>] [<b>--phiPsi</b>] [<b>--phiPsiMode</b> &lt;All or Categories&gt;] [<b>--phiPsiPrecision</b> &lt;number&gt;] [<b>--surfaceResidues</b>] [<b>--surfaceResiduesCutoff</b> &lt;number&gt;] [<b>--surfaceResiduesIDs</b> &lt;yes or no&gt;] [<b>--solvents</b>] [<b>-w</b> &lt;dir&gt;] <b>-i</b> &lt;infile1,infile2,infile3...&gt;</p>
+<p>PyMOLInfoMacromolecules.py <b>-h</b> | <b>--help</b> | <b>-e</b> | <b>--examples</b></p>
+<h1 id="DESCRIPTION">DESCRIPTION</h2>
+<p>List information regarding ID, classification, experimental technique, chains, solvents, inorganics, ligands, and ligand binding pockets in macromolecules present including proteins and nucleic acids.</p>
+<p>The supported input file format are: PDB (.pdb), mmCIF (.cif)</p>
+<h1 id="OPTIONS">OPTIONS</h2>
+<dl>
+<dt id="a---all"><b>-a, --all</b></dt>
+<dd>
+<p>All available information.</p>
+</dd>
+<dt id="b---boundingBox"><b>-b, --boundingBox</b></dt>
+<dd>
+<p>Min and max coordinates for bounding box along with its size.</p>
+</dd>
+<dt id="c---chains"><b>-c, --chains</b></dt>
+<dd>
+<p>Number of chains and their IDs. This is also default behavior. --countResidues Number of residues across chains. The chain residues are identified using polymer selection operator available in PyMOL. In addition, the non-standard amino acid residues are listed.</p>
+</dd>
+<dt id="e---examples"><b>-e, --examples</b></dt>
+<dd>
+<p>Print examples.</p>
+</dd>
+<dt id="h---help"><b>-h, --help</b></dt>
+<dd>
+<p>Print this help message. --header Header information including experimental technique information along with any available resolution. This is also default behavior.</p>
+</dd>
+<dt id="i---infiles-infile1-infile2-infile3"><b>-i, --infiles</b> &lt;infile1,infile2,infile3...&gt;</dt>
+<dd>
+<p>A comma delimited list of input files. The wildcards are also allowed in file names.</p>
+</dd>
+<dt id="inorganics"><b>--inorganics</b></dt>
+<dd>
+<p>Inorganic residues across chains. The inorganic residues are identified using inorganic selection operator available in PyMOL.</p>
+</dd>
+<dt id="interfaceResidues"><b>--interfaceResidues</b></dt>
+<dd>
+<p>Interface residues between specified pairs of chains.</p>
+</dd>
+<dt id="interfaceResiduesChains-ChainID1-Chain1D2-...-default:-Auto"><b>--interfaceResiduesChains</b> &lt;ChainID1,Chain1D2,...&gt; [default: Auto]</dt>
+<dd>
+<p>Pairwise comma delimited list of chain IDs for the identification of interface residues. Each chain ID may contain mutiple chain IDs delimited by a plus sign. For example: A+B,C+D chain pair specifies interface between chain complexes A+B and C+D.</p>
+<p>The interface residues are identified between first two chains in input files by default.</p>
+</dd>
+<dt id="interfaceResiduesMethod-text-default:-BySASAChange"><b>--interfaceResiduesMethod</b> &lt;text&gt; [default: BySASAChange]</dt>
+<dd>
+<p>Methodology for the identification of interface residues between a pair of chains in an input file. The interface residues may be identified by change in solvent accessible surface area (SASA) for a residue between a chain and chains complex, distance between heavy atoms in two chains, or distance between CAlpha atoms. Possible values: BySASAChange, ByHeavyAtomsDistance, or ByCAlphaAtomsDistance.</p>
+</dd>
+<dt id="interfaceResiduesCutoff-number-default:-auto"><b>--interfaceResiduesCutoff</b> &lt;number&gt; [default: auto]</dt>
+<dd>
+<p>Cutoff value used by different methodologies during identification of interface residues between a pair of chains. The default values are shown below:</p>
+<div class="OptionsBox">    BySASAChange: 1.0; Units: Angstrom**2 [ Ref 141 ]
+<br/>    ByHeavyAtomsDistance: 5.0; Units: Angstrom [ Ref 142 ]
+<br/>    ByCAlphaAtomsDistance: 8.0; Units: Angstrom [ Ref 143 ]</div>
+</dd>
+<dt id="l---ligands"><b>-l, --ligands</b></dt>
+<dd>
+<p>Ligands across chains. This is also default behavior. The ligands residues are identified using organic selection operator available in PyMOL.</p>
+</dd>
+<dt id="p---pocketLigands"><b>-p, --pocketLigands</b></dt>
+<dd>
+<p>Chain residues in ligand pockets.</p>
+</dd>
+<dt id="pocketDistanceCutoff-number-default:-5.0"><b>--pocketDistanceCutoff</b> &lt;number&gt; [default: 5.0]</dt>
+<dd>
+<p>Distance in Angstroms for identifying pocket residues around ligands.</p>
+</dd>
+<dt id="pocketSolvents"><b>--pocketSolvents</b></dt>
+<dd>
+<p>Solvent residues in ligand pockets. The solvent residues are identified using solvent selection operator available in PyMOL.</p>
+</dd>
+<dt id="pocketInorganics"><b>--pocketInorganics</b></dt>
+<dd>
+<p>Inorganic residues in ligand pockets. The inorganic residues are identified using Inorganic selection operator available in PyMOL. --phiPsi Phi and psi torsion angles across chains in macromolecules containing amino acids. --phiPsiMode &lt;All or Categories&gt; [default: Categories] List all phi and psi torsion angles for residues as a single group or split them into the following categories corresponding to four types of Ramachandran plots:</p>
+<div class="OptionsBox">    General: All residues except glycine, proline, or pre-proline
+<br/>    Glycine: Only glycine residues
+<br/>    Proline: Only proline residues
+<br/>    Pre-Proline: Only residues before proline not including glycine
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        or proline
+<br/>
+ --phiPsiPrecision &lt;number&gt;  [default: 2]
+Precision for listing phi and psi torsion angles.</div>
+</dd>
+<dt id="s---solvents"><b>-s, --solvents</b></dt>
+<dd>
+<p>Solvent residues across chains. The solvent residues are identified using solvent selection operator available in PyMOL.</p>
+</dd>
+<dt id="surfaceResidues"><b>--surfaceResidues</b></dt>
+<dd>
+<p>Surface and buried residues in chains.</p>
+</dd>
+<dt id="surfaceResiduesCutoff-number-default:-2.5"><b>--surfaceResiduesCutoff</b> &lt;number&gt; [default: 2.5]</dt>
+<dd>
+<p>Solvenet Accessible Surface Area (SASA) cutoff value in Angstroms**2 for surface and buried resiudes in chains. The residues with SASA less than the cutoff value correspond to burried residues.</p>
+</dd>
+<dt id="surfaceResiduesIDs-yes-or-no-default:-No"><b>--surfaceResiduesIDs</b> &lt;yes or no&gt; [default: No]</dt>
+<dd>
+<p>List residue IDs for surface and buried residues during listing of the distribution of these residues for &#39;--surfaceResidues&#39; option.</p>
+</dd>
+<dt id="w---workingdir-dir"><b>-w, --workingdir</b> &lt;dir&gt;</dt>
+<dd>
+<p>Location of working directory which defaults to the current directory.</p>
+</dd>
+</dl>
+<h1 id="EXAMPLES">EXAMPLES</h2>
+<p>To list header, chains, and ligand information for macromolecules in input file, type:</p>
+<div class="ExampleBox">    % PyMOLInfoMacromolecules.py  -i Sample3.pdb</div>
+<p>To list all available information for macromolecules in input files, type:</p>
+<div class="ExampleBox">    % PyMOLInfoMacromolecules.py  -a  -i &quot;Sample3.pdb,Sample4.pdb&quot;</div>
+<p>To list pockets residues information along with other default information for marcomolecules in input file, type:</p>
+<div class="ExampleBox">    % PyMOLInfoMacromolecules.py  -p --pocketDistanceCutoff 4.5 
+    --pocketSolvents  --pocketInorganics -i Sample3.pdb</div>
+<p>To list chain residues information along with other default information for marcomolecules in input file, type:</p>
+<div class="ExampleBox">    % PyMOLInfoMacromolecules.py  -c --countResidues --solvents
+    --inorganics -i &quot;Sample3.pdb,Sample4.pdb&quot; </div>
+<p>To list interface residues between first two chains by SASA change for marcomolecules in input file, type:</p>
+<div class="ExampleBox">    % PyMOLInfoMacromolecules.py  --interfaceResidues
+    -i Sample3.pdb</div>
+<p>To list interface residues between chains E and I by heay atoms distance for marcomolecules in input file, type:</p>
+<div class="ExampleBox">    % PyMOLInfoMacromolecules.py  --interfaceResidues
+    --interfaceResiduesChains E,I  --interfaceResiduesMethod
+    ByHeavyAtomsDistance --interfaceResiduesCutoff  5 -i Sample3.pdb</div>
+<p>To list interface residues between two sets of chains by SASA change for marcomolecules in input file, type:</p>
+<div class="ExampleBox">    % PyMOLInfoMacromolecules.py  --interfaceResidues
+    --interfaceResiduesChains &quot;A+B,C+D&quot; -i Sample8.pdb </div>
+<h1 id="AUTHOR">AUTHOR</h2>
+<p><a href="mailto:msud@san.rr.com">Manish Sud</a></p>
+<h1 id="SEE-ALSO">SEE ALSO</h2>
+<p><a href="./DownloadPDBFiles.html">DownloadPDBFiles.pl</a>, <a href="./PyMOLSplitChainsAndLigands.html">PyMOLSplitChainsAndLigands.py</a>, <a href="./PyMOLVisualizeMacromolecules.html">PyMOLVisualizeMacromolecules.py</a></p>
+<h1 id="COPYRIGHT">COPYRIGHT</h2>
+<p>Copyright (C) 2020 Manish Sud. All rights reserved.</p>
+<p>The functionality available in this script is implemented using PyMOL, a molecular visualization system on an open source foundation originally developed by Warren DeLano.</p>
+<p>This file is part of MayaChemTools.</p>
+<p>MayaChemTools is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.</p>
+<p>&nbsp</p><p>&nbsp</p><div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./PyMOLGenerateRamachandranPlots.html" title="PyMOLGenerateRamachandranPlots.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./PyMOLMutateAminoAcids.html" title="PyMOLMutateAminoAcids.html">Next</a></td><td width="34%" align="middle"><strong>August 27, 2020</strong></td><td width="33%" align="right"><strong>PyMOLInfoMacromolecules.py</strong></td></tr>
+</table>
+</div>
+<br />
+<center>
+<img src="../../images/h2o2.png">
+</center>
+</body>
+</html>

@@ -1,0 +1,1086 @@
+<html>
+<head>
+<title>MayaChemTools:Code:RDKitPerformPositionalAnalogueScan.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../../css/MayaChemToolsPythonCode.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<pre>
+    1 <span class="ch">#!/bin/env python</span>
+    2 <span class="c1">#</span>
+    3 <span class="c1"># File: RDKitPerformPositionalAnalogueScan.py</span>
+    4 <span class="c1"># Author: Manish Sud &lt;msud@san.rr.com&gt;</span>
+    5 <span class="c1">#</span>
+    6 <span class="c1"># Copyright (C) 2020 Manish Sud. All rights reserved.</span>
+    7 <span class="c1">#</span>
+    8 <span class="c1"># The functionality available in this script is implemented using RDKit, an</span>
+    9 <span class="c1"># open source toolkit for cheminformatics developed by Greg Landrum.</span>
+   10 <span class="c1">#</span>
+   11 <span class="c1"># This file is part of MayaChemTools.</span>
+   12 <span class="c1">#</span>
+   13 <span class="c1"># MayaChemTools is free software; you can redistribute it and/or modify it under</span>
+   14 <span class="c1"># the terms of the GNU Lesser General Public License as published by the Free</span>
+   15 <span class="c1"># Software Foundation; either version 3 of the License, or (at your option) any</span>
+   16 <span class="c1"># later version.</span>
+   17 <span class="c1">#</span>
+   18 <span class="c1"># MayaChemTools is distributed in the hope that it will be useful, but without</span>
+   19 <span class="c1"># any warranty; without even the implied warranty of merchantability of fitness</span>
+   20 <span class="c1"># for a particular purpose.  See the GNU Lesser General Public License for more</span>
+   21 <span class="c1"># details.</span>
+   22 <span class="c1">#</span>
+   23 <span class="c1"># You should have received a copy of the GNU Lesser General Public License</span>
+   24 <span class="c1"># along with MayaChemTools; if not, see &lt;http://www.gnu.org/licenses/&gt; or</span>
+   25 <span class="c1"># write to the Free Software Foundation Inc., 59 Temple Place, Suite 330,</span>
+   26 <span class="c1"># Boston, MA, 02111-1307, USA.</span>
+   27 <span class="c1">#</span>
+   28 
+   29 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+   30 
+   31 <span class="c1"># Add local python path to the global path and import standard library modules...</span>
+   32 <span class="kn">import</span> <span class="nn">os</span>
+   33 <span class="kn">import</span> <span class="nn">sys</span><span class="p">;</span>  <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="s2">&quot;..&quot;</span><span class="p">,</span> <span class="s2">&quot;lib&quot;</span><span class="p">,</span> <span class="s2">&quot;Python&quot;</span><span class="p">))</span>
+   34 <span class="kn">import</span> <span class="nn">time</span>
+   35 <span class="kn">import</span> <span class="nn">re</span>
+   36 <span class="kn">import</span> <span class="nn">multiprocessing</span> <span class="kn">as</span> <span class="nn">mp</span>
+   37 <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">combinations</span>
+   38 <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">permutations</span>
+   39 
+   40 <span class="c1"># RDKit imports...</span>
+   41 <span class="k">try</span><span class="p">:</span>
+   42     <span class="kn">from</span> <span class="nn">rdkit</span> <span class="kn">import</span> <span class="n">rdBase</span>
+   43     <span class="kn">from</span> <span class="nn">rdkit</span> <span class="kn">import</span> <span class="n">Chem</span>
+   44     <span class="kn">from</span> <span class="nn">rdkit.Chem</span> <span class="kn">import</span> <span class="n">AllChem</span>
+   45 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+   46     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Failed to import RDKit module/package: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ErrMsg</span><span class="p">)</span>
+   47     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Check/update your RDKit environment and try again.</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+   48     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+   49 
+   50 <span class="c1"># MayaChemTools imports...</span>
+   51 <span class="k">try</span><span class="p">:</span>
+   52     <span class="kn">from</span> <span class="nn">docopt</span> <span class="kn">import</span> <span class="n">docopt</span>
+   53     <span class="kn">import</span> <span class="nn">MiscUtil</span>
+   54     <span class="kn">import</span> <span class="nn">RDKitUtil</span>
+   55 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+   56     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Failed to import MayaChemTools module/package: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ErrMsg</span><span class="p">)</span>
+   57     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Check/update your MayaChemTools environment and try again.</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+   58     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+   59 
+   60 <span class="n">ScriptName</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+   61 <span class="n">Options</span> <span class="o">=</span> <span class="p">{}</span>
+   62 <span class="n">OptionsInfo</span> <span class="o">=</span> <span class="p">{}</span>
+   63 
+   64 <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+   65     <span class="sd">&quot;&quot;&quot;Start execution of the script&quot;&quot;&quot;</span>
+   66     
+   67     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2"> (RDK v</span><span class="si">%s</span><span class="s2">; </span><span class="si">%s</span><span class="s2">): Starting...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ScriptName</span><span class="p">,</span> <span class="n">rdBase</span><span class="o">.</span><span class="n">rdkitVersion</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()))</span>
+   68     
+   69     <span class="p">(</span><span class="n">WallClockTime</span><span class="p">,</span> <span class="n">ProcessorTime</span><span class="p">)</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetWallClockAndProcessorTime</span><span class="p">()</span>
+   70     
+   71     <span class="c1"># Retrieve command line arguments and options...</span>
+   72     <span class="n">RetrieveOptions</span><span class="p">()</span>
+   73     
+   74     <span class="c1"># Process and validate command line arguments and options...</span>
+   75     <span class="n">ProcessOptions</span><span class="p">()</span>
+   76     
+   77     <span class="c1"># Perform actions required by the script...</span>
+   78     <span class="n">PerformPositionalAnalogueScan</span><span class="p">()</span>
+   79     
+   80     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2">: Done...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ScriptName</span><span class="p">)</span>
+   81     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Total time: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetFormattedElapsedTime</span><span class="p">(</span><span class="n">WallClockTime</span><span class="p">,</span> <span class="n">ProcessorTime</span><span class="p">))</span>
+   82 
+   83 <span class="k">def</span> <span class="nf">PerformPositionalAnalogueScan</span><span class="p">():</span>
+   84     <span class="sd">&quot;&quot;&quot;Perform positional analogue scan.&quot;&quot;&quot;</span>
+   85     
+   86     <span class="c1"># Setup a molecule reader for input file...</span>
+   87     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Processing file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">])</span>
+   88     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileParams&quot;</span><span class="p">][</span><span class="s2">&quot;AllowEmptyMols&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span>
+   89     <span class="n">Mols</span>  <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">ReadMolecules</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">],</span> <span class="o">**</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileParams&quot;</span><span class="p">])</span>
+   90 
+   91     <span class="c1"># Set up a molecule writer...</span>
+   92     <span class="n">Writer</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MoleculesWriter</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">],</span> <span class="o">**</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">])</span>
+   93     <span class="k">if</span> <span class="n">Writer</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+   94         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Failed to setup a writer for output fie </span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">])</span>
+   95     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Generating file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">])</span>
+   96 
+   97     <span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">SearchPatternMissingCount</span><span class="p">,</span> <span class="n">AnaloguesGenerationFailedCount</span><span class="p">,</span> <span class="n">AnaloguesCount</span> <span class="o">=</span> <span class="n">ProcessMolecules</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">)</span>
+   98 
+   99     <span class="k">if</span> <span class="n">Writer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+  100         <span class="n">Writer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+  101     
+  102     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Total number of molecules: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolCount</span><span class="p">)</span>
+  103     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of valid molecules: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ValidMolCount</span><span class="p">)</span>
+  104     <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RxnSMARTSMode&quot;</span><span class="p">]:</span>
+  105         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of molecules with missing search pattern: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">SearchPatternMissingCount</span><span class="p">)</span>
+  106     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of molecules failed during generation of analogues: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">AnaloguesGenerationFailedCount</span><span class="p">)</span>
+  107     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of ignored molecules: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MolCount</span> <span class="o">-</span> <span class="n">ValidMolCount</span> <span class="o">+</span> <span class="n">SearchPatternMissingCount</span> <span class="o">+</span> <span class="n">AnaloguesGenerationFailedCount</span><span class="p">))</span>
+  108     
+  109     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Total number of analogues for valid molecules: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">AnaloguesCount</span><span class="p">)</span>
+  110     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Average number of analogues per valid molecule: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">AnaloguesCount</span><span class="o">/</span><span class="p">(</span><span class="n">ValidMolCount</span><span class="p">))))</span>
+  111 
+  112 <span class="k">def</span> <span class="nf">ProcessMolecules</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">):</span>
+  113     <span class="sd">&quot;&quot;&quot;Process molecules to generate analogues.&quot;&quot;&quot;</span>
+  114     
+  115     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MPMode&quot;</span><span class="p">]:</span>
+  116         <span class="k">return</span> <span class="n">ProcessMoleculesUsingMultipleProcesses</span><span class="p">(</span> <span class="n">Mols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">)</span>
+  117     <span class="k">else</span><span class="p">:</span>
+  118         <span class="k">return</span> <span class="n">ProcessMoleculesUsingSingleProcess</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">)</span>
+  119 
+  120 <span class="k">def</span> <span class="nf">ProcessMoleculesUsingSingleProcess</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">):</span>
+  121     <span class="sd">&quot;&quot;&quot;Process molecules to generate analogues using a single process.&quot;&quot;&quot;</span>
+  122 
+  123     <span class="n">Compute2DCoords</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">][</span><span class="s2">&quot;Compute2DCoords&quot;</span><span class="p">]</span>
+  124     <span class="n">SetSMILESMolProps</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">][</span><span class="s2">&quot;SetSMILESMolProps&quot;</span><span class="p">]</span>
+  125 
+  126     <span class="p">(</span><span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">SearchPatternMissingCount</span><span class="p">,</span> <span class="n">AnaloguesGenerationFailedCount</span><span class="p">,</span> <span class="n">AnaloguesCount</span><span class="p">)</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">5</span>
+  127 
+  128     <span class="c1"># Initialize search and target patterns info...</span>
+  129     <span class="n">SetupSearchAndTargetPatternsInfo</span><span class="p">()</span>
+  130 
+  131     <span class="n">FirstMol</span> <span class="o">=</span> <span class="bp">True</span>
+  132     <span class="k">for</span> <span class="n">Mol</span> <span class="ow">in</span> <span class="n">Mols</span><span class="p">:</span>
+  133         <span class="n">MolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+  134         
+  135         <span class="k">if</span> <span class="n">Mol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  136             <span class="k">continue</span>
+  137         
+  138         <span class="k">if</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">IsMolEmpty</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+  139             <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+  140                 <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">)</span>
+  141                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Ignoring empty molecule: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolName</span><span class="p">)</span>
+  142             <span class="k">continue</span>
+  143         <span class="n">ValidMolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+  144 
+  145         <span class="n">MolAnalogues</span><span class="p">,</span> <span class="n">SearchPatternMissingStatus</span><span class="p">,</span> <span class="n">AnaloguesGenerationStatus</span> <span class="o">=</span> <span class="n">GenerateMolAnalogues</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">)</span>
+  146         
+  147         <span class="k">if</span> <span class="n">FirstMol</span><span class="p">:</span>
+  148             <span class="n">FirstMol</span> <span class="o">=</span> <span class="bp">False</span>
+  149             <span class="k">if</span> <span class="n">SetSMILESMolProps</span><span class="p">:</span>
+  150                 <span class="k">if</span> <span class="n">Writer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+  151                     <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">SetWriterMolProps</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">)</span>
+  152         
+  153         <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RxnSMARTSMode&quot;</span><span class="p">]:</span>
+  154             <span class="k">if</span> <span class="n">SearchPatternMissingStatus</span><span class="p">:</span>
+  155                 <span class="n">SearchPatternMissingCount</span> <span class="o">+=</span> <span class="mi">1</span>
+  156                 <span class="n">WriteMolecule</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">Compute2DCoords</span><span class="p">)</span>
+  157                 <span class="k">continue</span>
+  158         
+  159         <span class="k">if</span> <span class="ow">not</span> <span class="n">AnaloguesGenerationStatus</span><span class="p">:</span>
+  160             <span class="n">AnaloguesGenerationFailedCount</span> <span class="o">+=</span> <span class="mi">1</span>
+  161             <span class="n">WriteMolecule</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">Compute2DCoords</span><span class="p">)</span>
+  162             <span class="k">continue</span>
+  163         
+  164         <span class="c1"># Write out molecues and analogues...</span>
+  165         <span class="n">WriteMolAnalogues</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">,</span> <span class="n">MolAnalogues</span><span class="p">,</span> <span class="n">Compute2DCoords</span><span class="p">)</span>
+  166         
+  167         <span class="n">AnaloguesCount</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">MolAnalogues</span><span class="p">)</span>
+  168 
+  169     <span class="k">return</span> <span class="p">(</span><span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">SearchPatternMissingCount</span><span class="p">,</span> <span class="n">AnaloguesGenerationFailedCount</span><span class="p">,</span> <span class="n">AnaloguesCount</span><span class="p">)</span>
+  170 
+  171 <span class="k">def</span> <span class="nf">ProcessMoleculesUsingMultipleProcesses</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">):</span>
+  172     <span class="sd">&quot;&quot;&quot;Process molecules to generate analogues using multiprocessing.&quot;&quot;&quot;</span>
+  173 
+  174     <span class="n">MPParams</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MPParams&quot;</span><span class="p">]</span>
+  175     
+  176     <span class="c1"># Setup data for initializing a worker process...</span>
+  177     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Encoding options info...&quot;</span><span class="p">)</span>
+  178 
+  179     <span class="n">InitializeWorkerProcessArgs</span> <span class="o">=</span> <span class="p">(</span><span class="n">MiscUtil</span><span class="o">.</span><span class="n">ObjectToBase64EncodedString</span><span class="p">(</span><span class="n">Options</span><span class="p">),</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ObjectToBase64EncodedString</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">))</span>
+  180     
+  181     <span class="c1"># Setup a encoded mols data iterable for a worker process...</span>
+  182     <span class="n">WorkerProcessDataIterable</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GenerateBase64EncodedMolStrings</span><span class="p">(</span><span class="n">Mols</span><span class="p">)</span>
+  183 
+  184     <span class="c1"># Setup process pool along with data initialization for each process...</span>
+  185     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Configuring multiprocessing using </span><span class="si">%s</span><span class="s2"> method...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="s2">&quot;mp.Pool.imap()&quot;</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^Lazy$&quot;</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="s2">&quot;mp.Pool.map()&quot;</span><span class="p">))</span>
+  186     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;NumProcesses: </span><span class="si">%s</span><span class="s2">; InputDataMode: </span><span class="si">%s</span><span class="s2">; ChunkSize: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;NumProcesses&quot;</span><span class="p">],</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">],</span> <span class="p">(</span><span class="s2">&quot;automatic&quot;</span> <span class="k">if</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;ChunkSize&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;ChunkSize&quot;</span><span class="p">])))</span>
+  187     
+  188     <span class="n">ProcessPool</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;NumProcesses&quot;</span><span class="p">],</span> <span class="n">InitializeWorkerProcess</span><span class="p">,</span> <span class="n">InitializeWorkerProcessArgs</span><span class="p">)</span>
+  189     
+  190     <span class="c1"># Start processing...</span>
+  191     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^Lazy$&quot;</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  192         <span class="n">Results</span> <span class="o">=</span> <span class="n">ProcessPool</span><span class="o">.</span><span class="n">imap</span><span class="p">(</span><span class="n">WorkerProcess</span><span class="p">,</span> <span class="n">WorkerProcessDataIterable</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;ChunkSize&quot;</span><span class="p">])</span>
+  193     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^InMemory$&quot;</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  194         <span class="n">Results</span> <span class="o">=</span> <span class="n">ProcessPool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">WorkerProcess</span><span class="p">,</span> <span class="n">WorkerProcessDataIterable</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;ChunkSize&quot;</span><span class="p">])</span>
+  195     <span class="k">else</span><span class="p">:</span>
+  196         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The value, </span><span class="si">%s</span><span class="s2">, specified for </span><span class="se">\&quot;</span><span class="s2">--inputDataMode</span><span class="se">\&quot;</span><span class="s2"> is not supported.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">]))</span>
+  197     
+  198     <span class="n">Compute2DCoords</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">][</span><span class="s2">&quot;Compute2DCoords&quot;</span><span class="p">]</span>
+  199     <span class="n">SetSMILESMolProps</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">][</span><span class="s2">&quot;SetSMILESMolProps&quot;</span><span class="p">]</span>
+  200 
+  201     <span class="p">(</span><span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">SearchPatternMissingCount</span><span class="p">,</span> <span class="n">AnaloguesGenerationFailedCount</span><span class="p">,</span> <span class="n">AnaloguesCount</span><span class="p">)</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">5</span>
+  202     <span class="n">FirstMol</span> <span class="o">=</span> <span class="bp">True</span>
+  203     <span class="k">for</span> <span class="n">Result</span> <span class="ow">in</span> <span class="n">Results</span><span class="p">:</span>
+  204         <span class="n">MolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+  205         <span class="n">MolIndex</span><span class="p">,</span> <span class="n">EncodedMol</span><span class="p">,</span> <span class="n">EncodedMolAnalogues</span><span class="p">,</span> <span class="n">SearchPatternMissingStatus</span><span class="p">,</span> <span class="n">AnaloguesGenerationStatus</span>  <span class="o">=</span> <span class="n">Result</span>
+  206         
+  207         <span class="k">if</span> <span class="n">EncodedMol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  208             <span class="k">continue</span>
+  209         <span class="n">ValidMolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+  210 
+  211         <span class="n">Mol</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MolFromBase64EncodedMolString</span><span class="p">(</span><span class="n">EncodedMol</span><span class="p">)</span>
+  212         
+  213         <span class="k">if</span> <span class="n">FirstMol</span><span class="p">:</span>
+  214             <span class="n">FirstMol</span> <span class="o">=</span> <span class="bp">False</span>
+  215             <span class="k">if</span> <span class="n">SetSMILESMolProps</span><span class="p">:</span>
+  216                 <span class="k">if</span> <span class="n">Writer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+  217                     <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">SetWriterMolProps</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">)</span>
+  218         
+  219         <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RxnSMARTSMode&quot;</span><span class="p">]:</span>
+  220             <span class="k">if</span> <span class="n">SearchPatternMissingStatus</span><span class="p">:</span>
+  221                 <span class="n">SearchPatternMissingCount</span> <span class="o">+=</span> <span class="mi">1</span>
+  222                 <span class="n">WriteMolecule</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">Compute2DCoords</span><span class="p">)</span>
+  223                 <span class="k">continue</span>
+  224         
+  225         <span class="k">if</span> <span class="ow">not</span> <span class="n">AnaloguesGenerationStatus</span><span class="p">:</span>
+  226             <span class="n">AnaloguesGenerationFailedCount</span> <span class="o">+=</span> <span class="mi">1</span>
+  227             <span class="n">WriteMolecule</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">Compute2DCoords</span><span class="p">)</span>
+  228             <span class="k">continue</span>
+  229         
+  230         <span class="n">MolAnalogues</span> <span class="o">=</span> <span class="p">[</span><span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MolFromBase64EncodedMolString</span><span class="p">(</span><span class="n">EncodedMolAnalogue</span><span class="p">)</span> <span class="k">for</span> <span class="n">EncodedMolAnalogue</span> <span class="ow">in</span> <span class="n">EncodedMolAnalogues</span><span class="p">]</span>
+  231         
+  232         <span class="c1"># Write out molecues and analogues...</span>
+  233         <span class="n">WriteMolAnalogues</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">,</span> <span class="n">MolAnalogues</span><span class="p">,</span> <span class="n">Compute2DCoords</span><span class="p">)</span>
+  234         
+  235         <span class="n">AnaloguesCount</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">MolAnalogues</span><span class="p">)</span>
+  236     
+  237     <span class="k">return</span> <span class="p">(</span><span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">SearchPatternMissingCount</span><span class="p">,</span> <span class="n">AnaloguesGenerationFailedCount</span><span class="p">,</span> <span class="n">AnaloguesCount</span><span class="p">)</span>
+  238     
+  239 <span class="k">def</span> <span class="nf">InitializeWorkerProcess</span><span class="p">(</span><span class="o">*</span><span class="n">EncodedArgs</span><span class="p">):</span>
+  240     <span class="sd">&quot;&quot;&quot;Initialize data for a worker process.&quot;&quot;&quot;</span>
+  241     
+  242     <span class="k">global</span> <span class="n">Options</span><span class="p">,</span> <span class="n">OptionsInfo</span>
+  243 
+  244     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Starting process (PID: </span><span class="si">%s</span><span class="s2">)...&quot;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">())</span>
+  245 
+  246     <span class="c1"># Decode Options and OptionInfo...</span>
+  247     <span class="n">Options</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ObjectFromBase64EncodedString</span><span class="p">(</span><span class="n">EncodedArgs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+  248     <span class="n">OptionsInfo</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ObjectFromBase64EncodedString</span><span class="p">(</span><span class="n">EncodedArgs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+  249     
+  250     <span class="c1"># Initialize search and target  patterns info...</span>
+  251     <span class="n">SetupSearchAndTargetPatternsInfo</span><span class="p">()</span>
+  252 
+  253 <span class="k">def</span> <span class="nf">WorkerProcess</span><span class="p">(</span><span class="n">EncodedMolInfo</span><span class="p">):</span>
+  254     <span class="sd">&quot;&quot;&quot;Process data for a worker process.&quot;&quot;&quot;</span>
+  255 
+  256     <span class="n">MolIndex</span><span class="p">,</span> <span class="n">EncodedMol</span> <span class="o">=</span> <span class="n">EncodedMolInfo</span>
+  257 
+  258     <span class="n">MolAnalogues</span> <span class="o">=</span> <span class="bp">None</span>
+  259     <span class="n">SearchPatternMissingStatus</span> <span class="o">=</span> <span class="bp">False</span>
+  260     <span class="n">AnaloguesGenerationStatus</span> <span class="o">=</span> <span class="bp">True</span>
+  261     
+  262     <span class="k">if</span> <span class="n">EncodedMol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  263         <span class="k">return</span> <span class="p">[</span><span class="n">MolIndex</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="n">MolAnalogues</span><span class="p">,</span> <span class="n">SearchPatternMissingStatus</span><span class="p">,</span> <span class="n">AnaloguesGenerationStatus</span><span class="p">]</span>
+  264 
+  265     <span class="n">Mol</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MolFromBase64EncodedMolString</span><span class="p">(</span><span class="n">EncodedMol</span><span class="p">)</span>
+  266     <span class="k">if</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">IsMolEmpty</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+  267         <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+  268             <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="p">(</span><span class="n">MolIndex</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+  269             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Ignoring empty molecule: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolName</span><span class="p">)</span>
+  270         <span class="k">return</span> <span class="p">[</span><span class="n">MolIndex</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="n">MolAnalogues</span><span class="p">,</span> <span class="n">SearchPatternMissingStatus</span><span class="p">,</span> <span class="n">AnaloguesGenerationStatus</span><span class="p">]</span>
+  271 
+  272     <span class="n">MolAnalogues</span><span class="p">,</span> <span class="n">SearchPatternMissingStatus</span><span class="p">,</span> <span class="n">AnaloguesGenerationStatus</span> <span class="o">=</span> <span class="n">GenerateMolAnalogues</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="p">(</span><span class="n">MolIndex</span> <span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+  273 
+  274     <span class="n">EncodedMolAnalogues</span> <span class="o">=</span> <span class="bp">None</span>
+  275     <span class="k">if</span> <span class="n">MolAnalogues</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+  276         <span class="n">EncodedMolAnalogues</span> <span class="o">=</span> <span class="p">[</span><span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MolToBase64EncodedMolString</span><span class="p">(</span><span class="n">MolAnalogue</span><span class="p">,</span> <span class="n">PropertyPickleFlags</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">PropertyPickleOptions</span><span class="o">.</span><span class="n">MolProps</span> <span class="o">|</span> <span class="n">Chem</span><span class="o">.</span><span class="n">PropertyPickleOptions</span><span class="o">.</span><span class="n">PrivateProps</span><span class="p">)</span> <span class="k">for</span> <span class="n">MolAnalogue</span> <span class="ow">in</span> <span class="n">MolAnalogues</span><span class="p">]</span>
+  277     
+  278     <span class="k">return</span> <span class="p">[</span><span class="n">MolIndex</span><span class="p">,</span> <span class="n">EncodedMol</span><span class="p">,</span> <span class="n">EncodedMolAnalogues</span><span class="p">,</span> <span class="n">SearchPatternMissingStatus</span><span class="p">,</span> <span class="n">AnaloguesGenerationStatus</span><span class="p">]</span>
+  279 
+  280 <span class="k">def</span> <span class="nf">GenerateMolAnalogues</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+  281     <span class="sd">&quot;&quot;&quot;Generate analogues.&quot;&quot;&quot;</span>
+  282 
+  283     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;AttachAtomsMode&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ReplaceAtomsMode&quot;</span><span class="p">]</span> <span class="ow">or</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;AttachSMILESMode&quot;</span><span class="p">]:</span>
+  284         <span class="k">return</span> <span class="n">GenerateMolAnaloguesForMultipleScanModes</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">)</span>
+  285     <span class="k">elif</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RxnSMARTSMode&quot;</span><span class="p">]:</span>
+  286         <span class="k">return</span> <span class="n">GenerateMolAnaloguesForRxnSMARTSMode</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">)</span>
+  287     <span class="k">elif</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;TandemScanMode&quot;</span><span class="p">]:</span>
+  288         <span class="k">return</span> <span class="n">GenerateMolAnaloguesForTandemScanMode</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">)</span>
+  289     <span class="k">else</span><span class="p">:</span>
+  290         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Failed to generate analogues.  The mode value, </span><span class="si">%s</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-m, --mode</span><span class="se">\&quot;</span><span class="s2"> is not supported.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Mode&quot;</span><span class="p">]))</span>
+  291 
+  292 <span class="k">def</span> <span class="nf">GenerateMolAnaloguesForMultipleScanModes</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+  293     <span class="sd">&quot;&quot;&quot;Generate analogues for the following scan modes: AttachAtom, ReplaceAtom</span>
+  294 <span class="sd">    or AttachSMILES.&quot;&quot;&quot;</span>
+  295 
+  296     <span class="n">MolAnalogues</span> <span class="o">=</span> <span class="bp">None</span>
+  297     <span class="n">SearchPatternMissingStatus</span> <span class="o">=</span> <span class="bp">False</span>
+  298     <span class="n">AnaloguesGenerationStatus</span> <span class="o">=</span> <span class="bp">True</span>
+  299 
+  300     <span class="c1"># Retrieve matched atoms...</span>
+  301     <span class="n">MolMatchedAtomIndices</span> <span class="o">=</span> <span class="n">SetupMolMatchedAtomIndices</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">)</span>
+  302     <span class="k">if</span> <span class="n">MolMatchedAtomIndices</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  303         <span class="n">SearchPatternMissingStatus</span> <span class="o">=</span> <span class="bp">True</span>
+  304         <span class="k">return</span> <span class="p">(</span><span class="n">MolAnalogues</span><span class="p">,</span> <span class="n">SearchPatternMissingStatus</span><span class="p">,</span> <span class="n">AnaloguesGenerationStatus</span><span class="p">)</span>
+  305 
+  306     <span class="n">AtomicNumber</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;TargetPatternAtomicNumber&quot;</span><span class="p">]</span>
+  307     <span class="n">SMILESMol</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;TargetPatternSMILESMol&quot;</span><span class="p">]</span>
+  308     
+  309     <span class="n">MolAnalogues</span> <span class="o">=</span> <span class="p">[]</span>
+  310     <span class="n">MolAnaloguesSet</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+  311     <span class="k">for</span> <span class="n">AtomIndicesCombination</span> <span class="ow">in</span> <span class="n">combinations</span><span class="p">(</span><span class="n">MolMatchedAtomIndices</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ComboSearchAtoms&quot;</span><span class="p">]):</span>
+  312         <span class="n">MolAnalogue</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">RWMol</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+  313 
+  314         <span class="k">for</span> <span class="n">AtomIndex</span> <span class="ow">in</span> <span class="n">AtomIndicesCombination</span><span class="p">:</span>
+  315             <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;AttachAtomsMode&quot;</span><span class="p">]:</span>
+  316                 <span class="n">MolAnalogue</span> <span class="o">=</span> <span class="n">AttachAtom</span><span class="p">(</span><span class="n">MolAnalogue</span><span class="p">,</span> <span class="n">AtomIndex</span><span class="p">,</span> <span class="n">AtomicNumber</span><span class="p">,</span> <span class="n">BondOrder</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">rdchem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">SINGLE</span><span class="p">)</span>
+  317             <span class="k">elif</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ReplaceAtomsMode&quot;</span><span class="p">]:</span>
+  318                 <span class="n">MolAnalogue</span> <span class="o">=</span> <span class="n">ReplaceAtom</span><span class="p">(</span><span class="n">MolAnalogue</span><span class="p">,</span> <span class="n">AtomIndex</span><span class="p">,</span> <span class="n">AtomicNumber</span><span class="p">)</span>
+  319             <span class="k">elif</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;AttachSMILESMode&quot;</span><span class="p">]:</span>
+  320                 <span class="n">AttachAtomIndex</span> <span class="o">=</span> <span class="n">MolAnalogue</span><span class="o">.</span><span class="n">GetNumAtoms</span><span class="p">()</span>
+  321                 <span class="n">MolAnalogue</span> <span class="o">=</span> <span class="n">AttachMol</span><span class="p">(</span><span class="n">MolAnalogue</span><span class="p">,</span> <span class="n">AtomIndex</span><span class="p">,</span> <span class="n">SMILESMol</span><span class="p">,</span> <span class="n">AttachAtomIndex</span><span class="p">,</span> <span class="n">BondOrder</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">rdchem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">SINGLE</span><span class="p">)</span>
+  322             
+  323         <span class="k">if</span> <span class="ow">not</span> <span class="n">SanitizeMolAnalogue</span><span class="p">(</span><span class="n">MolAnalogue</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">):</span>
+  324             <span class="k">continue</span>
+  325 
+  326         <span class="n">TrackAnalogues</span><span class="p">(</span><span class="n">MolAnalogue</span><span class="p">,</span> <span class="n">MolAnaloguesSet</span><span class="p">,</span> <span class="n">MolAnalogues</span><span class="p">)</span>
+  327         
+  328     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">MolAnalogues</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+  329         <span class="n">AnaloguesGenerationStatus</span> <span class="o">=</span> <span class="bp">False</span>
+  330         
+  331     <span class="k">return</span> <span class="p">(</span><span class="n">MolAnalogues</span><span class="p">,</span> <span class="n">SearchPatternMissingStatus</span><span class="p">,</span> <span class="n">AnaloguesGenerationStatus</span><span class="p">)</span>
+  332 
+  333 <span class="k">def</span> <span class="nf">GenerateMolAnaloguesForRxnSMARTSMode</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+  334     <span class="sd">&quot;&quot;&quot;Generate analogues for reaction SMARTS mode.&quot;&quot;&quot;</span>
+  335 
+  336     <span class="n">MolAnalogues</span> <span class="o">=</span> <span class="bp">None</span>
+  337     <span class="n">SearchPatternMissingStatus</span> <span class="o">=</span> <span class="bp">False</span>
+  338     <span class="n">AnaloguesGenerationStatus</span> <span class="o">=</span> <span class="bp">True</span>
+  339     
+  340     <span class="n">Rxn</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;TargetPatternRxn&quot;</span><span class="p">]</span>
+  341     <span class="n">RxnProducts</span> <span class="o">=</span> <span class="n">Rxn</span><span class="o">.</span><span class="n">RunReactants</span><span class="p">((</span><span class="n">Mol</span><span class="p">,))</span>
+  342 
+  343     <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">RxnProducts</span><span class="p">):</span>
+  344         <span class="n">MolAnalogues</span> <span class="o">=</span> <span class="bp">None</span>
+  345         <span class="n">AnaloguesGenerationStatus</span> <span class="o">=</span> <span class="bp">False</span>
+  346         <span class="k">return</span> <span class="p">(</span><span class="n">MolAnalogues</span><span class="p">,</span> <span class="n">SearchPatternMissingStatus</span><span class="p">,</span> <span class="n">AnaloguesGenerationStatus</span><span class="p">)</span>
+  347 
+  348     <span class="n">MolAnalogues</span> <span class="o">=</span> <span class="p">[]</span>
+  349     <span class="n">MolAnaloguesSet</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+  350     <span class="k">for</span> <span class="n">RxnProduct</span> <span class="ow">in</span> <span class="n">RxnProducts</span><span class="p">:</span>
+  351         <span class="n">MolAnalogue</span> <span class="o">=</span> <span class="n">RxnProduct</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+  352         
+  353         <span class="k">if</span> <span class="ow">not</span> <span class="n">SanitizeMolAnalogue</span><span class="p">(</span><span class="n">MolAnalogue</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">):</span>
+  354             <span class="k">continue</span>
+  355         
+  356         <span class="n">TrackAnalogues</span><span class="p">(</span><span class="n">MolAnalogue</span><span class="p">,</span> <span class="n">MolAnaloguesSet</span><span class="p">,</span> <span class="n">MolAnalogues</span><span class="p">)</span>
+  357     
+  358     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">MolAnalogues</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+  359         <span class="n">AnaloguesGenerationStatus</span> <span class="o">=</span> <span class="bp">False</span>
+  360         
+  361     <span class="k">return</span> <span class="p">(</span><span class="n">MolAnalogues</span><span class="p">,</span> <span class="n">SearchPatternMissingStatus</span><span class="p">,</span> <span class="n">AnaloguesGenerationStatus</span><span class="p">)</span>
+  362 
+  363 <span class="k">def</span> <span class="nf">GenerateMolAnaloguesForTandemScanMode</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+  364     <span class="sd">&quot;&quot;&quot;Generate analogues for tandem scan mode.&quot;&quot;&quot;</span>
+  365 
+  366     <span class="n">MolAnalogues</span> <span class="o">=</span> <span class="bp">None</span>
+  367     <span class="n">SearchPatternMissingStatus</span> <span class="o">=</span> <span class="bp">False</span>
+  368     <span class="n">AnaloguesGenerationStatus</span> <span class="o">=</span> <span class="bp">True</span>
+  369 
+  370     <span class="c1"># Retrieve matched atoms...</span>
+  371     <span class="n">MolMatchedAtomIndices</span> <span class="o">=</span> <span class="n">SetupMolMatchedAtomIndices</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">)</span>
+  372     <span class="k">if</span> <span class="n">MolMatchedAtomIndices</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  373         <span class="n">SearchPatternMissingStatus</span> <span class="o">=</span> <span class="bp">True</span>
+  374         <span class="k">return</span> <span class="p">(</span><span class="n">MolAnalogues</span><span class="p">,</span> <span class="n">SearchPatternMissingStatus</span><span class="p">,</span> <span class="n">AnaloguesGenerationStatus</span><span class="p">)</span>
+  375 
+  376     <span class="n">TargetPatternTandemScanInfo</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;TargetPatternTandemScanInfo&quot;</span><span class="p">]</span>
+  377     <span class="n">NumOfTandemOperations</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">TargetPatternTandemScanInfo</span><span class="p">[</span><span class="s2">&quot;Names&quot;</span><span class="p">])</span>
+  378     <span class="k">if</span>  <span class="nb">len</span><span class="p">(</span><span class="n">MolMatchedAtomIndices</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">NumOfTandemOperations</span><span class="p">:</span>
+  379         <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+  380             <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">)</span>
+  381             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Number of matched search pattern atoms, </span><span class="si">%s</span><span class="s2">, must be &gt;= number of specified operations, </span><span class="si">%s</span><span class="s2">, during TandemScan mode for molecule </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">MolMatchedAtomIndices</span><span class="p">),</span> <span class="n">NumOfTandemOperations</span><span class="p">,</span> <span class="n">MolName</span><span class="p">))</span>
+  382         <span class="n">SearchPatternMissingStatus</span> <span class="o">=</span> <span class="bp">True</span>
+  383         <span class="k">return</span> <span class="p">(</span><span class="n">MolAnalogues</span><span class="p">,</span> <span class="n">SearchPatternMissingStatus</span><span class="p">,</span> <span class="n">AnaloguesGenerationStatus</span><span class="p">)</span>
+  384     
+  385     <span class="n">MolAnalogues</span> <span class="o">=</span> <span class="p">[]</span>
+  386     <span class="n">MolAnaloguesSet</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+  387     <span class="k">for</span> <span class="n">AtomIndicesCombination</span> <span class="ow">in</span> <span class="n">combinations</span><span class="p">(</span><span class="n">MolMatchedAtomIndices</span><span class="p">,</span> <span class="n">NumOfTandemOperations</span><span class="p">):</span>
+  388         <span class="n">AtomIndicesPermutations</span> <span class="o">=</span> <span class="p">[]</span>
+  389         <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PermuteTandemScan&quot;</span><span class="p">]:</span>
+  390             <span class="k">for</span> <span class="n">AtomIndicesPermutation</span> <span class="ow">in</span> <span class="n">permutations</span><span class="p">(</span><span class="n">AtomIndicesCombination</span><span class="p">,</span> <span class="n">NumOfTandemOperations</span><span class="p">):</span>
+  391                 <span class="n">AtomIndicesPermutations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">AtomIndicesPermutation</span><span class="p">))</span>
+  392         <span class="k">else</span><span class="p">:</span>
+  393             <span class="n">AtomIndicesPermutations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">AtomIndicesCombination</span><span class="p">))</span>
+  394         
+  395         <span class="k">for</span> <span class="n">AtomIndicesPermutation</span> <span class="ow">in</span> <span class="n">AtomIndicesPermutations</span><span class="p">:</span>
+  396             <span class="n">MolAnalogue</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">RWMol</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+  397             
+  398             <span class="k">for</span> <span class="n">NameIndex</span><span class="p">,</span> <span class="n">Name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">TargetPatternTandemScanInfo</span><span class="p">[</span><span class="s2">&quot;Names&quot;</span><span class="p">]):</span>
+  399                 <span class="n">AtomIndex</span> <span class="o">=</span> <span class="n">AtomIndicesPermutation</span><span class="p">[</span><span class="n">NameIndex</span><span class="p">]</span>
+  400                 
+  401                 <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^AttachAtoms$&quot;</span><span class="p">,</span> <span class="n">Name</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  402                     <span class="n">MolAnalogue</span> <span class="o">=</span> <span class="n">AttachAtom</span><span class="p">(</span><span class="n">MolAnalogue</span><span class="p">,</span> <span class="n">AtomIndex</span><span class="p">,</span> <span class="n">TargetPatternTandemScanInfo</span><span class="p">[</span><span class="s2">&quot;PatternAtomicNumber&quot;</span><span class="p">][</span><span class="n">Name</span><span class="p">],</span> <span class="n">BondOrder</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">rdchem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">SINGLE</span><span class="p">)</span>
+  403                 <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^ReplaceAtoms$&quot;</span><span class="p">,</span> <span class="n">Name</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  404                     <span class="n">MolAnalogue</span> <span class="o">=</span> <span class="n">ReplaceAtom</span><span class="p">(</span><span class="n">MolAnalogue</span><span class="p">,</span> <span class="n">AtomIndex</span><span class="p">,</span> <span class="n">TargetPatternTandemScanInfo</span><span class="p">[</span><span class="s2">&quot;PatternAtomicNumber&quot;</span><span class="p">][</span><span class="n">Name</span><span class="p">])</span>
+  405                 <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^AttachSMILES$&quot;</span><span class="p">,</span> <span class="n">Name</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  406                     <span class="n">AttachAtomIndex</span> <span class="o">=</span> <span class="n">MolAnalogue</span><span class="o">.</span><span class="n">GetNumAtoms</span><span class="p">()</span>
+  407                     <span class="n">MolAnalogue</span> <span class="o">=</span> <span class="n">AttachMol</span><span class="p">(</span><span class="n">MolAnalogue</span><span class="p">,</span> <span class="n">AtomIndex</span><span class="p">,</span> <span class="n">TargetPatternTandemScanInfo</span><span class="p">[</span><span class="s2">&quot;PatternSMILESMol&quot;</span><span class="p">][</span><span class="n">Name</span><span class="p">],</span> <span class="n">AttachAtomIndex</span><span class="p">,</span> <span class="n">BondOrder</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">rdchem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">SINGLE</span><span class="p">)</span>
+  408                     <span class="n">MolAnalogue</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">RWMol</span><span class="p">(</span><span class="n">MolAnalogue</span><span class="p">)</span>
+  409             
+  410             <span class="k">if</span> <span class="ow">not</span> <span class="n">SanitizeMolAnalogue</span><span class="p">(</span><span class="n">MolAnalogue</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">):</span>
+  411                 <span class="k">continue</span>
+  412             
+  413             <span class="n">TrackAnalogues</span><span class="p">(</span><span class="n">MolAnalogue</span><span class="p">,</span> <span class="n">MolAnaloguesSet</span><span class="p">,</span> <span class="n">MolAnalogues</span><span class="p">)</span>
+  414     
+  415     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">MolAnalogues</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+  416         <span class="n">AnaloguesGenerationStatus</span> <span class="o">=</span> <span class="bp">False</span>
+  417         
+  418     <span class="k">return</span> <span class="p">(</span><span class="n">MolAnalogues</span><span class="p">,</span> <span class="n">SearchPatternMissingStatus</span><span class="p">,</span> <span class="n">AnaloguesGenerationStatus</span><span class="p">)</span>
+  419 
+  420 <span class="k">def</span> <span class="nf">TrackAnalogues</span><span class="p">(</span><span class="n">MolAnalogue</span><span class="p">,</span> <span class="n">MolAnaloguesSet</span><span class="p">,</span> <span class="n">MolAnalogues</span><span class="p">):</span>
+  421     <span class="sd">&quot;&quot;&quot;Track analogues. &quot;&quot;&quot;</span>
+  422     
+  423     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UniqueAnalogues&quot;</span><span class="p">]:</span>
+  424         <span class="n">AnalogueSMILES</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolToSmiles</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">RemoveHs</span><span class="p">(</span><span class="n">MolAnalogue</span><span class="p">))</span>
+  425         <span class="k">if</span> <span class="n">AnalogueSMILES</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">MolAnaloguesSet</span><span class="p">:</span>
+  426             <span class="n">MolAnaloguesSet</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">AnalogueSMILES</span><span class="p">)</span>
+  427             <span class="n">MolAnalogues</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">MolAnalogue</span><span class="p">)</span>
+  428     <span class="k">else</span><span class="p">:</span>
+  429         <span class="n">MolAnalogues</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">MolAnalogue</span><span class="p">)</span>
+  430     
+  431 <span class="k">def</span> <span class="nf">ReplaceAtom</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">AtomIndex</span><span class="p">,</span> <span class="n">AtomicNumber</span><span class="p">):</span>
+  432     <span class="sd">&quot;&quot;&quot;Replace an existing atom with a new atom in a molecule.&quot;&quot;&quot;</span>
+  433     
+  434     <span class="n">Atom</span> <span class="o">=</span> <span class="n">Mol</span><span class="o">.</span><span class="n">GetAtomWithIdx</span><span class="p">(</span><span class="n">AtomIndex</span><span class="p">)</span>
+  435     <span class="n">Atom</span><span class="o">.</span><span class="n">SetAtomicNum</span><span class="p">(</span><span class="n">AtomicNumber</span><span class="p">)</span>
+  436 
+  437     <span class="k">return</span> <span class="n">Mol</span>
+  438 
+  439 <span class="k">def</span> <span class="nf">AttachAtom</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">AtomIndex</span><span class="p">,</span> <span class="n">AtomicNumber</span><span class="p">,</span> <span class="n">BondOrder</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">rdchem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">SINGLE</span><span class="p">):</span>
+  440     <span class="sd">&quot;&quot;&quot;Attach atom to an existing atom in a molecule.&quot;&quot;&quot;</span>
+  441     
+  442     <span class="n">NewAtomIndex</span> <span class="o">=</span> <span class="n">Mol</span><span class="o">.</span><span class="n">AddAtom</span><span class="p">(</span><span class="n">Chem</span><span class="o">.</span><span class="n">Atom</span><span class="p">(</span><span class="n">AtomicNumber</span><span class="p">))</span>
+  443     <span class="n">Mol</span><span class="o">.</span><span class="n">AddBond</span><span class="p">(</span><span class="n">AtomIndex</span><span class="p">,</span> <span class="n">NewAtomIndex</span><span class="p">,</span> <span class="n">BondOrder</span><span class="p">)</span>
+  444 
+  445     <span class="k">return</span> <span class="n">Mol</span>
+  446 
+  447 <span class="k">def</span> <span class="nf">AttachMol</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">AtomIndex</span><span class="p">,</span> <span class="n">AttachMol</span><span class="p">,</span> <span class="n">AttachAtomIndex</span><span class="p">,</span> <span class="n">BondOrder</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">rdchem</span><span class="o">.</span><span class="n">BondType</span><span class="o">.</span><span class="n">SINGLE</span><span class="p">):</span>
+  448     <span class="sd">&quot;&quot;&quot;Attach molecule to an exisiting molecule.&quot;&quot;&quot;</span>
+  449     
+  450     <span class="n">NewMol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">CombineMols</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">AttachMol</span><span class="p">)</span>
+  451     
+  452     <span class="n">NewMol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">EditableMol</span><span class="p">(</span><span class="n">NewMol</span><span class="p">)</span>
+  453     <span class="n">NewMol</span><span class="o">.</span><span class="n">AddBond</span><span class="p">(</span><span class="n">AtomIndex</span><span class="p">,</span> <span class="n">AttachAtomIndex</span><span class="p">,</span> <span class="n">order</span> <span class="o">=</span> <span class="n">BondOrder</span><span class="p">)</span>
+  454     <span class="n">NewMol</span> <span class="o">=</span> <span class="n">NewMol</span><span class="o">.</span><span class="n">GetMol</span><span class="p">()</span>
+  455     
+  456     <span class="k">return</span> <span class="n">NewMol</span>
+  457 
+  458 <span class="k">def</span> <span class="nf">SanitizeMolAnalogue</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">):</span>
+  459     <span class="sd">&quot;&quot;&quot;Sanitize analogue and catch any errors. &quot;&quot;&quot;</span>
+  460     
+  461     <span class="n">Status</span> <span class="o">=</span> <span class="bp">True</span>
+  462     <span class="k">try</span><span class="p">:</span>
+  463         <span class="n">Chem</span><span class="o">.</span><span class="n">SanitizeMol</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+  464     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+  465         <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+  466             <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">)</span>
+  467             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="s2">Failed to sanitize analogue of molecule </span><span class="si">%s</span><span class="s2">...</span><span class="se">\n</span><span class="s2">Ignoring analogue...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ErrMsg</span><span class="p">,</span> <span class="n">MolName</span><span class="p">))</span>
+  468         <span class="n">Status</span> <span class="o">=</span> <span class="bp">False</span>
+  469 
+  470     <span class="k">return</span> <span class="n">Status</span>
+  471 
+  472 <span class="k">def</span> <span class="nf">SetupMolMatchedAtomIndices</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">):</span>
+  473     <span class="sd">&quot;&quot;&quot;Setup a list of matched atom indices corresponding to first atom in search</span>
+  474 <span class="sd">    SMARTS pattern for a molecule.&quot;&quot;&quot;</span>
+  475 
+  476     <span class="n">MatchedAtoms</span> <span class="o">=</span> <span class="p">[]</span>
+  477     
+  478     <span class="c1"># Retrieve first atom match for PAS...</span>
+  479     <span class="n">MatchedAtomIndices</span> <span class="o">=</span> <span class="p">[</span><span class="n">AtomIndices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">AtomIndices</span> <span class="ow">in</span> <span class="n">Mol</span><span class="o">.</span><span class="n">GetSubstructMatches</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SearchPatternMol&quot;</span><span class="p">])]</span>
+  480     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">MatchedAtomIndices</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+  481         <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+  482             <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">)</span>
+  483             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;No search pattern match for molecule </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">MolName</span><span class="p">)</span>
+  484         <span class="k">return</span> <span class="bp">None</span>
+  485     
+  486     <span class="k">return</span> <span class="n">MatchedAtomIndices</span>
+  487 
+  488 <span class="k">def</span> <span class="nf">WriteMolAnalogues</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">,</span> <span class="n">MolAnalogues</span><span class="p">,</span> <span class="n">Compute2DCoords</span><span class="p">):</span>
+  489     <span class="sd">&quot;&quot;&quot;Write molecule analogues. &quot;&quot;&quot;</span>
+  490 
+  491     <span class="c1"># Write out molecule...</span>
+  492     <span class="n">WriteMolecule</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">Compute2DCoords</span><span class="p">)</span>
+  493     
+  494     <span class="k">if</span> <span class="n">MolAnalogues</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  495         <span class="k">return</span>
+  496 
+  497     <span class="c1"># Write out analogues...</span>
+  498     <span class="k">for</span> <span class="n">Index</span><span class="p">,</span> <span class="n">MolAnalogue</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">MolAnalogues</span><span class="p">):</span>
+  499         <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">)</span>
+  500         <span class="n">SetMolAnalogueName</span><span class="p">(</span><span class="n">MolAnalogue</span><span class="p">,</span> <span class="n">MolName</span><span class="p">,</span> <span class="p">(</span><span class="n">Index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+  501 
+  502         <span class="n">WriteMolecule</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">MolAnalogue</span><span class="p">,</span> <span class="n">Compute2DCoords</span><span class="p">)</span>
+  503     
+  504 <span class="k">def</span> <span class="nf">SetMolAnalogueName</span><span class="p">(</span><span class="n">MolAnalogue</span><span class="p">,</span> <span class="n">MolName</span><span class="p">,</span> <span class="n">AnalogueCount</span><span class="p">):</span>
+  505     <span class="sd">&quot;&quot;&quot;Set analogue name.&quot;&quot;&quot;</span>
+  506     
+  507     <span class="n">NameSuffix</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;NameSuffix&quot;</span><span class="p">]</span>
+  508     <span class="n">AnalogueName</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">_</span><span class="si">%s%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MolName</span><span class="p">,</span> <span class="n">NameSuffix</span><span class="p">,</span> <span class="n">AnalogueCount</span><span class="p">)</span>
+  509     <span class="n">MolAnalogue</span><span class="o">.</span><span class="n">SetProp</span><span class="p">(</span><span class="s2">&quot;_Name&quot;</span><span class="p">,</span> <span class="n">AnalogueName</span><span class="p">)</span>
+  510 
+  511 <span class="k">def</span> <span class="nf">WriteMolecule</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">Compute2DCoords</span><span class="p">):</span>
+  512     <span class="sd">&quot;&quot;&quot;Write out molecule.&quot;&quot;&quot;</span>
+  513     
+  514     <span class="k">if</span> <span class="n">Compute2DCoords</span><span class="p">:</span>
+  515         <span class="n">AllChem</span><span class="o">.</span><span class="n">Compute2DCoords</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+  516     
+  517     <span class="n">Writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+  518 
+  519 <span class="k">def</span> <span class="nf">SetupSearchAndTargetPatternsInfo</span><span class="p">():</span>
+  520     <span class="sd">&quot;&quot;&quot;Setup search and target patterns info.&quot;&quot;&quot;</span>
+  521 
+  522     <span class="c1"># Setup search pattern molecule...</span>
+  523     <span class="n">SearchPattern</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SearchPattern&quot;</span><span class="p">]</span>
+  524     <span class="n">SearchPatternMol</span> <span class="o">=</span> <span class="bp">None</span>
+  525     <span class="k">if</span> <span class="n">SearchPattern</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+  526         <span class="n">SearchPatternMol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmarts</span><span class="p">(</span><span class="n">SearchPattern</span><span class="p">)</span>
+  527         <span class="k">if</span> <span class="n">SearchPatternMol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  528             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Failed to create search pattern molecule. The torsion SMILES/SMARTS pattern, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-s, --searchPattern</span><span class="se">\&quot;</span><span class="s2"> option is not valid.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">SearchPattern</span><span class="p">))</span>
+  529     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SearchPatternMol&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">SearchPatternMol</span>
+  530 
+  531     <span class="c1"># Setup target pattern information...</span>
+  532     <span class="n">Mode</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Mode&quot;</span><span class="p">]</span>
+  533     <span class="n">TargetPattern</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;TargetPattern&quot;</span><span class="p">]</span>
+  534     
+  535     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;TargetPatternAtomicNumber&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+  536     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;TargetPatternSMILESMol&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+  537     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;TargetPatternRxn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+  538     
+  539     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^(AttachAtoms|ReplaceAtoms)$&quot;</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  540         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;TargetPatternAtomicNumber&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">GetPeriodicTable</span><span class="p">()</span><span class="o">.</span><span class="n">GetAtomicNumber</span><span class="p">(</span><span class="n">TargetPattern</span><span class="p">)</span>
+  541     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^AttachSMILES$&quot;</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  542         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;TargetPatternSMILESMol&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">TargetPattern</span><span class="p">)</span>
+  543     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^RxnSMARTS$&quot;</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  544         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;TargetPatternRxn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">ReactionFromSmarts</span><span class="p">(</span><span class="n">TargetPattern</span><span class="p">)</span>
+  545     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^TandemScan$&quot;</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  546         <span class="c1"># Setup atomic numbers and molecules...</span>
+  547         <span class="n">TargetPatternTandemScanInfo</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;TargetPatternTandemScanInfo&quot;</span><span class="p">]</span>
+  548         
+  549         <span class="n">TargetPatternTandemScanInfo</span><span class="p">[</span><span class="s2">&quot;PatternAtomicNumber&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  550         <span class="n">TargetPatternTandemScanInfo</span><span class="p">[</span><span class="s2">&quot;PatternSMILESMol&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  551         
+  552         <span class="k">for</span> <span class="n">Name</span> <span class="ow">in</span> <span class="n">TargetPatternTandemScanInfo</span><span class="p">[</span><span class="s2">&quot;Names&quot;</span><span class="p">]:</span>
+  553             <span class="n">Pattern</span> <span class="o">=</span> <span class="n">TargetPatternTandemScanInfo</span><span class="p">[</span><span class="s2">&quot;Pattern&quot;</span><span class="p">][</span><span class="n">Name</span><span class="p">]</span>
+  554             <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^(AttachAtoms|ReplaceAtoms)$&quot;</span><span class="p">,</span> <span class="n">Name</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  555                 <span class="n">TargetPatternTandemScanInfo</span><span class="p">[</span><span class="s2">&quot;PatternAtomicNumber&quot;</span><span class="p">][</span><span class="n">Name</span><span class="p">]</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">GetPeriodicTable</span><span class="p">()</span><span class="o">.</span><span class="n">GetAtomicNumber</span><span class="p">(</span><span class="n">Pattern</span><span class="p">)</span>
+  556                 <span class="n">TargetPatternTandemScanInfo</span><span class="p">[</span><span class="s2">&quot;PatternSMILESMol&quot;</span><span class="p">][</span><span class="n">Name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+  557             <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^AttachSMILES$&quot;</span><span class="p">,</span> <span class="n">Name</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  558                 <span class="n">TargetPatternTandemScanInfo</span><span class="p">[</span><span class="s2">&quot;PatternSMILESMol&quot;</span><span class="p">][</span><span class="n">Name</span><span class="p">]</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">Pattern</span><span class="p">)</span>
+  559                 <span class="n">TargetPatternTandemScanInfo</span><span class="p">[</span><span class="s2">&quot;PatternAtomicNumber&quot;</span><span class="p">][</span><span class="n">Name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+  560     
+  561 <span class="k">def</span> <span class="nf">ProcessOptions</span><span class="p">():</span>
+  562     <span class="sd">&quot;&quot;&quot;Process and validate command line arguments and options&quot;&quot;&quot;</span>
+  563     
+  564     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Processing options...&quot;</span><span class="p">)</span>
+  565     
+  566     <span class="c1"># Validate options...</span>
+  567     <span class="n">ValidateOptions</span><span class="p">()</span>
+  568 
+  569     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ComboSearchAtoms&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--comboSearchAtoms&quot;</span><span class="p">])</span>
+  570 
+  571     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">]</span>
+  572     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileParams&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ProcessOptionInfileParameters</span><span class="p">(</span><span class="s2">&quot;--infileParams&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infileParams&quot;</span><span class="p">],</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">])</span>
+  573     
+  574     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">]</span>
+  575     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ProcessOptionOutfileParameters</span><span class="p">(</span><span class="s2">&quot;--outfileParams&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfileParams&quot;</span><span class="p">],</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">],</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">])</span>
+  576     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Overwrite&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--overwrite&quot;</span><span class="p">]</span>
+  577 
+  578     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Mode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mode&quot;</span><span class="p">]</span>
+  579     <span class="p">(</span><span class="n">AttachAtomsMode</span><span class="p">,</span> <span class="n">ReplaceAtomsMode</span><span class="p">,</span> <span class="n">AttachSMILESMode</span><span class="p">,</span> <span class="n">RxnSMARTSMode</span><span class="p">,</span> <span class="n">TandemScanMode</span><span class="p">)</span> <span class="o">=</span> <span class="p">[</span><span class="bp">False</span><span class="p">]</span> <span class="o">*</span> <span class="mi">5</span>
+  580     <span class="n">Mode</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Mode&quot;</span><span class="p">]</span>
+  581     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^AttachAtoms$&quot;</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  582         <span class="n">AttachAtomsMode</span> <span class="o">=</span> <span class="bp">True</span>
+  583     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^ReplaceAtoms$&quot;</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  584         <span class="n">ReplaceAtomsMode</span> <span class="o">=</span> <span class="bp">True</span>
+  585     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^AttachSMILES$&quot;</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  586         <span class="n">AttachSMILESMode</span> <span class="o">=</span> <span class="bp">True</span>
+  587     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^RxnSMARTS$&quot;</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  588         <span class="n">RxnSMARTSMode</span> <span class="o">=</span> <span class="bp">True</span>
+  589     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^TandemScan$&quot;</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  590         <span class="n">TandemScanMode</span> <span class="o">=</span> <span class="bp">True</span>
+  591     <span class="k">else</span><span class="p">:</span>
+  592         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The mode value , </span><span class="si">%s</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-m, --mode</span><span class="se">\&quot;</span><span class="s2"> option is not valid&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">Mode</span><span class="p">))</span>
+  593     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;AttachAtomsMode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">AttachAtomsMode</span>
+  594     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ReplaceAtomsMode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ReplaceAtomsMode</span>
+  595     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;AttachSMILESMode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">AttachSMILESMode</span>
+  596     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RxnSMARTSMode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">RxnSMARTSMode</span>
+  597     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;TandemScanMode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TandemScanMode</span>
+  598 
+  599     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MPMode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^yes$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mp&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+  600     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MPParams&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ProcessOptionMultiprocessingParameters</span><span class="p">(</span><span class="s2">&quot;--mpParams&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mpParams&quot;</span><span class="p">])</span>
+  601     
+  602     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;NameSuffix&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--nameSuffix&quot;</span><span class="p">]</span>
+  603     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PermuteTandemScan&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^yes$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--permuteTandemScan&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+  604     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^yes$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--quiet&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+  605     
+  606     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UniqueAnalogues&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^yes$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--uniqueAnalogues&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+  607     
+  608     <span class="c1"># Process and validate search pattern...</span>
+  609     <span class="n">SearchPattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--searchPattern&quot;</span><span class="p">])</span>
+  610     <span class="k">if</span> <span class="ow">not</span> <span class="n">SearchPattern</span><span class="p">:</span>
+  611         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;No value specified using </span><span class="se">\&quot;</span><span class="s2">-s, --searchPattern</span><span class="se">\&quot;</span><span class="s2"> option.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">SearchPattern</span><span class="p">))</span>
+  612     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^auto$&quot;</span><span class="p">,</span> <span class="n">SearchPattern</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  613         <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^(AttachAtoms|ReplaceAtoms|AttachSMILES|TandemScan)$&quot;</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  614             <span class="n">SearchPattern</span> <span class="o">=</span> <span class="s2">&quot;[cH]&quot;</span>
+  615         <span class="k">else</span><span class="p">:</span>
+  616             <span class="n">SearchPattern</span> <span class="o">=</span> <span class="bp">None</span>
+  617     <span class="k">else</span><span class="p">:</span>
+  618         <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^RxnSMARTS$&quot;</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  619             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The specification of SMARTS search pattern, </span><span class="si">%s</span><span class="s2">,  using </span><span class="se">\&quot;</span><span class="s2">-s, --searchPattern</span><span class="se">\&quot;</span><span class="s2"> option is not allowed during, </span><span class="si">%s</span><span class="s2">, value of </span><span class="se">\&quot;</span><span class="s2">-m, --mode</span><span class="se">\&quot;</span><span class="s2">.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">SearchPattern</span><span class="p">,</span> <span class="n">Mode</span><span class="p">))</span>
+  620 
+  621     <span class="k">if</span> <span class="n">SearchPattern</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+  622         <span class="n">SearchPatternMol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmarts</span><span class="p">(</span><span class="n">SearchPattern</span><span class="p">)</span>
+  623         <span class="k">if</span> <span class="n">SearchPatternMol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  624             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Failed to create search pattern molecule. The torsion SMILES/SMARTS pattern, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-s, --searchPattern</span><span class="se">\&quot;</span><span class="s2"> option is not valid.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">SearchPattern</span><span class="p">))</span>
+  625     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SearchPattern&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">SearchPattern</span>
+  626         
+  627     <span class="c1"># Process and validate target pattern...</span>
+  628     <span class="n">TargetPatternTandemScanInfo</span> <span class="o">=</span> <span class="bp">None</span>
+  629     <span class="n">TargetPattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--targetPattern&quot;</span><span class="p">])</span>
+  630     <span class="k">if</span> <span class="ow">not</span> <span class="n">TargetPattern</span><span class="p">:</span>
+  631         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;No value specified using </span><span class="se">\&quot;</span><span class="s2">-t, --targetPattern</span><span class="se">\&quot;</span><span class="s2"> option.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">TargetPattern</span><span class="p">))</span>
+  632         
+  633     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^auto$&quot;</span><span class="p">,</span> <span class="n">TargetPattern</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  634         <span class="c1"># Setup default target pattern...</span>
+  635         <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^AttachAtoms$&quot;</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  636             <span class="n">TargetPattern</span> <span class="o">=</span> <span class="s2">&quot;F&quot;</span>
+  637         <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^ReplaceAtoms$&quot;</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  638             <span class="n">TargetPattern</span> <span class="o">=</span> <span class="s2">&quot;N&quot;</span>
+  639         <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^AttachSMILES$&quot;</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  640             <span class="n">TargetPattern</span> <span class="o">=</span> <span class="s2">&quot;C(F)(F)(F)&quot;</span>
+  641         <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^RxnSMARTS$&quot;</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  642             <span class="n">TargetPattern</span> <span class="o">=</span> <span class="s2">&quot;[cH:1]&gt;&gt;[N:1]&quot;</span>
+  643         <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^TandemScan$&quot;</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  644             <span class="n">TargetPattern</span> <span class="o">=</span> <span class="s2">&quot;ReplaceAtoms,N,AttachAtoms,F&quot;</span>
+  645         <span class="k">else</span><span class="p">:</span>
+  646             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Failed to setup default target pattern for mode, </span><span class="si">%s</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-m, --mode</span><span class="se">\&quot;</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">Mode</span><span class="p">))</span>
+  647     
+  648     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^(AttachAtoms|ReplaceAtoms)$&quot;</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  649         <span class="k">if</span> <span class="ow">not</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">IsValidElementSymbol</span><span class="p">(</span><span class="n">TargetPattern</span><span class="p">):</span>
+  650             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The target pattern, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-t, --targetPattern</span><span class="se">\&quot;</span><span class="s2"> must be a valid atomic symbol during, </span><span class="si">%s</span><span class="s2">, value of </span><span class="se">\&quot;</span><span class="s2">-m, --mode</span><span class="se">\&quot;</span><span class="s2"> option.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">TargetPattern</span><span class="p">,</span> <span class="n">Mode</span><span class="p">))</span>
+  651     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^AttachSMILES$&quot;</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  652         <span class="n">ValidateSMILESTargetPattern</span><span class="p">(</span><span class="n">TargetPattern</span><span class="p">,</span> <span class="n">Mode</span><span class="p">)</span>
+  653     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^RxnSMARTS$&quot;</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  654         <span class="k">try</span><span class="p">:</span>
+  655             <span class="n">Rxn</span> <span class="o">=</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">ReactionFromSmarts</span><span class="p">(</span><span class="n">TargetPattern</span><span class="p">)</span>
+  656         <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+  657             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The target pattern, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-t, --targetPattern</span><span class="se">\&quot;</span><span class="s2"> must be a valid RxnSMARTS  during, </span><span class="si">%s</span><span class="s2">, value of </span><span class="se">\&quot;</span><span class="s2">-m, --mode</span><span class="se">\&quot;</span><span class="s2"> option.</span><span class="se">\n</span><span class="s2">ErrMsg: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">TargetPattern</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">ErrMsg</span><span class="p">))</span>
+  658     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^TandemScan$&quot;</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  659         <span class="n">TargetPatternTandemScanInfo</span> <span class="o">=</span> <span class="p">{}</span>
+  660         <span class="n">TargetPatternTandemScanInfo</span><span class="p">[</span><span class="s2">&quot;Names&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+  661         <span class="n">TargetPatternTandemScanInfo</span><span class="p">[</span><span class="s2">&quot;Pattern&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  662         
+  663         <span class="n">TargetPatternWords</span> <span class="o">=</span> <span class="n">TargetPattern</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+  664         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">TargetPatternWords</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span><span class="p">:</span>
+  665             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The number of comma delimited paramater names and values, </span><span class="si">%d</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-t --targetPattern</span><span class="se">\&quot;</span><span class="s2"> option must be an even number during, </span><span class="si">%s</span><span class="s2">, value of </span><span class="se">\&quot;</span><span class="s2">-m, --mode</span><span class="se">\&quot;</span><span class="s2"> option.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">TargetPatternWords</span><span class="p">),</span> <span class="n">Mode</span><span class="p">))</span>
+  666         
+  667         <span class="n">ValidOperationNames</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;AttachAtoms&quot;</span><span class="p">,</span> <span class="s2">&quot;ReplaceAtoms&quot;</span><span class="p">,</span> <span class="s2">&quot;AttachSMILES&quot;</span><span class="p">]</span>
+  668         <span class="n">CanonicalOperationNamesMap</span> <span class="o">=</span> <span class="p">{}</span>
+  669         <span class="k">for</span> <span class="n">OperationName</span> <span class="ow">in</span> <span class="n">ValidOperationNames</span><span class="p">:</span>
+  670             <span class="n">CanonicalOperationNamesMap</span><span class="p">[</span><span class="n">OperationName</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span> <span class="o">=</span> <span class="n">OperationName</span>
+  671         
+  672         <span class="c1"># Validate PAS operation name and value pairs...</span>
+  673         <span class="k">for</span> <span class="n">Index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">TargetPatternWords</span><span class="p">),</span> <span class="mi">2</span><span class="p">):</span>
+  674             <span class="n">OperationName</span> <span class="o">=</span> <span class="n">TargetPatternWords</span><span class="p">[</span><span class="n">Index</span><span class="p">]</span>
+  675             <span class="n">OperationPattern</span> <span class="o">=</span> <span class="n">TargetPatternWords</span><span class="p">[</span><span class="n">Index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+  676         
+  677             <span class="n">CanonicalOperationName</span> <span class="o">=</span> <span class="n">OperationName</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+  678             <span class="k">if</span>  <span class="ow">not</span> <span class="n">CanonicalOperationName</span> <span class="ow">in</span> <span class="n">CanonicalOperationNamesMap</span><span class="p">:</span>
+  679                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The operation name, </span><span class="si">%s</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-t, --targetPattern</span><span class="se">\&quot;</span><span class="s2"> is not a valid during, </span><span class="si">%s</span><span class="s2">, value of </span><span class="se">\&quot;</span><span class="s2">-m, --mode</span><span class="se">\&quot;</span><span class="s2"> option. Supported operation  names: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">OperationName</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ValidOperationNames</span><span class="p">)))</span>
+  680             
+  681             <span class="k">if</span> <span class="ow">not</span> <span class="n">OperationPattern</span><span class="p">:</span>
+  682                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Empty target pattern specified using </span><span class="se">\&quot;</span><span class="s2">-t, --targetPattern</span><span class="se">\&quot;</span><span class="s2"> must be a valid atomic symbol for operation, </span><span class="si">%s</span><span class="s2">, during, </span><span class="si">%s</span><span class="s2">, value of </span><span class="se">\&quot;</span><span class="s2">-m, --mode</span><span class="se">\&quot;</span><span class="s2"> option.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">OperationName</span><span class="p">,</span> <span class="n">Mode</span><span class="p">))</span>
+  683             
+  684             <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^(AttachAtoms|ReplaceAtoms)$&quot;</span><span class="p">,</span> <span class="n">OperationName</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  685                 <span class="k">if</span> <span class="ow">not</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">IsValidElementSymbol</span><span class="p">(</span><span class="n">OperationPattern</span><span class="p">):</span>
+  686                     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The target pattern, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-t, --targetPattern</span><span class="se">\&quot;</span><span class="s2"> must be a valid atomic symbol for operation, </span><span class="si">%s</span><span class="s2">, during, </span><span class="si">%s</span><span class="s2">, value of </span><span class="se">\&quot;</span><span class="s2">-m, --mode</span><span class="se">\&quot;</span><span class="s2"> option.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">OperationPattern</span><span class="p">,</span> <span class="n">OperationName</span><span class="p">,</span> <span class="n">Mode</span><span class="p">))</span>
+  687             <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^AttachSMILES$&quot;</span><span class="p">,</span> <span class="n">OperationName</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  688                 <span class="n">ValidateSMILESTargetPattern</span><span class="p">(</span><span class="n">OperationPattern</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">OperationName</span><span class="p">)</span>
+  689             
+  690             <span class="c1"># Track info...</span>
+  691             <span class="n">Name</span> <span class="o">=</span> <span class="n">CanonicalOperationNamesMap</span><span class="p">[</span><span class="n">CanonicalOperationName</span><span class="p">]</span>
+  692             <span class="n">TargetPatternTandemScanInfo</span><span class="p">[</span><span class="s2">&quot;Names&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Name</span><span class="p">)</span>
+  693             <span class="n">TargetPatternTandemScanInfo</span><span class="p">[</span><span class="s2">&quot;Pattern&quot;</span><span class="p">][</span><span class="n">Name</span><span class="p">]</span> <span class="o">=</span> <span class="n">OperationPattern</span>
+  694     
+  695     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;TargetPattern&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TargetPattern</span>
+  696     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;TargetPatternTandemScanInfo&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TargetPatternTandemScanInfo</span>
+  697     
+  698 <span class="k">def</span> <span class="nf">ValidateSMILESTargetPattern</span><span class="p">(</span><span class="n">TargetPattern</span><span class="p">,</span> <span class="n">Mode</span><span class="p">,</span> <span class="n">OperationName</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+  699     <span class="sd">&quot;&quot;&quot;Validate SMILES pattern.&quot;&quot;&quot;</span>
+  700 
+  701     <span class="n">Mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">MolFromSmiles</span><span class="p">(</span><span class="n">TargetPattern</span><span class="p">)</span>
+  702     <span class="k">if</span> <span class="n">Mol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  703         <span class="k">if</span> <span class="n">OperationName</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  704             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The target pattern, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-t, --targetPattern</span><span class="se">\&quot;</span><span class="s2"> must be a valid SMILES during, </span><span class="si">%s</span><span class="s2">, value of </span><span class="se">\&quot;</span><span class="s2">-m, --mode</span><span class="se">\&quot;</span><span class="s2"> option.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">TargetPattern</span><span class="p">,</span> <span class="n">Mode</span><span class="p">))</span>
+  705         <span class="k">else</span><span class="p">:</span>
+  706             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The target pattern, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-t, --targetPattern</span><span class="se">\&quot;</span><span class="s2"> must be a valid SMILES for operation, </span><span class="si">%s</span><span class="s2">, during, </span><span class="si">%s</span><span class="s2">, value of </span><span class="se">\&quot;</span><span class="s2">-m, --mode</span><span class="se">\&quot;</span><span class="s2"> option.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">TargetPattern</span><span class="p">,</span> <span class="n">OperationName</span><span class="p">,</span> <span class="n">Mode</span><span class="p">))</span>
+  707     
+  708     <span class="k">if</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">AreAtomMapNumbersPresentInMol</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+  709         <span class="k">if</span> <span class="n">OperationName</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  710             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Atom map numbers are not allowed in the target pattern, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-t, --targetPattern</span><span class="se">\&quot;</span><span class="s2">  during, </span><span class="si">%s</span><span class="s2">, value of </span><span class="se">\&quot;</span><span class="s2">-m, --mode</span><span class="se">\&quot;</span><span class="s2"> option.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">TargetPattern</span><span class="p">,</span> <span class="n">Mode</span><span class="p">))</span>
+  711         <span class="k">else</span><span class="p">:</span>
+  712             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Atom map number are not allowed in  target pattern, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-t, --targetPattern</span><span class="se">\&quot;</span><span class="s2"> must be a valid SMILES for operation, </span><span class="si">%s</span><span class="s2">, during, </span><span class="si">%s</span><span class="s2">, value of </span><span class="se">\&quot;</span><span class="s2">-m, --mode</span><span class="se">\&quot;</span><span class="s2"> option.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">TargetPattern</span><span class="p">,</span> <span class="n">OperationName</span><span class="p">,</span> <span class="n">Mode</span><span class="p">))</span>
+  713             
+  714 <span class="k">def</span> <span class="nf">RetrieveOptions</span><span class="p">():</span>
+  715     <span class="sd">&quot;&quot;&quot;Retrieve command line arguments and options&quot;&quot;&quot;</span>
+  716     
+  717     <span class="c1"># Get options...</span>
+  718     <span class="k">global</span> <span class="n">Options</span>
+  719     <span class="n">Options</span> <span class="o">=</span> <span class="n">docopt</span><span class="p">(</span><span class="n">_docoptUsage_</span><span class="p">)</span>
+  720 
+  721     <span class="c1"># Set current working directory to the specified directory...</span>
+  722     <span class="n">WorkingDir</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--workingdir&quot;</span><span class="p">]</span>
+  723     <span class="k">if</span> <span class="n">WorkingDir</span><span class="p">:</span>
+  724         <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">WorkingDir</span><span class="p">)</span>
+  725     
+  726     <span class="c1"># Handle examples option...</span>
+  727     <span class="k">if</span> <span class="s2">&quot;--examples&quot;</span> <span class="ow">in</span> <span class="n">Options</span> <span class="ow">and</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--examples&quot;</span><span class="p">]:</span>
+  728         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetExamplesTextFromDocOptText</span><span class="p">(</span><span class="n">_docoptUsage_</span><span class="p">))</span>
+  729         <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+  730 
+  731 <span class="k">def</span> <span class="nf">ValidateOptions</span><span class="p">():</span>
+  732     <span class="sd">&quot;&quot;&quot;Validate option values&quot;&quot;&quot;</span>
+  733     
+  734     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionIntegerValue</span><span class="p">(</span><span class="s2">&quot;-c, --comboSearchAtoms&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--comboSearchAtoms&quot;</span><span class="p">],</span> <span class="p">{</span><span class="s2">&quot;&gt;&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span>
+  735     
+  736     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFilePath</span><span class="p">(</span><span class="s2">&quot;-i, --infile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">])</span>
+  737     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFileExt</span><span class="p">(</span><span class="s2">&quot;-i, --infile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">],</span> <span class="s2">&quot;sdf sd mol smi txt csv tsv&quot;</span><span class="p">)</span>
+  738 
+  739     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFileExt</span><span class="p">(</span><span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">],</span> <span class="s2">&quot;sdf sd smi txt csv tsv&quot;</span><span class="p">)</span>
+  740     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionsOutputFileOverwrite</span><span class="p">(</span><span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">],</span> <span class="s2">&quot;--overwrite&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--overwrite&quot;</span><span class="p">])</span>
+  741     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionsDistinctFileNames</span><span class="p">(</span><span class="s2">&quot;-i, --infile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">],</span> <span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">])</span>
+  742     
+  743     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;-m, --mode&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mode&quot;</span><span class="p">],</span> <span class="s2">&quot;ReplaceAtoms AttachAtoms AttachSMILES RxnSMARTS TandemScan&quot;</span><span class="p">)</span>
+  744     
+  745     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;--mp&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mp&quot;</span><span class="p">],</span> <span class="s2">&quot;yes no&quot;</span><span class="p">)</span>
+  746     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;-p, --permuteTandemScan&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--permuteTandemScan&quot;</span><span class="p">],</span> <span class="s2">&quot;yes no&quot;</span><span class="p">)</span>
+  747     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;-q, --quiet&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--quiet&quot;</span><span class="p">],</span> <span class="s2">&quot;yes no&quot;</span><span class="p">)</span>
+  748     
+  749     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot; -u, --uniqueAnalogues&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--uniqueAnalogues&quot;</span><span class="p">],</span> <span class="s2">&quot;yes no&quot;</span><span class="p">)</span>
+  750 
+  751 <span class="c1"># Setup a usage string for docopt...</span>
+  752 <span class="n">_docoptUsage_</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+  753 <span class="s2">RDKitPerformPositionalAnalogueScan.py - Positional analogue scanning.</span>
+  754 
+  755 <span class="s2">Usage:</span>
+  756 <span class="s2">    RDKitPerformPositionalAnalogueScan.py [--comboSearchAtoms &lt;number&gt;] [--infileParams &lt;Name,Value,...&gt;]</span>
+  757 <span class="s2">                                          [--mode &lt;ReplaceAtoms, AttachAtoms, AttachSMILES, RxnSMARTS, TandemScan&gt;]</span>
+  758 <span class="s2">                                          [--mp &lt;yes or no&gt;] [--mpParams &lt;Name,Value,...&gt;] [ --nameSuffix &lt;text&gt;] [ --outfileParams &lt;Name,Value,...&gt; ]</span>
+  759 <span class="s2">                                          [--overwrite] [--permuteTandemScan &lt;yes or no&gt;] [--quiet &lt;yes or no&gt;] [--searchPattern &lt;SMARTSPattern&gt;]</span>
+  760 <span class="s2">                                          [--targetPattern &lt;ElementSymbol, SMILES, RxnSMARTS,...&gt;] [--uniqueAnalogues &lt;yes or no&gt; ]</span>
+  761 <span class="s2">                                          [-w &lt;dir&gt;] -i &lt;infile&gt;  -o &lt;outfile&gt; </span>
+  762 <span class="s2">    RDKitPerformPositionalAnalogueScan.py -h | --help | -e | --examples</span>
+  763 
+  764 <span class="s2">Description:</span>
+  765 <span class="s2">    Perform Positional Analogue Scanning (PAS) to generate analogues of molecules</span>
+  766 <span class="s2">    by applying chemical transformations to molecules [ Ref 147-148 ]. The chemical</span>
+  767 <span class="s2">    transformations are defined using SMARTS, element symbols, SMILES, and </span>
+  768 <span class="s2">    RxnSMARTS. Four different types of chemical transformations are available for</span>
+  769 <span class="s2">    for generating analogues of molecules: replace atoms, attach atoms, attach SMILES,</span>
+  770 <span class="s2">    and RxnSMARTS. Tandem positional analogue scanning may be performed by the</span>
+  771 <span class="s2">    concurrent application of multiple chemical transformations.</span>
+  772 <span class="s2">    </span>
+  773 <span class="s2">    A SMARTS search pattern identifies atoms in molecules for attachment or</span>
+  774 <span class="s2">    replacement points during positional analogue scanning. It may retrieve multiple</span>
+  775 <span class="s2">    substructure matches in a molecule. The first matched atom in each substructure</span>
+  776 <span class="s2">    match comprises a set of attachment or replacement points.</span>
+  777 <span class="s2">    </span>
+  778 <span class="s2">    A target pattern encompasses information regarding element symbol, SMILES, and</span>
+  779 <span class="s2">    reaction SMARTS for replacing and attaching atoms, attaching SMILES, and applying</span>
+  780 <span class="s2">    reaction SMARTS. In addition, multiple concurrent chemical transformations may</span>
+  781 <span class="s2">    be specified during tandem positional analogue scanning. </span>
+  782 <span class="s2">    </span>
+  783 <span class="s2">    The supported input file formats are: Mol (.mol), SD (.sdf, .sd), SMILES (.smi,</span>
+  784 <span class="s2">    .csv, .tsv .txt)</span>
+  785 
+  786 <span class="s2">    The supported output file formats are: SD (.sdf, .sd), SMILES (.smi, .csv,</span>
+  787 <span class="s2">    .tsv .txt)</span>
+  788 
+  789 <span class="s2">Options:</span>
+  790 <span class="s2">    -c, --comboSearchAtoms &lt;number&gt;  [default: 1]</span>
+  791 <span class="s2">        Number of concurrent search pattern match atoms to use as attachment or</span>
+  792 <span class="s2">        replacement points during positional analogue scanning in &#39;AttachAtoms&#39;, </span>
+  793 <span class="s2">        &#39;AttachSMILES&#39;, and &#39;ReplaceAtoms&#39; modes. This value is ignored during </span>
+  794 <span class="s2">        &#39;RxnSMARTS&#39; and &#39;TandemScan&#39; values of  &#39;-m, --mode&#39; option.</span>
+  795 <span class="s2">    -e, --examples</span>
+  796 <span class="s2">        Print examples.</span>
+  797 <span class="s2">    -h, --help</span>
+  798 <span class="s2">        Print this help message.</span>
+  799 <span class="s2">    -i, --infile &lt;infile&gt;</span>
+  800 <span class="s2">        Input file name.</span>
+  801 <span class="s2">    --infileParams &lt;Name,Value,...&gt;  [default: auto]</span>
+  802 <span class="s2">        A comma delimited list of parameter name and value pairs for reading</span>
+  803 <span class="s2">        molecules from files. The supported parameter names for different file</span>
+  804 <span class="s2">        formats, along with their default values, are shown below:</span>
+  805 <span class="s2">            </span>
+  806 <span class="s2">            SD, MOL: removeHydrogens,yes,sanitize,yes,strictParsing,yes</span>
+  807 <span class="s2">            SMILES: smilesColumn,1,smilesNameColumn,2,smilesDelimiter,space,</span>
+  808 <span class="s2">                smilesTitleLine,auto,sanitize,yes</span>
+  809 <span class="s2">            </span>
+  810 <span class="s2">        Possible values for smilesDelimiter: space, comma or tab.</span>
+  811 <span class="s2">    -m, --mode &lt;ReplaceAtoms, AttachAtoms,...&gt;  [default: ReplaceAtoms]</span>
+  812 <span class="s2">        Type of operations to perform during positional analogue scanning. The</span>
+  813 <span class="s2">        supported values, along with a brief description, are shown below:</span>
+  814 <span class="s2">            </span>
+  815 <span class="s2">            Mode           Description</span>
+  816 <span class="s2">            ReplaceAtoms   Replace atoms with new atoms</span>
+  817 <span class="s2">            AttachAtoms    Attach new atoms to atoms</span>
+  818 <span class="s2">            AttachSMILES   Attach SMILES to atoms</span>
+  819 <span class="s2">            RxnSMARTS      Run reaction SMARTS</span>
+  820 <span class="s2">            TandemScan     Perform tandem scan by combining ReplaceAtoms,</span>
+  821 <span class="s2">                AttachAtoms, and AttachSMILES                    </span>
+  822 <span class="s2">             </span>
+  823 <span class="s2">        The chemical transformations of input molecules is dependent on the</span>
+  824 <span class="s2">        values of &#39;-s, --searchPattern&#39; and  &#39;-t, --targetPattern&#39; options. For</span>
+  825 <span class="s2">        example, nitrogen-walk or nitrogen scan is performed by &#39;[cH]&#39; and &#39;N&#39;</span>
+  826 <span class="s2">        values for &#39;-s, --searchPattern&#39; and  &#39;-t, --targetPattern&#39; options.</span>
+  827 <span class="s2">    --mp &lt;yes or no&gt;  [default: no]</span>
+  828 <span class="s2">        Use multiprocessing.</span>
+  829 <span class="s2">         </span>
+  830 <span class="s2">        By default, input data is retrieved in a lazy manner via mp.Pool.imap()</span>
+  831 <span class="s2">        function employing lazy RDKit data iterable. This allows processing of</span>
+  832 <span class="s2">        arbitrary large data sets without any additional requirements memory.</span>
+  833 <span class="s2">        </span>
+  834 <span class="s2">        All input data may be optionally loaded into memory by mp.Pool.map()</span>
+  835 <span class="s2">        before starting worker processes in a process pool by setting the value</span>
+  836 <span class="s2">        of &#39;inputDataMode&#39; to &#39;InMemory&#39; in &#39;--mpParams&#39; option.</span>
+  837 <span class="s2">        </span>
+  838 <span class="s2">        A word to the wise: The default &#39;chunkSize&#39; value of 1 during &#39;Lazy&#39; input</span>
+  839 <span class="s2">        data mode may adversely impact the performance. The &#39;--mpParams&#39; section</span>
+  840 <span class="s2">        provides additional information to tune the value of &#39;chunkSize&#39;.</span>
+  841 <span class="s2">    --mpParams &lt;Name,Value,...&gt;  [default: auto]</span>
+  842 <span class="s2">        A comma delimited list of parameter name and value pairs for to</span>
+  843 <span class="s2">        configure multiprocessing.</span>
+  844 <span class="s2">        </span>
+  845 <span class="s2">        The supported parameter names along with their default and possible</span>
+  846 <span class="s2">        values are shown below:</span>
+  847 <span class="s2">        </span>
+  848 <span class="s2">            chunkSize, auto</span>
+  849 <span class="s2">            inputDataMode, Lazy   [ Possible values: InMemory or Lazy ]</span>
+  850 <span class="s2">            numProcesses, auto   [ Default: mp.cpu_count() ]</span>
+  851 <span class="s2">        </span>
+  852 <span class="s2">        These parameters are used by the following functions to configure and</span>
+  853 <span class="s2">        control the behavior of multiprocessing: mp.Pool(), mp.Pool.map(), and</span>
+  854 <span class="s2">        mp.Pool.imap().</span>
+  855 <span class="s2">        </span>
+  856 <span class="s2">        The chunkSize determines chunks of input data passed to each worker</span>
+  857 <span class="s2">        process in a process pool by mp.Pool.map() and mp.Pool.imap() functions.</span>
+  858 <span class="s2">        The default value of chunkSize is dependent on the value of &#39;inputDataMode&#39;.</span>
+  859 <span class="s2">        </span>
+  860 <span class="s2">        The mp.Pool.map() function, invoked during &#39;InMemory&#39; input data mode,</span>
+  861 <span class="s2">        automatically converts RDKit data iterable into a list, loads all data into</span>
+  862 <span class="s2">        memory, and calculates the default chunkSize using the following method</span>
+  863 <span class="s2">        as shown in its code:</span>
+  864 <span class="s2">        </span>
+  865 <span class="s2">            chunkSize, extra = divmod(len(dataIterable), len(numProcesses) * 4)</span>
+  866 <span class="s2">            if extra: chunkSize += 1</span>
+  867 <span class="s2">        </span>
+  868 <span class="s2">        For example, the default chunkSize will be 7 for a pool of 4 worker processes</span>
+  869 <span class="s2">        and 100 data items.</span>
+  870 <span class="s2">        </span>
+  871 <span class="s2">        The mp.Pool.imap() function, invoked during &#39;Lazy&#39; input data mode, employs</span>
+  872 <span class="s2">        &#39;lazy&#39; RDKit data iterable to retrieve data as needed, without loading all the</span>
+  873 <span class="s2">        data into memory. Consequently, the size of input data is not known a priori.</span>
+  874 <span class="s2">        It&#39;s not possible to estimate an optimal value for the chunkSize. The default </span>
+  875 <span class="s2">        chunkSize is set to 1.</span>
+  876 <span class="s2">        </span>
+  877 <span class="s2">        The default value for the chunkSize during &#39;Lazy&#39; data mode may adversely</span>
+  878 <span class="s2">        impact the performance due to the overhead associated with exchanging</span>
+  879 <span class="s2">        small chunks of data. It is generally a good idea to explicitly set chunkSize to</span>
+  880 <span class="s2">        a larger value during &#39;Lazy&#39; input data mode, based on the size of your input</span>
+  881 <span class="s2">        data and number of processes in the process pool.</span>
+  882 <span class="s2">        </span>
+  883 <span class="s2">        The mp.Pool.map() function waits for all worker processes to process all</span>
+  884 <span class="s2">        the data and return the results. The mp.Pool.imap() function, however,</span>
+  885 <span class="s2">        returns the the results obtained from worker processes as soon as the</span>
+  886 <span class="s2">        results become available for specified chunks of data.</span>
+  887 <span class="s2">        </span>
+  888 <span class="s2">        The order of data in the results returned by both mp.Pool.map() and </span>
+  889 <span class="s2">        mp.Pool.imap() functions always corresponds to the input data.</span>
+  890 <span class="s2">    -n, --nameSuffix &lt;text&gt;  [default: Analogue]</span>
+  891 <span class="s2">        Name suffix for generating molecule names of analogues. Format of analogue</span>
+  892 <span class="s2">        names: &lt;MolName&gt;_&lt;NameSuffix&gt;_&lt;MolNum&gt;</span>
+  893 <span class="s2">    -o, --outfile &lt;outfile&gt;</span>
+  894 <span class="s2">        Output file name.</span>
+  895 <span class="s2">    --outfileParams &lt;Name,Value,...&gt;  [default: auto]</span>
+  896 <span class="s2">        A comma delimited list of parameter name and value pairs for writing</span>
+  897 <span class="s2">        molecules to files. The supported parameter names for different file</span>
+  898 <span class="s2">        formats, along with their default values, are shown below:</span>
+  899 <span class="s2">            </span>
+  900 <span class="s2">            SD: compute2DCoords,auto,kekulize,no</span>
+  901 <span class="s2">            SMILES: kekulize,no,smilesDelimiter,space, smilesIsomeric,yes,</span>
+  902 <span class="s2">                smilesTitleLine,yes,smilesMolName,yes,smilesMolProps,no</span>
+  903 <span class="s2">            </span>
+  904 <span class="s2">    --overwrite</span>
+  905 <span class="s2">        Overwrite existing files.</span>
+  906 <span class="s2">    -p, --permuteTandemScan &lt;yes or no&gt;  [default: yes]</span>
+  907 <span class="s2">        Permute atom positions matched by SMARTS search pattern in a molecule</span>
+  908 <span class="s2">        to generate all possible analogues during tandem positional analogue</span>
+  909 <span class="s2">        scanning.</span>
+  910 <span class="s2">        </span>
+  911 <span class="s2">        This option is only valid for &#39;TandemScan&#39; value of &#39;-m, --mode&#39; option.</span>
+  912 <span class="s2">    -q, --quiet &lt;yes or no&gt;  [default: no]</span>
+  913 <span class="s2">        Use quiet mode. The warning and information messages will not be printed.</span>
+  914 <span class="s2">    -s, --searchPattern &lt;SMARTSPattern&gt;  [default: auto]</span>
+  915 <span class="s2">        SMARTS search pattern identifying atoms in molecules for attachment or</span>
+  916 <span class="s2">        replacement points during positional analogue scanning. The SMARTS search</span>
+  917 <span class="s2">        pattern may retrieve multiple substructure matches in a molecule. The first</span>
+  918 <span class="s2">        matched atom in each substructure match comprises a set of attachment or</span>
+  919 <span class="s2">        replacement points.</span>
+  920 <span class="s2">        </span>
+  921 <span class="s2">        The default values, dependent on the value of &#39;-m, --mode&#39; option, are</span>
+  922 <span class="s2">        shown below:</span>
+  923 <span class="s2">            </span>
+  924 <span class="s2">            Mode            Default   Description</span>
+  925 <span class="s2">            ReplaceAtoms    [cH]      Aromatic carbon  </span>
+  926 <span class="s2">            AttachAtoms     [cH]      Aromatic carbon</span>
+  927 <span class="s2">            AttachSMILES    [cH]      Aromatic carbon</span>
+  928 <span class="s2">            RxnSMARTS       None      Not applicable</span>
+  929 <span class="s2">            TandemScan      [cH]      Aromatic carbon</span>
+  930 <span class="s2">            </span>
+  931 <span class="s2">        This option is ignored during &#39;RxnSMARTS&#39; value of &#39;-m, --mode&#39; option.</span>
+  932 <span class="s2">    -t, --targetPattern &lt;ElementSymbol, SMILES, RxnSMARTS...&gt;  [default: auto]</span>
+  933 <span class="s2">        Target pattern for performing chemical transformations during positional</span>
+  934 <span class="s2">        analogue scanning. These values are used in conjunction with the value of</span>
+  935 <span class="s2">        &#39;-s, --searchPattern&#39; to generate appropriate analogues.</span>
+  936 <span class="s2">        </span>
+  937 <span class="s2">        The default values, dependent on the values of &#39;-m, --mode&#39; and </span>
+  938 <span class="s2">        &#39;-s, --searchPattern&#39; options, are shown below:</span>
+  939 <span class="s2">            </span>
+  940 <span class="s2">            Mode            Default        Description</span>
+  941 <span class="s2">            ReplaceAtoms    N              Element symbol for nitrogen</span>
+  942 <span class="s2">            AttachAtoms     F              Element symbol for fluorine</span>
+  943 <span class="s2">            AttachSMILES    C(F)(F)(F)     SMILES for CF3</span>
+  944 <span class="s2">            RxnSMARTS       [cH:1]&gt;&gt;[N:1]  Replace aromatic carbon by nitrogen</span>
+  945 <span class="s2">            TandemScan      ReplaceAtoms,N,AttachAtoms,F  Replace and attach</span>
+  946 <span class="s2">            </span>
+  947 <span class="s2">        Multiple concurrent chemical transformations are allowed during &#39;TandemScan&#39;. The</span>
+  948 <span class="s2">        target pattern specification for &#39;TandemScan&#39; is a comma delimited list of operation</span>
+  949 <span class="s2">        type and target pattern. Format: OperationType,TargetPattern,...</span>
+  950 <span class="s2">        </span>
+  951 <span class="s2">        The supported operation types and target pattern are shown below:</span>
+  952 <span class="s2">      </span>
+  953 <span class="s2">            ReplaceAtoms,&lt;ElementSymbol&gt;</span>
+  954 <span class="s2">            AttachAtoms,&lt;ElementSymbol&gt;</span>
+  955 <span class="s2">            AttachSMILES,&lt;SMILES&gt; </span>
+  956 <span class="s2">            </span>
+  957 <span class="s2">        For example:</span>
+  958 <span class="s2">      </span>
+  959 <span class="s2">            ReplaceAtoms,N,AttachAtoms,F</span>
+  960 <span class="s2">            ReplaceAtoms,N,AttachAtoms,F,AttachSMILES,C(F)(F)(F) </span>
+  961 <span class="s2">             </span>
+  962 <span class="s2">        The number of chemical transformations  in &#39;TandemScan&#39; must be less than or</span>
+  963 <span class="s2">        equal to the total number atoms matched by SMARTS search pattern in a molecule.</span>
+  964 <span class="s2">        Otherwise, it is not possible to perform a &#39;TandemScan&#39;. The matched atom positions</span>
+  965 <span class="s2">        may be optionally permuted to generate all possible analogues during  positional</span>
+  966 <span class="s2">        analogue scanning using &#39;-p, --permuteTandemScan&#39; option.</span>
+  967 <span class="s2">    -u, --uniqueAnalogues &lt;yes or no&gt;  [default: yes]</span>
+  968 <span class="s2">        Keep only unique analogues of a molecule corresponding to unique SMILES</span>
+  969 <span class="s2">        strings. The duplicate SMILES string may be generated during PAS due to</span>
+  970 <span class="s2">        symmetric replacement or attachment points in molecules.</span>
+  971 <span class="s2">    -w, --workingdir &lt;dir&gt;</span>
+  972 <span class="s2">        Location of working directory which defaults to the current directory.</span>
+  973 
+  974 <span class="s2">Examples:</span>
+  975 <span class="s2">    To perform a nitrogen-walk or nitrogen scan by replacing aromatic carbons by</span>
+  976 <span class="s2">    nitrogens in molecules in a SMILES file and write out a SMILES file, type:</span>
+  977 
+  978 <span class="s2">        % RDKitPerformPositionalAnalogueScan.py  -i Sample.smi -o SampleOut.smi</span>
+  979 
+  980 <span class="s2">    To run the first example by explicity specifying search and target patterns for</span>
+  981 <span class="s2">    replacing aromatic carbons by nitogens in molecules in a SD file and write out</span>
+  982 <span class="s2">    a SD file, type:</span>
+  983 
+  984 <span class="s2">        % RDKitPerformPositionalAnalogueScan.py  -m ReplaceAtoms -s &quot;[cH]&quot;</span>
+  985 <span class="s2">          -t &quot;N&quot; -i Sample.sdf -o SampleOut.sdf</span>
+  986 
+  987 <span class="s2">    To run the first example in multiprocessing mode on all available CPUs</span>
+  988 <span class="s2">    without loading all data into memory and write out a SD file, type:</span>
+  989 
+  990 <span class="s2">        % RDKitPerformPositionalAnalogueScan.py  -i Sample.smi -o SampleOut.sdf</span>
+  991 <span class="s2">          --mp yes</span>
+  992 <span class="s2">     </span>
+  993 <span class="s2">    To run the previous example in multiprocessing mode on all available CPUs</span>
+  994 <span class="s2">    by loading all data into memory and write out a SD file, type:</span>
+  995 
+  996 <span class="s2">        % RDKitPerformPositionalAnalogueScan.py  -i Sample.smi -o SampleOut.sdf</span>
+  997 <span class="s2">          --mp yes --mpParams &quot;inputDataMode,InMemory&quot;</span>
+  998 <span class="s2">     </span>
+  999 <span class="s2">    To run the previous example in multiprocessing mode on specific number of</span>
+ 1000 <span class="s2">    CPUs and chunk size without loading all data into memory and write out a SD file,</span>
+ 1001 <span class="s2">    type:</span>
+ 1002 
+ 1003 <span class="s2">        % RDKitPerformPositionalAnalogueScan.py  -i Sample.smi -o SampleOut.sdf</span>
+ 1004 <span class="s2">          --mpParams &quot;inputDataMode,Lazy,numProcesses,4,chunkSize,8&quot;</span>
+ 1005 <span class="s2">     </span>
+ 1006 <span class="s2">    To perform positional analogue scanning by simultaneously attaching fluorines</span>
+ 1007 <span class="s2">    to two aromatic carbons in molecules in a SMILES file and write out a SD file,</span>
+ 1008 <span class="s2">    type:</span>
+ 1009 
+ 1010 <span class="s2">        % RDKitPerformPositionalAnalogueScan.py  -m AttachAtoms -s &quot;[cH]&quot;</span>
+ 1011 <span class="s2">          -t &quot;F&quot; -c 2 -i Sample.smi -o SampleOut.sdf</span>
+ 1012 
+ 1013 <span class="s2">    To perform positional analogue scanning by attaching SMILES for CF3 to aromatic</span>
+ 1014 <span class="s2">    carbons in molecules in a SMILES file and write out a SD file, type:</span>
+ 1015 
+ 1016 <span class="s2">        % RDKitPerformPositionalAnalogueScan.py  -m AttachSMILES -s &quot;[cH]&quot;</span>
+ 1017 <span class="s2">          -t &quot;C(F)(F)(F)&quot; -i Sample.smi -o SampleOut.sdf</span>
+ 1018 
+ 1019 <span class="s2">    To perform a nitrogen-walk or nitrogen scan by using reaction SMARTS to replace</span>
+ 1020 <span class="s2">    aromatic carbons by nitrogens in molecules in a SMILES file and write out a  SMILES</span>
+ 1021 <span class="s2">    file,  type:</span>
+ 1022 
+ 1023 <span class="s2">        % RDKitPerformPositionalAnalogueScan.py  -m RxnSMARTS</span>
+ 1024 <span class="s2">          -t &quot;[cH:1]&gt;&gt;[N:1]&quot; -i Sample.smi -o SampleOut.smi</span>
+ 1025 
+ 1026 <span class="s2">    To perform a tandem positional analogue scan by concurrently applying multiple</span>
+ 1027 <span class="s2">    chemical transformations to aromatic carbons, permute all matched search</span>
+ 1028 <span class="s2">    atom positions during analogue generation, and write out a SD file, type:</span>
+ 1029 
+ 1030 <span class="s2">        % RDKitPerformPositionalAnalogueScan.py  -m TandemScan -s &quot;[cH]&quot;</span>
+ 1031 <span class="s2">          -t &quot;ReplaceAtoms,N,AttachAtoms,F,AttachSMILES,OC&quot;</span>
+ 1032 <span class="s2">          -p yes  -i Sample.smi -o SampleOut.smi</span>
+ 1033 
+ 1034 <span class="s2">    To perform a nitrogen-walk or nitrogen scan by replacing aromatic carbons by</span>
+ 1035 <span class="s2">    nitrogens in molecules in a SMILES CSV fileS, MILES strings in column 1, name</span>
+ 1036 <span class="s2">    in column 2, and write out a SD file, type:</span>
+ 1037 
+ 1038 <span class="s2">        % RDKitPerformPositionalAnalogueScan.py  -m ReplaceAtoms -s &quot;[cH]&quot;</span>
+ 1039 <span class="s2">          -t &quot;N&quot; --infileParams &quot;smilesDelimiter,comma, smilesTitleLine,yes,</span>
+ 1040 <span class="s2">          smilesColumn,1,smilesNameColumn,2&quot;</span>
+ 1041 <span class="s2">          -i SampleSMILES.csv -o SampleOut.sdf</span>
+ 1042 
+ 1043 <span class="s2">Author:</span>
+ 1044 <span class="s2">    Manish Sud(msud@san.rr.com)</span>
+ 1045 
+ 1046 <span class="s2">See also:</span>
+ 1047 <span class="s2">    RDKitConvertFileFormat.py, RDKitEnumerateCompoundLibrary.py,</span>
+ 1048 <span class="s2">    RDKitPerformTorsionScan.py</span>
+ 1049 
+ 1050 <span class="s2">Copyright:</span>
+ 1051 <span class="s2">    Copyright (C) 2020 Manish Sud. All rights reserved.</span>
+ 1052 
+ 1053 <span class="s2">    The functionality available in this script is implemented using RDKit, an</span>
+ 1054 <span class="s2">    open source toolkit for cheminformatics developed by Greg Landrum.</span>
+ 1055 
+ 1056 <span class="s2">    This file is part of MayaChemTools.</span>
+ 1057 
+ 1058 <span class="s2">    MayaChemTools is free software; you can redistribute it and/or modify it under</span>
+ 1059 <span class="s2">    the terms of the GNU Lesser General Public License as published by the Free</span>
+ 1060 <span class="s2">    Software Foundation; either version 3 of the License, or (at your option) any</span>
+ 1061 <span class="s2">    later version.</span>
+ 1062 
+ 1063 <span class="s2">&quot;&quot;&quot;</span>
+ 1064 
+ 1065 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+ 1066     <span class="n">main</span><span class="p">()</span>
+</pre>
+<br />
+<center>
+<img src="../../../images/h2o2.png">
+</center>
+</body>
+</html>

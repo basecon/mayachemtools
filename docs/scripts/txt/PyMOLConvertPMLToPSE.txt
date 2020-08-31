@@ -1,0 +1,70 @@
+NAME
+    PyMOLConvertPMLToPSE.py - Convert PML to PSE
+
+SYNOPSIS
+    PyMOLConvertPMLToPSE.py [--feedback <yes or no>] [--overwrite] [-w
+    <dir>] -i <infile> -o <outfile>
+
+    PyMOLConvertPMLToPSE.py -h | --help | -e | --examples
+
+DESCRIPTION
+    Convert PyMOL script language (PML) file to PyMOL session (PSE) file.
+
+    The supported input and output file formats are PML (.pml) and PSE
+    (.pse).
+
+OPTIONS
+    -f, --feedback <yes or no> [default: yes]
+        PyMOL output feedback during loading of PML file. This option may
+        not work in all versions of PyMOL across various platforms.
+
+    -e, --examples
+        Print examples.
+
+    -h, --help
+        Print this help message.
+
+    -i, --infile <infile>
+        Input file name.
+
+    -o, --outfile <outfile>
+        Output file name.
+
+    --overwrite
+        Overwrite existing files.
+
+    -w, --workingdir <dir>
+        Location of working directory which defaults to the current
+        directory.
+
+EXAMPLES
+    To convert a PML file to a PSE file, type:
+
+        % PyMOLConvertPMLToPSE.py -i Sample.pml -o Sample.pse
+
+    To convert a PML file to a PSE file along with turning off PyMOL
+    feedback during loading of PML file, type:
+
+        % PyMOLConvertPMLToPSE.py -f no -i Sample.pml -o Sample.pse
+
+AUTHOR
+    Manish Sud(msud@san.rr.com)
+
+SEE ALSO
+    PyMOLConvertLigandFileFormat.py, PyMOLSplitChainsAndLigands.py,
+    PyMOLVisualizeMacromolecules.py
+
+COPYRIGHT
+    Copyright (C) 2020 Manish Sud. All rights reserved.
+
+    The functionality available in this script is implemented using PyMOL, a
+    molecular visualization system on an open source foundation originally
+    developed by Warren DeLano.
+
+    This file is part of MayaChemTools.
+
+    MayaChemTools is free software; you can redistribute it and/or modify it
+    under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or (at
+    your option) any later version.
+

@@ -1,0 +1,99 @@
+<html>
+<head>
+<title>MayaChemTools:Documentation:PyMOLMutateNucleicAcids.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../css/MayaChemTools.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./PyMOLMutateAminoAcids.html" title="PyMOLMutateAminoAcids.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./PyMOLSplitChainsAndLigands.html" title="PyMOLSplitChainsAndLigands.html">Next</a></td><td width="34%" align="middle"><strong>PyMOLMutateNucleicAcids.py</strong></td><td width="33%" align="right"><a href="././code/PyMOLMutateNucleicAcids.html" title="View source code">Code</a>&nbsp;|&nbsp;<a href="./../pdf/PyMOLMutateNucleicAcids.pdf" title="PDF US Letter Size">PDF</a>&nbsp;|&nbsp;<a href="./../pdfa4/PyMOLMutateNucleicAcids.pdf" title="PDF A4 Size">PDFA4</a></td></tr>
+</table>
+</div>
+<h1 id="NAME">NAME</h2>
+<p>PyMOLMutateNucleicAcids.py - Mutate nucleic acids</p>
+<h1 id="SYNOPSIS">SYNOPSIS</h2>
+<p>PyMOLMutateNucleicAcids.py [<b>--mutations</b> &lt;Spec1,Spec2,...&gt;] [<b>--overwrite</b>] [<b>-w</b> &lt;dir&gt;] <b>-i</b> &lt;infile&gt; <b>-o</b> &lt;outfile&gt;</p>
+<p>PyMOLMutateNucleicAcids.py <b>-h</b> | <b>--help</b> | <b>-e</b> | <b>--examples</b></p>
+<h1 id="DESCRIPTION">DESCRIPTION</h2>
+<p>Mutate nucleic acids in macromolecules. The mutations are performed using nucleic acids mutagenesis wizard available in PyMOL starting V2.2.</p>
+<p>The supported input and output file format is: PDB (.pdb)</p>
+<h1 id="OPTIONS">OPTIONS</h2>
+<dl>
+<dt id="m---mutations-Spec1-Spec2-...-default:-None"><b>-m, --mutations</b> &lt;Spec1,Spec2,...&gt; [default: None]</dt>
+<dd>
+<p>Comma delimited list of specifications for mutating nucleic acids.</p>
+<p>The format of mutation specification is as follows:</p>
+<div class="OptionsBox">    &lt;ChainID&gt;:&lt;ResNum&gt;&lt;BaseName&gt;,...</div>
+<p>A chain ID in the first specification of a mutation is required. It may be skipped in subsequent specifications. The most recent chain ID is used for the missing chain ID. The residue number corresponds to the residue to be mutated and must be present in the current chain. The base name represents the new base.</p>
+<p>Examples:</p>
+<div class="OptionsBox">    A:9Thy, A:10Thy
+<br/>    A:9Thy,10Thy,11Thy
+<br/>    A:9Thy,10Thy,B:5Ade,6Ade</div>
+<p>The base names must be valid for mutating nucleic acids. No validation validation is performed before mutating residues via nucleic acids mutagenesis wizard available in PyMOL. The current version of the wizard supports the following base names:</p>
+<div class="OptionsBox">    Adenine, Ade
+<br/>    Cytosine, Cyt
+<br/>    Guanine, Gua
+<br/>    Thymine, Thy
+<br/>    Uracil, Ura</div>
+</dd>
+<dt id="e---examples"><b>-e, --examples</b></dt>
+<dd>
+<p>Print examples.</p>
+</dd>
+<dt id="h---help"><b>-h, --help</b></dt>
+<dd>
+<p>Print this help message.</p>
+</dd>
+<dt id="i---infile-infile"><b>-i, --infile</b> &lt;infile&gt;</dt>
+<dd>
+<p>Input file name.</p>
+</dd>
+<dt id="o---outfile-outfile"><b>-o, --outfile</b> &lt;outfile&gt;</dt>
+<dd>
+<p>Output file name.</p>
+</dd>
+<dt id="overwrite"><b>--overwrite</b></dt>
+<dd>
+<p>Overwrite existing files.</p>
+</dd>
+<dt id="w---workingdir-dir"><b>-w, --workingdir</b> &lt;dir&gt;</dt>
+<dd>
+<p>Location of working directory which defaults to the current directory.</p>
+</dd>
+</dl>
+<h1 id="EXAMPLES">EXAMPLES</h2>
+<p>To mutate a single residue in a specific chain and write a PDB file, type:</p>
+<div class="ExampleBox">    % PyMOLMutateNucleicAcids.py -m &quot;A:9Thy&quot; -i Sample9.pdb
+      -o Sample9Out.pdb</div>
+<p>To mutate multiple residues in a single chain and write a PDB file, type:</p>
+<div class="ExampleBox">    % PyMOLMutateNucleicAcids.py -m &quot;A:9Thy,10Thy,11Thy&quot; -i Sample9.pdb
+      -o Sample9Out.pdb</div>
+<p>To mutate multiple residues across multiple chains and write a PDB file, type:</p>
+<div class="ExampleBox">    % PyMOLMutateNucleicAcids.py -m &quot;A:9Thy,10Thy,B:5Ade,6Ade&quot;
+      -i Sample9.pdb -o Sample9Out.pdb</div>
+<h1 id="AUTHOR">AUTHOR</h2>
+<p><a href="mailto:msud@san.rr.com">Manish Sud</a></p>
+<h1 id="SEE-ALSO">SEE ALSO</h2>
+<p><a href="./DownloadPDBFiles.html">DownloadPDBFiles.pl</a>, <a href="./PyMOLMutateAminoAcids.html">PyMOLMutateAminoAcids.py</a>, <a href="./PyMOLVisualizeMacromolecules.html">PyMOLVisualizeMacromolecules.py</a></p>
+<h1 id="COPYRIGHT">COPYRIGHT</h2>
+<p>Copyright (C) 2020 Manish Sud. All rights reserved.</p>
+<p>The functionality available in this script is implemented using PyMOL, a molecular visualization system on an open source foundation originally developed by Warren DeLano.</p>
+<p>This file is part of MayaChemTools.</p>
+<p>MayaChemTools is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.</p>
+<p>&nbsp</p><p>&nbsp</p><div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./PyMOLMutateAminoAcids.html" title="PyMOLMutateAminoAcids.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./PyMOLSplitChainsAndLigands.html" title="PyMOLSplitChainsAndLigands.html">Next</a></td><td width="34%" align="middle"><strong>August 27, 2020</strong></td><td width="33%" align="right"><strong>PyMOLMutateNucleicAcids.py</strong></td></tr>
+</table>
+</div>
+<br />
+<center>
+<img src="../../images/h2o2.png">
+</center>
+</body>
+</html>

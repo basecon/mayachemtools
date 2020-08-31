@@ -1,0 +1,123 @@
+<html>
+<head>
+<title>MayaChemTools:Documentation:PyMOLCalculatePhiPsiAngles.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../css/MayaChemTools.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./PyMOLAlignChains.html" title="PyMOLAlignChains.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./PyMOLCalculateProperties.html" title="PyMOLCalculateProperties.html">Next</a></td><td width="34%" align="middle"><strong>PyMOLCalculatePhiPsiAngles.py</strong></td><td width="33%" align="right"><a href="././code/PyMOLCalculatePhiPsiAngles.html" title="View source code">Code</a>&nbsp;|&nbsp;<a href="./../pdf/PyMOLCalculatePhiPsiAngles.pdf" title="PDF US Letter Size">PDF</a>&nbsp;|&nbsp;<a href="./../pdfa4/PyMOLCalculatePhiPsiAngles.pdf" title="PDF A4 Size">PDFA4</a></td></tr>
+</table>
+</div>
+<h1 id="NAME">NAME</h2>
+<p>PyMOLCalculatePhiPsiAngles.py - Calculate phi and psi torsion angles</p>
+<h1 id="SYNOPSIS">SYNOPSIS</h2>
+<p>PyMOLCalculatePhiPsiAngles.py [<b>--chainIDs</b> &lt;First, All or ID1,ID2...&gt;] [<b>--outMode</b> &lt;SingleFile or MultipleFies&gt;] [<b>--outChainID</b> &lt;yes or no&gt;] [<b>--outCategory</b> &lt;yes or no&gt;] [<b>--overwrite</b>] [<b>--precision</b> &lt;number&gt;] [<b>-w</b> &lt;dir&gt;] <b>-i</b> &lt;infile&gt; <b>-o</b> &lt;outfile&gt;</p>
+<p>PyMOLCalculatePhiPsiAngles.py <b>-h</b> | <b>--help</b> | <b>-e</b> | <b>--examples</b></p>
+<h1 id="DESCRIPTION">DESCRIPTION</h2>
+<p>Calculate phi and psi torsion angels for amino acid residues present in macromolecules.</p>
+<p>The phi and psi angles are categorized into the following groups corresponding to four types of Ramachandran plots:</p>
+<div class="OptionsBox">    General: All residues except glycine, proline, or pre-proline
+<br/>    Glycine: Only glycine residues
+<br/>    Proline: Only proline residues
+<br/>    Pre-Proline: Only residues before proline not including glycine or
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        proline</div>
+<p>The supported input file format are: PDB (.pdb), mmCIF (.cif)</p>
+<p>The supported output file formats are: CSV (.csv), TSV (.tsv, .txt)</p>
+<h1 id="OPTIONS">OPTIONS</h2>
+<dl>
+<dt id="c---chainIDs-First-All-or-ID1-ID2...-default:-All"><b>-c, --chainIDs</b> &lt;First, All or ID1,ID2...&gt; [default: All]</dt>
+<dd>
+<p>List of chain IDs to use for calculating phi and psi angles for residues in chains. Possible values: First, All, or a comma delimited list of chain IDs. The default is to use all chain IDs in input file.</p>
+</dd>
+<dt id="e---examples"><b>-e, --examples</b></dt>
+<dd>
+<p>Print examples.</p>
+</dd>
+<dt id="h---help"><b>-h, --help</b></dt>
+<dd>
+<p>Print this help message.</p>
+</dd>
+<dt id="i---infile-infile"><b>-i, --infile</b> &lt;infile&gt;</dt>
+<dd>
+<p>Input file name.</p>
+</dd>
+<dt id="o---outfile-outfile"><b>-o, --outfile</b> &lt;outfile&gt;</dt>
+<dd>
+<p>Output file name for writing out calculated values. Supported text file extensions: csv, tsv or txt.</p>
+<p>In addition to the specified outfile containing phi and psi angles for all residues, a set of additional output files is generated for &#39;MultipleFiles&#39; value of &#39;--outMode&#39; option. The names of these output files are automatically generated from the the name of the specified output file as shown below:</p>
+<div class="OptionsBox">    General: &lt;OutfileRoot&gt;_General.&lt;OutfileExt&gt;
+<br/>    Glycine: &lt;OutfileRoot&gt;_Glycine.&lt;OutfileExt&gt;
+<br/>    Proline: &lt;OutfileRoot&gt;_Proline.&lt;OutfileExt&gt;
+<br/>    Pre-Proline: &lt;OutfileRoot&gt;_PreProline.&lt;OutfileExt&gt;</div>
+</dd>
+<dt id="outMode-SingleFile-or-MultipleFiles-default:-SingleFile"><b>--outMode</b> &lt;SingleFile or MultipleFiles&gt; [default: SingleFile]</dt>
+<dd>
+<p>A single output file containing phi and psi angles for all residues or multiple output files corresponding to different categories of angles.</p>
+<p>The phi and psi angles are categorized into the following groups corresponding to four types of Ramachandran plots:</p>
+<div class="OptionsBox">    General: All residues except glycine, proline, or pre-proline
+<br/>    Glycine: Only glycine residues
+<br/>    Proline: Only proline residues
+<br/>    Pre-Proline: Only residues before proline not including glycine or
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        proline</div>
+<p>The output files contain the following information:</p>
+<div class="OptionsBox">    ChainID ResNum ResName Phi Psi Category</div>
+</dd>
+<dt id="outChainID-yes-or-no-default:-yes"><b>--outChainID</b> &lt;yes or no&gt; [default: yes]</dt>
+<dd>
+<p>Write chain IDs to output file.</p>
+</dd>
+<dt id="outCategory-yes-or-no-default:-yes"><b>--outCategory</b> &lt;yes or no&gt; [default: yes]</dt>
+<dd>
+<p>Write phi and psi category to output file.</p>
+</dd>
+<dt id="overwrite"><b>--overwrite</b></dt>
+<dd>
+<p>Overwrite existing files.</p>
+</dd>
+<dt id="p---precision-number-default:-2"><b>-p, --precision</b> &lt;number&gt; [default: 2]</dt>
+<dd>
+<p>Floating point precision for writing the calculated phi and psi angles.</p>
+</dd>
+<dt id="w---workingdir-dir"><b>-w, --workingdir</b> &lt;dir&gt;</dt>
+<dd>
+<p>Location of working directory which defaults to the current directory.</p>
+</dd>
+</dl>
+<h1 id="EXAMPLES">EXAMPLES</h2>
+<p>To calculate phi and psi angles for all residues across all chains in input file and write out a single CSV file containing calculated values along with chain IDs, residue names and numbers, and category of angles corresponding to Ramachandran plots, type:</p>
+<div class="ExampleBox">    % PyMOLCalculatePhiPsiAngles.py -i Sample3.pdb -o Sample3Out.csv</div>
+<p>To calculate phi and psi angles for all residues across all chains in input file and write out a multiple CSV files corresponding to categories of angles for Ramachandran plots along with other relevant information, type:</p>
+<div class="ExampleBox">    % PyMOLCalculatePhiPsiAngles.py --outMode MultipleFiles -i Sample3.pdb
+      -o Sample3Out.csv</div>
+<p>To calculate phi and psi angles for all residues in a specific chain in input file and write out a single TSV file containing calculated values along with other relevant information, type:</p>
+<div class="ExampleBox">    % PyMOLCalculatePhiPsiAngles.py -c E  -i Sample3.pdb -o Sample3Out.csv</div>
+<p>To calculate phi and psi angles for all residues in a specific chain in input file and write out a multiple TSV files containing calculated values at a specific precision along with other relevant information, type:</p>
+<div class="ExampleBox">    % PyMOLCalculatePhiPsiAngles.py --outMode MultipleFiles --chainIDs I
+      -i Sample3.pdb -o Sample3Out.csv</div>
+<h1 id="AUTHOR">AUTHOR</h2>
+<p><a href="mailto:msud@san.rr.com">Manish Sud</a></p>
+<h1 id="SEE-ALSO">SEE ALSO</h2>
+<p><a href="./DownloadPDBFiles.html">DownloadPDBFiles.pl</a>, <a href="./PyMOLCalculateRMSD.html">PyMOLCalculateRMSD.py</a>, <a href="./PyMOLCalculateProperties.html">PyMOLCalculateProperties.py</a>, <a href="./PyMOLGenerateRamachandranPlots.html">PyMOLGenerateRamachandranPlots.py</a></p>
+<h1 id="COPYRIGHT">COPYRIGHT</h2>
+<p>Copyright (C) 2020 Manish Sud. All rights reserved.</p>
+<p>The functionality available in this script is implemented using PyMOL, a molecular visualization system on an open source foundation originally developed by Warren DeLano.</p>
+<p>This file is part of MayaChemTools.</p>
+<p>MayaChemTools is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.</p>
+<p>&nbsp</p><p>&nbsp</p><div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./PyMOLAlignChains.html" title="PyMOLAlignChains.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./PyMOLCalculateProperties.html" title="PyMOLCalculateProperties.html">Next</a></td><td width="34%" align="middle"><strong>August 27, 2020</strong></td><td width="33%" align="right"><strong>PyMOLCalculatePhiPsiAngles.py</strong></td></tr>
+</table>
+</div>
+<br />
+<center>
+<img src="../../images/h2o2.png">
+</center>
+</body>
+</html>

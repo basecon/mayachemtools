@@ -1,0 +1,145 @@
+NAME
+    PyMOLCalculatePhiPsiAngles.py - Calculate phi and psi torsion angles
+
+SYNOPSIS
+    PyMOLCalculatePhiPsiAngles.py [--chainIDs <First, All or ID1,ID2...>]
+    [--outMode <SingleFile or MultipleFies>] [--outChainID <yes or no>]
+    [--outCategory <yes or no>] [--overwrite] [--precision <number>] [-w
+    <dir>] -i <infile> -o <outfile>
+
+    PyMOLCalculatePhiPsiAngles.py -h | --help | -e | --examples
+
+DESCRIPTION
+    Calculate phi and psi torsion angels for amino acid residues present in
+    macromolecules.
+
+    The phi and psi angles are categorized into the following groups
+    corresponding to four types of Ramachandran plots:
+
+        General: All residues except glycine, proline, or pre-proline
+        Glycine: Only glycine residues
+        Proline: Only proline residues
+        Pre-Proline: Only residues before proline not including glycine or
+            proline
+
+    The supported input file format are: PDB (.pdb), mmCIF (.cif)
+
+    The supported output file formats are: CSV (.csv), TSV (.tsv, .txt)
+
+OPTIONS
+    -c, --chainIDs <First, All or ID1,ID2...> [default: All]
+        List of chain IDs to use for calculating phi and psi angles for
+        residues in chains. Possible values: First, All, or a comma
+        delimited list of chain IDs. The default is to use all chain IDs in
+        input file.
+
+    -e, --examples
+        Print examples.
+
+    -h, --help
+        Print this help message.
+
+    -i, --infile <infile>
+        Input file name.
+
+    -o, --outfile <outfile>
+        Output file name for writing out calculated values. Supported text
+        file extensions: csv, tsv or txt.
+
+        In addition to the specified outfile containing phi and psi angles
+        for all residues, a set of additional output files is generated for
+        'MultipleFiles' value of '--outMode' option. The names of these
+        output files are automatically generated from the the name of the
+        specified output file as shown below:
+
+            General: <OutfileRoot>_General.<OutfileExt>
+            Glycine: <OutfileRoot>_Glycine.<OutfileExt>
+            Proline: <OutfileRoot>_Proline.<OutfileExt>
+            Pre-Proline: <OutfileRoot>_PreProline.<OutfileExt>
+
+    --outMode <SingleFile or MultipleFiles> [default: SingleFile]
+        A single output file containing phi and psi angles for all residues
+        or multiple output files corresponding to different categories of
+        angles.
+
+        The phi and psi angles are categorized into the following groups
+        corresponding to four types of Ramachandran plots:
+
+            General: All residues except glycine, proline, or pre-proline
+            Glycine: Only glycine residues
+            Proline: Only proline residues
+            Pre-Proline: Only residues before proline not including glycine or
+                proline
+
+        The output files contain the following information:
+
+            ChainID ResNum ResName Phi Psi Category
+
+    --outChainID <yes or no> [default: yes]
+        Write chain IDs to output file.
+
+    --outCategory <yes or no> [default: yes]
+        Write phi and psi category to output file.
+
+    --overwrite
+        Overwrite existing files.
+
+    -p, --precision <number> [default: 2]
+        Floating point precision for writing the calculated phi and psi
+        angles.
+
+    -w, --workingdir <dir>
+        Location of working directory which defaults to the current
+        directory.
+
+EXAMPLES
+    To calculate phi and psi angles for all residues across all chains in
+    input file and write out a single CSV file containing calculated values
+    along with chain IDs, residue names and numbers, and category of angles
+    corresponding to Ramachandran plots, type:
+
+        % PyMOLCalculatePhiPsiAngles.py -i Sample3.pdb -o Sample3Out.csv
+
+    To calculate phi and psi angles for all residues across all chains in
+    input file and write out a multiple CSV files corresponding to
+    categories of angles for Ramachandran plots along with other relevant
+    information, type:
+
+        % PyMOLCalculatePhiPsiAngles.py --outMode MultipleFiles -i Sample3.pdb
+          -o Sample3Out.csv
+
+    To calculate phi and psi angles for all residues in a specific chain in
+    input file and write out a single TSV file containing calculated values
+    along with other relevant information, type:
+
+        % PyMOLCalculatePhiPsiAngles.py -c E  -i Sample3.pdb -o Sample3Out.csv
+
+    To calculate phi and psi angles for all residues in a specific chain in
+    input file and write out a multiple TSV files containing calculated
+    values at a specific precision along with other relevant information,
+    type:
+
+        % PyMOLCalculatePhiPsiAngles.py --outMode MultipleFiles --chainIDs I
+          -i Sample3.pdb -o Sample3Out.csv
+
+AUTHOR
+    Manish Sud(msud@san.rr.com)
+
+SEE ALSO
+    DownloadPDBFiles.pl, PyMOLCalculateRMSD.py, PyMOLCalculateProperties.py,
+    PyMOLGenerateRamachandranPlots.py
+
+COPYRIGHT
+    Copyright (C) 2020 Manish Sud. All rights reserved.
+
+    The functionality available in this script is implemented using PyMOL, a
+    molecular visualization system on an open source foundation originally
+    developed by Warren DeLano.
+
+    This file is part of MayaChemTools.
+
+    MayaChemTools is free software; you can redistribute it and/or modify it
+    under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or (at
+    your option) any later version.
+

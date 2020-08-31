@@ -1,0 +1,1046 @@
+<html>
+<head>
+<title>MayaChemTools:Code:PyMOLGenerateRamachandranPlots.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../../css/MayaChemToolsPythonCode.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<pre>
+    1 <span class="ch">#!/bin/env python</span>
+    2 <span class="c1">#</span>
+    3 <span class="c1"># File: PyMOLGenerateRamachandranPlots.py</span>
+    4 <span class="c1"># Author: Manish Sud &lt;msud@san.rr.com&gt;</span>
+    5 <span class="c1">#</span>
+    6 <span class="c1"># Copyright (C) 2020 Manish Sud. All rights reserved.</span>
+    7 <span class="c1">#</span>
+    8 <span class="c1"># The functionality available in this script is implemented using PyMOL, a</span>
+    9 <span class="c1"># molecular visualization system on an open source foundation originally</span>
+   10 <span class="c1"># developed by Warren DeLano.</span>
+   11 <span class="c1">#</span>
+   12 <span class="c1"># This file is part of MayaChemTools.</span>
+   13 <span class="c1">#</span>
+   14 <span class="c1"># MayaChemTools is free software; you can redistribute it and/or modify it under</span>
+   15 <span class="c1"># the terms of the GNU Lesser General Public License as published by the Free</span>
+   16 <span class="c1"># Software Foundation; either version 3 of the License, or (at your option) any</span>
+   17 <span class="c1"># later version.</span>
+   18 <span class="c1">#</span>
+   19 <span class="c1"># MayaChemTools is distributed in the hope that it will be useful, but without</span>
+   20 <span class="c1"># any warranty; without even the implied warranty of merchantability of fitness</span>
+   21 <span class="c1"># for a particular purpose.  See the GNU Lesser General Public License for more</span>
+   22 <span class="c1"># details.</span>
+   23 <span class="c1">#</span>
+   24 <span class="c1"># You should have received a copy of the GNU Lesser General Public License</span>
+   25 <span class="c1"># along with MayaChemTools; if not, see &lt;http://www.gnu.org/licenses/&gt; or</span>
+   26 <span class="c1"># write to the Free Software Foundation Inc., 59 Temple Place, Suite 330,</span>
+   27 <span class="c1"># Boston, MA, 02111-1307, USA.</span>
+   28 <span class="c1">#</span>
+   29 
+   30 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+   31 
+   32 <span class="c1"># Add local python path to the global path and import standard library modules...</span>
+   33 <span class="kn">import</span> <span class="nn">os</span>
+   34 <span class="kn">import</span> <span class="nn">sys</span><span class="p">;</span>  <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="s2">&quot;..&quot;</span><span class="p">,</span> <span class="s2">&quot;lib&quot;</span><span class="p">,</span> <span class="s2">&quot;Python&quot;</span><span class="p">))</span>
+   35 <span class="kn">import</span> <span class="nn">time</span>
+   36 <span class="kn">import</span> <span class="nn">re</span>
+   37 <span class="kn">import</span> <span class="nn">csv</span>
+   38 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+   39 <span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+   40 
+   41 <span class="c1"># PyMOL imports...</span>
+   42 <span class="k">try</span><span class="p">:</span>
+   43     <span class="kn">import</span> <span class="nn">pymol</span>
+   44     <span class="c1"># Finish launching PyMOL in  a command line mode for batch processing (-c)</span>
+   45     <span class="c1"># along with the following options:  disable loading of pymolrc and plugins (-k);</span>
+   46     <span class="c1"># suppress start up messages (-q)</span>
+   47     <span class="n">pymol</span><span class="o">.</span><span class="n">finish_launching</span><span class="p">([</span><span class="s1">&#39;pymol&#39;</span><span class="p">,</span> <span class="s1">&#39;-ckq&#39;</span><span class="p">])</span>
+   48 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+   49     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Failed to import PyMOL module/package: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ErrMsg</span><span class="p">)</span>
+   50     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Check/update your PyMOL environment and try again.</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+   51     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+   52 
+   53 <span class="c1"># MayaChemTools imports...</span>
+   54 <span class="k">try</span><span class="p">:</span>
+   55     <span class="kn">from</span> <span class="nn">docopt</span> <span class="kn">import</span> <span class="n">docopt</span>
+   56     <span class="kn">import</span> <span class="nn">MiscUtil</span>
+   57     <span class="kn">import</span> <span class="nn">PyMOLUtil</span>
+   58 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+   59     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Failed to import MayaChemTools module/package: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ErrMsg</span><span class="p">)</span>
+   60     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Check/update your MayaChemTools environment and try again.</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+   61     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+   62 
+   63 <span class="n">ScriptName</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+   64 <span class="n">Options</span> <span class="o">=</span> <span class="p">{}</span>
+   65 <span class="n">OptionsInfo</span> <span class="o">=</span> <span class="p">{}</span>
+   66 
+   67 <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+   68     <span class="sd">&quot;&quot;&quot;Start execution of the script&quot;&quot;&quot;</span>
+   69     
+   70     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2"> (PyMOL v</span><span class="si">%s</span><span class="s2">; </span><span class="si">%s</span><span class="s2">) Starting...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ScriptName</span><span class="p">,</span> <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">get_version</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()))</span>
+   71 
+   72     <span class="p">(</span><span class="n">WallClockTime</span><span class="p">,</span> <span class="n">ProcessorTime</span><span class="p">)</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetWallClockAndProcessorTime</span><span class="p">()</span>
+   73     
+   74     <span class="c1"># Retrieve command line arguments and options...</span>
+   75     <span class="n">RetrieveOptions</span><span class="p">()</span>
+   76     
+   77     <span class="c1"># Process and validate command line arguments and options...</span>
+   78     <span class="n">ProcessOptions</span><span class="p">()</span>
+   79     
+   80     <span class="c1"># Perform actions required by the script...</span>
+   81     <span class="n">GenerateRamachandranPlots</span><span class="p">()</span>
+   82     
+   83     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2">: Done...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ScriptName</span><span class="p">)</span>
+   84     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Total time: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetFormattedElapsedTime</span><span class="p">(</span><span class="n">WallClockTime</span><span class="p">,</span> <span class="n">ProcessorTime</span><span class="p">))</span>
+   85 
+   86 <span class="k">def</span> <span class="nf">GenerateRamachandranPlots</span><span class="p">():</span>
+   87     <span class="sd">&quot;&quot;&quot;Calculate phi and psi angles for macromolecules containing amino acids</span>
+   88 <span class="sd">    and generate Ramachandran plots.</span>
+   89 <span class="sd">    &quot;&quot;&quot;</span>
+   90 
+   91     <span class="c1"># Calculate phi and psi angles..</span>
+   92     <span class="n">CalculatePhiPsiAngles</span><span class="p">()</span>
+   93 
+   94     <span class="c1"># Read phi and psi densities...</span>
+   95     <span class="n">ReadPhiAndPsiDensities</span><span class="p">()</span>
+   96 
+   97     <span class="c1"># Setup contour info...</span>
+   98     <span class="n">SetupContoursInfo</span><span class="p">()</span>
+   99 
+  100     <span class="c1"># Generate plots...</span>
+  101     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MultipleOutFiles&quot;</span><span class="p">]:</span>
+  102         <span class="n">GenerateMultiplePlotFiles</span><span class="p">()</span>
+  103     <span class="k">else</span><span class="p">:</span>
+  104         <span class="n">GenerateSinglePlotFile</span><span class="p">()</span>
+  105 
+  106 <span class="k">def</span> <span class="nf">GenerateSinglePlotFile</span><span class="p">():</span>
+  107     <span class="sd">&quot;&quot;&quot;Generate a single plot file containg all four types of Ramachandran plots.&quot;&quot;&quot;</span>
+  108     
+  109     <span class="n">Outfile</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">]</span>
+  110     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Generating output file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">Outfile</span><span class="p">))</span>
+  111 
+  112     <span class="n">SetupFontFamily</span><span class="p">()</span>
+  113 
+  114     <span class="c1"># Setup figure...</span>
+  115     <span class="n">PlotFigure</span><span class="p">,</span> <span class="n">Axes</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span> <span class="o">=</span> <span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FigWidth&quot;</span><span class="p">],</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FigHeight&quot;</span><span class="p">]),</span> <span class="n">dpi</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FigDPI&quot;</span><span class="p">])</span>
+  116     <span class="n">PlotAxes</span> <span class="o">=</span> <span class="p">[</span><span class="n">Axis</span> <span class="k">for</span> <span class="n">RowAxes</span> <span class="ow">in</span> <span class="n">Axes</span> <span class="k">for</span> <span class="n">Axis</span> <span class="ow">in</span> <span class="n">RowAxes</span><span class="p">]</span>
+  117 
+  118     <span class="c1"># Adjust space between subplots...</span>
+  119     <span class="n">plt</span><span class="o">.</span><span class="n">subplots_adjust</span><span class="p">(</span><span class="n">left</span>  <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">right</span> <span class="o">=</span> <span class="mf">0.9</span><span class="p">,</span>  <span class="n">bottom</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">top</span> <span class="o">=</span> <span class="mf">0.9</span><span class="p">,</span> <span class="n">wspace</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">,</span> <span class="n">hspace</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">)</span>
+  120 
+  121     <span class="k">for</span>  <span class="n">PlotIndex</span><span class="p">,</span> <span class="n">PlotType</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;Types&quot;</span><span class="p">]):</span>
+  122         <span class="n">DrawPlot</span><span class="p">(</span><span class="n">PlotAxes</span><span class="p">[</span><span class="n">PlotIndex</span><span class="p">],</span> <span class="n">PlotType</span><span class="p">)</span>
+  123 
+  124     <span class="c1"># Save figure...</span>
+  125     <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">Outfile</span><span class="p">)</span>
+  126 
+  127 <span class="k">def</span> <span class="nf">GenerateMultiplePlotFiles</span><span class="p">():</span>
+  128     <span class="sd">&quot;&quot;&quot;Generate multiple plot files corresponding to four types of Ramachandran plots.&quot;&quot;&quot;</span>
+  129     
+  130     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Generating multiple output files...&quot;</span><span class="p">)</span>
+  131     
+  132     <span class="n">SetupFontFamily</span><span class="p">()</span>
+  133 
+  134     <span class="k">for</span>  <span class="n">PlotType</span> <span class="ow">in</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;Types&quot;</span><span class="p">]:</span>
+  135         <span class="n">Outfile</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;Outfiles&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">]</span>
+  136         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Generating  output file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">Outfile</span><span class="p">)</span>
+  137         
+  138         <span class="n">PlotFigure</span><span class="p">,</span> <span class="n">PlotAxis</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">figsize</span> <span class="o">=</span> <span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FigWidth&quot;</span><span class="p">],</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FigHeight&quot;</span><span class="p">]),</span> <span class="n">dpi</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FigDPI&quot;</span><span class="p">])</span>
+  139         <span class="n">DrawPlot</span><span class="p">(</span><span class="n">PlotAxis</span><span class="p">,</span> <span class="n">PlotType</span><span class="p">)</span>
+  140 
+  141         <span class="c1"># Save figure...</span>
+  142         <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">Outfile</span><span class="p">)</span>
+  143 
+  144         <span class="c1"># Get ready for the next figure...</span>
+  145         <span class="n">plt</span><span class="o">.</span><span class="n">clf</span><span class="p">()</span>
+  146 
+  147 <span class="k">def</span> <span class="nf">DrawPlot</span><span class="p">(</span><span class="n">PlotAxis</span><span class="p">,</span> <span class="n">PlotType</span><span class="p">):</span>
+  148     <span class="sd">&quot;&quot;&quot;Draw contour and scatter plot &quot;&quot;&quot;</span>
+  149     
+  150     <span class="n">PlotTypesInfo</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">]</span>
+  151     
+  152     <span class="c1"># Draw filled contours...</span>
+  153     <span class="n">PhiPsiContourInfo</span> <span class="o">=</span> <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;PhiPsiContourInfo&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">]</span>
+  154     <span class="n">PlotAxis</span><span class="o">.</span><span class="n">contourf</span><span class="p">(</span><span class="n">PhiPsiContourInfo</span><span class="p">[</span><span class="s2">&quot;X&quot;</span><span class="p">],</span> <span class="n">PhiPsiContourInfo</span><span class="p">[</span><span class="s2">&quot;Y&quot;</span><span class="p">],</span> <span class="n">PhiPsiContourInfo</span><span class="p">[</span><span class="s2">&quot;Z&quot;</span><span class="p">],</span> <span class="n">levels</span> <span class="o">=</span> <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;Levels&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">],</span> <span class="n">colors</span> <span class="o">=</span> <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;Colors&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">])</span>
+  155     
+  156     <span class="c1"># Draw scatter plot for phi and psi angles...</span>
+  157     <span class="k">if</span> <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;ResCount&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">]:</span>
+  158         <span class="n">PlotAxis</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;PhiAngles&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">],</span> <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;PsiAngles&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">],</span> <span class="n">s</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ScatterMarkerSize&quot;</span><span class="p">],</span> <span class="n">c</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ScatterMarkerColor&quot;</span><span class="p">],</span> <span class="n">marker</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ScatterMarkerStyle&quot;</span><span class="p">])</span>
+  159     
+  160     <span class="c1"># Setup limits...</span>
+  161     <span class="n">PlotAxis</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">(</span><span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;Limits&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">])</span>
+  162     <span class="n">PlotAxis</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">(</span><span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;Limits&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">])</span>
+  163     
+  164     <span class="c1"># Setup major tick marks...</span>
+  165     <span class="n">PlotAxis</span><span class="o">.</span><span class="n">set_xticklabels</span><span class="p">(</span><span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;MajorTickLabels&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">],</span> <span class="n">fontdict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;fontsize&quot;</span><span class="p">:</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FontTicksSize&quot;</span><span class="p">],</span> <span class="s2">&quot;fontweight&quot;</span><span class="p">:</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FontTicksWeight&quot;</span><span class="p">]})</span>
+  166     <span class="n">PlotAxis</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;MajorTickPositions&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">])</span>
+  167     <span class="n">PlotAxis</span><span class="o">.</span><span class="n">set_yticklabels</span><span class="p">(</span><span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;MajorTickLabels&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">],</span> <span class="n">fontdict</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;fontsize&quot;</span><span class="p">:</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FontTicksSize&quot;</span><span class="p">],</span> <span class="s2">&quot;fontweight&quot;</span><span class="p">:</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FontTicksWeight&quot;</span><span class="p">]})</span>
+  168     <span class="n">PlotAxis</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">(</span><span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;MajorTickPositions&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">])</span>
+  169 
+  170     <span class="c1"># Set up minor ticks...</span>
+  171     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;TicksMinor&quot;</span><span class="p">]:</span>
+  172         <span class="n">PlotAxis</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;MinorTickPositions&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">],</span> <span class="n">minor</span> <span class="o">=</span> <span class="bp">True</span><span class="p">)</span>
+  173         <span class="n">PlotAxis</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">(</span><span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;MinorTickPositions&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">],</span> <span class="n">minor</span> <span class="o">=</span> <span class="bp">True</span><span class="p">)</span>
+  174 
+  175     <span class="c1"># Setup grid...</span>
+  176     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Grid&quot;</span><span class="p">]:</span>
+  177         <span class="n">PlotAxis</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="bp">True</span><span class="p">,</span> <span class="n">color</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;GridLineColor&quot;</span><span class="p">],</span>  <span class="n">linestyle</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;GridLineStyle&quot;</span><span class="p">],</span> <span class="n">linewidth</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;GridLineWidth&quot;</span><span class="p">])</span>
+  178     
+  179     <span class="c1"># Setup title...</span>
+  180     <span class="n">PlotAxis</span><span class="o">.</span><span class="n">set_title</span><span class="p">(</span><span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;Titles&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">],</span> <span class="n">fontsize</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FontTitleSize&quot;</span><span class="p">],</span> <span class="n">fontweight</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FontTitleWeight&quot;</span><span class="p">])</span>
+  181     
+  182     <span class="c1"># Setup axes labels...</span>
+  183     <span class="k">if</span> <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;DrawXLabel&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">]:</span>
+  184         <span class="n">XLabel</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;$\Phi$&quot;</span> <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Greek&quot;</span><span class="p">]</span> <span class="k">else</span> <span class="s2">&quot;Phi&quot;</span>
+  185         <span class="n">PlotAxis</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="n">XLabel</span><span class="p">,</span> <span class="n">fontsize</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FontAxesSize&quot;</span><span class="p">],</span> <span class="n">fontweight</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FontAxesWeight&quot;</span><span class="p">])</span>
+  186     <span class="k">if</span> <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;DrawYLabel&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">]:</span>
+  187         <span class="c1"># Setup a horizontal ylabel close to the axis...</span>
+  188         <span class="n">YLabel</span> <span class="o">=</span> <span class="sa">r</span><span class="s2">&quot;$\Psi$&quot;</span> <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Greek&quot;</span><span class="p">]</span> <span class="k">else</span> <span class="s2">&quot;Psi&quot;</span>
+  189         <span class="n">YRotation</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Greek&quot;</span><span class="p">]</span> <span class="k">else</span> <span class="mi">90</span>
+  190         <span class="n">PlotAxis</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="n">YLabel</span><span class="p">,</span> <span class="n">fontsize</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FontAxesSize&quot;</span><span class="p">],</span> <span class="n">fontweight</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FontAxesWeight&quot;</span><span class="p">],</span> <span class="n">rotation</span> <span class="o">=</span> <span class="n">YRotation</span><span class="p">,</span> <span class="n">labelpad</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span>
+  191 
+  192 <span class="k">def</span> <span class="nf">SetupFontFamily</span><span class="p">():</span>
+  193     <span class="sd">&quot;&quot;&quot;Setuo global font family. &quot;&quot;&quot;</span>
+  194     
+  195     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^auto$&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FontFamily&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  196         <span class="k">return</span>
+  197     <span class="n">plt</span><span class="o">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s2">&quot;font.family&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FontFamily&quot;</span><span class="p">]</span>
+  198 
+  199 <span class="k">def</span> <span class="nf">SetupContoursInfo</span><span class="p">():</span>
+  200     <span class="sd">&quot;&quot;&quot;Setup contour info for generating contour plots.&quot;&quot;&quot;</span>
+  201 
+  202     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Processing phi and psi densities for contour plots...&quot;</span><span class="p">)</span>
+  203     
+  204     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;PhiPsiContourInfo&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  205     <span class="k">for</span>  <span class="n">PlotType</span> <span class="ow">in</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;Types&quot;</span><span class="p">]:</span>
+  206         <span class="n">PhiPsiContourInfo</span> <span class="o">=</span> <span class="n">SetupPhiAndPsiContourInfo</span><span class="p">(</span><span class="n">PlotType</span><span class="p">)</span>
+  207         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;PhiPsiContourInfo&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">]</span> <span class="o">=</span> <span class="n">PhiPsiContourInfo</span>
+  208 
+  209 <span class="k">def</span> <span class="nf">SetupPhiAndPsiContourInfo</span><span class="p">(</span><span class="n">PlotType</span><span class="p">):</span>
+  210     <span class="sd">&quot;&quot;&quot;Setup X, Y and Z contour arrays for generating contour plots. &quot;&quot;&quot;</span>
+  211 
+  212     <span class="n">DensityInfo</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;PhiPsiDensityInfo&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">]</span>
+  213     
+  214     <span class="n">X</span><span class="p">,</span> <span class="n">Y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">meshgrid</span><span class="p">(</span><span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PhiValues&quot;</span><span class="p">],</span> <span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PsiValues&quot;</span><span class="p">])</span>
+  215     <span class="n">Z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PhiValues&quot;</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PsiValues&quot;</span><span class="p">])))</span>
+  216     
+  217     <span class="c1"># Initialize X, Y, and Z arrays for contour plots...</span>
+  218     <span class="k">for</span> <span class="n">ZRowIndex</span><span class="p">,</span> <span class="n">PsiID</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PhiIDs&quot;</span><span class="p">]):</span>
+  219         <span class="k">for</span> <span class="n">ZColIndex</span><span class="p">,</span> <span class="n">PhiID</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PsiIDs&quot;</span><span class="p">]):</span>
+  220             <span class="n">Z</span><span class="p">[</span><span class="n">ZRowIndex</span><span class="p">][</span><span class="n">ZColIndex</span><span class="p">]</span> <span class="o">=</span> <span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;Density&quot;</span><span class="p">][</span><span class="n">PhiID</span><span class="p">][</span><span class="n">PsiID</span><span class="p">]</span>
+  221             
+  222     <span class="c1"># Track contour data...</span>
+  223     <span class="n">ContourInfo</span> <span class="o">=</span> <span class="p">{}</span>
+  224     <span class="n">ContourInfo</span><span class="p">[</span><span class="s2">&quot;X&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">X</span>
+  225     <span class="n">ContourInfo</span><span class="p">[</span><span class="s2">&quot;Y&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Y</span>
+  226     <span class="n">ContourInfo</span><span class="p">[</span><span class="s2">&quot;Z&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Z</span>
+  227     
+  228     <span class="k">return</span> <span class="n">ContourInfo</span>
+  229     
+  230 <span class="k">def</span> <span class="nf">ReadPhiAndPsiDensities</span><span class="p">():</span>
+  231     <span class="sd">&quot;&quot;&quot;Read phi and psi densities for generating filled contours. &quot;&quot;&quot;</span>
+  232 
+  233     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;PhiPsiDensityInfo&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  234     <span class="k">for</span>  <span class="n">PlotType</span> <span class="ow">in</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;Types&quot;</span><span class="p">]:</span>
+  235         <span class="n">DensityFile</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;PhiPsiDensityFiles&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">]</span>
+  236         <span class="n">PhiPsiDensityInfo</span> <span class="o">=</span> <span class="n">ReadPhiAndPsiDensityFile</span><span class="p">(</span><span class="n">DensityFile</span><span class="p">)</span>
+  237         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;PhiPsiDensityInfo&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">]</span> <span class="o">=</span> <span class="n">PhiPsiDensityInfo</span>
+  238     
+  239 <span class="k">def</span> <span class="nf">ReadPhiAndPsiDensityFile</span><span class="p">(</span><span class="n">DensityFile</span><span class="p">):</span>
+  240     <span class="sd">&quot;&quot;&quot;Read phi and psi desnsity file.</span>
+  241 
+  242 <span class="sd">    Format: </span>
+  243 <span class="sd">    Phi,Psi,Density</span>
+  244 <span class="sd">    -179.0,-179.0,0.00782923406455425</span>
+  245 <span class="sd">    -179.0,-177.0,0.00641357067237856</span>
+  246 <span class="sd">    ... ... ...</span>
+  247 <span class="sd">    &quot;&quot;&quot;</span>
+  248 
+  249     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Reading psi and psi density grid file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">DensityFile</span><span class="p">)</span>
+  250     
+  251     <span class="n">DensityFH</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">DensityFile</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+  252     <span class="k">if</span> <span class="n">DensityFH</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  253         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Couldn&#39;t open phi and psi density file: </span><span class="si">%s</span><span class="s2">.</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">DensityFile</span><span class="p">))</span>
+  254     
+  255     <span class="n">HeaderLine</span> <span class="o">=</span> <span class="bp">True</span>
+  256     <span class="n">DensityLines</span> <span class="o">=</span> <span class="p">[]</span>
+  257     <span class="k">for</span> <span class="n">Line</span> <span class="ow">in</span> <span class="n">DensityFH</span><span class="p">:</span>
+  258         <span class="n">Line</span> <span class="o">=</span> <span class="n">Line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span>
+  259         <span class="c1"># Ignore comments...</span>
+  260         <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^#&quot;</span><span class="p">,</span> <span class="n">Line</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  261             <span class="k">continue</span>
+  262         <span class="c1"># Ignore header line...</span>
+  263         <span class="k">if</span> <span class="n">HeaderLine</span><span class="p">:</span>
+  264             <span class="n">HeaderLine</span> <span class="o">=</span> <span class="bp">False</span>
+  265             <span class="k">continue</span>
+  266         <span class="n">DensityLines</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Line</span><span class="p">)</span>
+  267 
+  268     <span class="n">DensityInfo</span> <span class="o">=</span> <span class="p">{}</span>
+  269     <span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;Density&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  270     
+  271     <span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PhiIDs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+  272     <span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PhiValues&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+  273     
+  274     <span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PsiIDs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+  275     <span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PsiValues&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+  276     
+  277     <span class="n">PhiValuesMap</span> <span class="o">=</span> <span class="p">{}</span>
+  278     <span class="n">PsiValuesMap</span> <span class="o">=</span> <span class="p">{}</span>
+  279     
+  280     <span class="n">Count</span> <span class="o">=</span> <span class="mi">0</span>
+  281     <span class="n">MinDensity</span> <span class="o">=</span> <span class="mf">99999.0</span>
+  282     <span class="n">MaxDensity</span> <span class="o">=</span> <span class="o">-</span> <span class="n">MinDensity</span>
+  283     
+  284     <span class="n">DensityReader</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">DensityLines</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="n">quotechar</span><span class="o">=</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span>
+  285     <span class="k">for</span> <span class="n">LineWords</span> <span class="ow">in</span> <span class="n">DensityReader</span><span class="p">:</span>
+  286         <span class="n">Count</span> <span class="o">+=</span> <span class="mi">1</span>
+  287         
+  288         <span class="n">Phi</span> <span class="o">=</span> <span class="n">LineWords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+  289         <span class="n">Psi</span> <span class="o">=</span> <span class="n">LineWords</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+  290         <span class="n">Density</span> <span class="o">=</span> <span class="n">LineWords</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+  291 
+  292         <span class="c1"># Track unique phi and psi value...</span>
+  293         <span class="k">if</span> <span class="ow">not</span> <span class="n">Phi</span> <span class="ow">in</span> <span class="n">PhiValuesMap</span><span class="p">:</span>
+  294             <span class="n">PhiValuesMap</span><span class="p">[</span><span class="n">Phi</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">Phi</span><span class="p">)</span>
+  295         <span class="k">if</span> <span class="ow">not</span> <span class="n">Psi</span> <span class="ow">in</span> <span class="n">PsiValuesMap</span><span class="p">:</span>
+  296             <span class="n">PsiValuesMap</span><span class="p">[</span><span class="n">Psi</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">Psi</span><span class="p">)</span>
+  297         
+  298         <span class="c1"># Track density data...</span>
+  299         <span class="k">if</span> <span class="ow">not</span> <span class="n">Phi</span> <span class="ow">in</span> <span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;Density&quot;</span><span class="p">]:</span>
+  300             <span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;Density&quot;</span><span class="p">][</span><span class="n">Phi</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  301 
+  302         <span class="n">Density</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">Density</span><span class="p">)</span>
+  303         <span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;Density&quot;</span><span class="p">][</span><span class="n">Phi</span><span class="p">][</span><span class="n">Psi</span><span class="p">]</span> <span class="o">=</span> <span class="n">Density</span>
+  304         <span class="k">if</span> <span class="n">Density</span> <span class="o">&lt;</span> <span class="n">MinDensity</span><span class="p">:</span>
+  305             <span class="n">MinDensity</span> <span class="o">=</span> <span class="n">Density</span>
+  306         <span class="k">if</span> <span class="n">Density</span> <span class="o">&gt;</span> <span class="n">MaxDensity</span><span class="p">:</span>
+  307             <span class="n">MaxDensity</span> <span class="o">=</span> <span class="n">Density</span>
+  308 
+  309     <span class="c1"># Sort and track values for phi and psi angles...</span>
+  310     <span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PhiIDs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">PhiValuesMap</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">key</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">Phi</span><span class="p">:</span> <span class="n">PhiValuesMap</span><span class="p">[</span><span class="n">Phi</span><span class="p">])</span>
+  311     <span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PhiValues&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">PhiValuesMap</span><span class="p">[</span><span class="n">Phi</span><span class="p">]</span> <span class="k">for</span> <span class="n">Phi</span> <span class="ow">in</span> <span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PhiIDs&quot;</span><span class="p">]]</span>
+  312     
+  313     <span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PsiIDs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">PsiValuesMap</span><span class="o">.</span><span class="n">keys</span><span class="p">(),</span> <span class="n">key</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">Psi</span><span class="p">:</span> <span class="n">PsiValuesMap</span><span class="p">[</span><span class="n">Psi</span><span class="p">])</span>
+  314     <span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PsiValues&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">PsiValuesMap</span><span class="p">[</span><span class="n">Psi</span><span class="p">]</span> <span class="k">for</span> <span class="n">Psi</span> <span class="ow">in</span> <span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PsiIDs&quot;</span><span class="p">]]</span>
+  315     
+  316     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Minimum density: </span><span class="si">%.4f</span><span class="s2">; Maximum density: </span><span class="si">%.4f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MinDensity</span><span class="p">,</span> <span class="n">MaxDensity</span><span class="p">))</span>
+  317     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of phi and psi angles: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">Count</span><span class="p">)</span>
+  318     
+  319     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Dimensions of phi and psi grid angles:&quot;</span><span class="p">)</span>
+  320     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Phi - Min: </span><span class="si">%s</span><span class="s2">; Max: </span><span class="si">%s</span><span class="s2">; Bin size: </span><span class="si">%s</span><span class="s2">; Count: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PhiValues&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PhiValues&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="nb">abs</span><span class="p">(</span><span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PhiValues&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PhiValues&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PhiValues&quot;</span><span class="p">])))</span>
+  321     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Psi - Min: </span><span class="si">%s</span><span class="s2">; Max: </span><span class="si">%s</span><span class="s2">; Bin size: </span><span class="si">%s</span><span class="s2">; Count: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PsiValues&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PsiValues&quot;</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="nb">abs</span><span class="p">(</span><span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PsiValues&quot;</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PsiValues&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">len</span><span class="p">(</span><span class="n">DensityInfo</span><span class="p">[</span><span class="s2">&quot;PsiValues&quot;</span><span class="p">])))</span>
+  322 
+  323     <span class="k">return</span> <span class="n">DensityInfo</span>
+  324     
+  325 <span class="k">def</span> <span class="nf">CalculatePhiPsiAngles</span><span class="p">():</span>
+  326     <span class="sd">&quot;&quot;&quot;Calculate phi and psi angles for scatter plots.&quot;&quot;&quot;</span>
+  327 
+  328     <span class="n">Infile</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">]</span>
+  329     <span class="n">MolName</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileRoot&quot;</span><span class="p">]</span>
+  330 
+  331     <span class="c1"># Load molecule...</span>
+  332     <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">reinitialize</span><span class="p">()</span>
+  333     <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">Infile</span><span class="p">,</span> <span class="n">MolName</span><span class="p">)</span>
+  334     
+  335     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Calculating phi and psi torsion angles for input file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">Infile</span><span class="p">)</span>
+  336 
+  337     <span class="c1"># Initialize...</span>
+  338     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;PhiAngles&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  339     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;PsiAngles&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  340     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;ResCount&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  341     <span class="k">for</span> <span class="n">PlotType</span> <span class="ow">in</span>  <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;Types&quot;</span><span class="p">]:</span>
+  342         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;PhiAngles&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+  343         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;PsiAngles&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+  344         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;ResCount&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+  345 
+  346     <span class="n">Precision</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Precision&quot;</span><span class="p">]</span>
+  347     
+  348     <span class="n">TotalResCount</span> <span class="o">=</span> <span class="mi">0</span>
+  349     <span class="c1"># Go over specified chain IDs..</span>
+  350     <span class="k">for</span> <span class="n">ChainID</span> <span class="ow">in</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SpecifiedChainsAndLigandsInfo&quot;</span><span class="p">][</span><span class="s2">&quot;ChainIDs&quot;</span><span class="p">]:</span>
+  351         <span class="n">PhiPsiInfoList</span> <span class="o">=</span> <span class="p">[]</span>
+  352         <span class="n">GeneralPhiPsiInfo</span><span class="p">,</span> <span class="n">GlycinePhiPsiInfo</span><span class="p">,</span> <span class="n">ProlinePhiPsiInfo</span><span class="p">,</span> <span class="n">PreProlinePhiPsiInfo</span> <span class="o">=</span> <span class="n">PyMOLUtil</span><span class="o">.</span><span class="n">GetPhiPsiCategoriesResiduesInfo</span><span class="p">(</span><span class="n">MolName</span><span class="p">,</span> <span class="n">ChainID</span><span class="p">)</span>
+  353         <span class="n">PhiPsiInfoList</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">GeneralPhiPsiInfo</span><span class="p">,</span> <span class="n">GlycinePhiPsiInfo</span><span class="p">,</span> <span class="n">ProlinePhiPsiInfo</span><span class="p">,</span> <span class="n">PreProlinePhiPsiInfo</span><span class="p">])</span>
+  354         
+  355         <span class="k">for</span> <span class="n">Index</span><span class="p">,</span> <span class="n">PlotType</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;Types&quot;</span><span class="p">]):</span>
+  356             <span class="n">PhiPsiInfo</span> <span class="o">=</span> <span class="n">PhiPsiInfoList</span><span class="p">[</span><span class="n">Index</span><span class="p">]</span>
+  357             <span class="n">ResCount</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">PhiPsiInfo</span><span class="p">[</span><span class="s2">&quot;ResNums&quot;</span><span class="p">])</span>
+  358             <span class="k">if</span> <span class="ow">not</span> <span class="n">ResCount</span><span class="p">:</span>
+  359                 <span class="k">continue</span>
+  360 
+  361             <span class="n">TotalResCount</span> <span class="o">+=</span> <span class="n">ResCount</span>
+  362             <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;ResCount&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">]</span> <span class="o">+=</span> <span class="n">ResCount</span>
+  363             
+  364             <span class="n">PhiAngles</span><span class="p">,</span> <span class="n">PsiAngles</span> <span class="o">=</span> <span class="n">ProcessPsiInfo</span><span class="p">(</span><span class="n">PhiPsiInfo</span><span class="p">,</span> <span class="n">Precision</span><span class="p">)</span>
+  365             <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;PhiAngles&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">PhiAngles</span><span class="p">)</span>
+  366             <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;PsiAngles&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">PsiAngles</span><span class="p">)</span>
+  367         
+  368     <span class="c1"># Delete MolName object</span>
+  369     <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">MolName</span><span class="p">)</span>
+  370 
+  371     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Total number of phi and psi angles: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">TotalResCount</span><span class="p">)</span>
+  372 
+  373     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+  374     <span class="k">for</span> <span class="n">PlotType</span> <span class="ow">in</span>  <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;Types&quot;</span><span class="p">]:</span>
+  375         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2"> phi and psi angles: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">PlotType</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;ResCount&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">]))</span>
+  376     
+  377     <span class="k">if</span> <span class="ow">not</span> <span class="n">TotalResCount</span><span class="p">:</span>
+  378         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+  379         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;No valid phi and psi angles found in input file. Ramachandran plots will be generated without phi and psi scatter plots...&quot;</span><span class="p">)</span>
+  380         
+  381 <span class="k">def</span> <span class="nf">ProcessPsiInfo</span><span class="p">(</span><span class="n">PhiPsiInfo</span><span class="p">,</span> <span class="n">Precision</span><span class="p">):</span>
+  382     <span class="sd">&quot;&quot;&quot;Process phi and psi angels for scatter plots. &quot;&quot;&quot;</span>
+  383 
+  384     <span class="n">PhiAngles</span> <span class="o">=</span> <span class="p">[]</span>
+  385     <span class="n">PsiAngles</span> <span class="o">=</span> <span class="p">[]</span>
+  386     <span class="k">for</span> <span class="n">ResNum</span> <span class="ow">in</span> <span class="n">PhiPsiInfo</span><span class="p">[</span><span class="s2">&quot;ResNums&quot;</span><span class="p">]:</span>
+  387         <span class="n">Phi</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%.*f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">Precision</span><span class="p">,</span> <span class="n">PhiPsiInfo</span><span class="p">[</span><span class="s2">&quot;Phi&quot;</span><span class="p">][</span><span class="n">ResNum</span><span class="p">])</span>
+  388         <span class="n">Psi</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%.*f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">Precision</span><span class="p">,</span> <span class="n">PhiPsiInfo</span><span class="p">[</span><span class="s2">&quot;Psi&quot;</span><span class="p">][</span><span class="n">ResNum</span><span class="p">])</span>
+  389         <span class="n">PhiAngles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">Phi</span><span class="p">))</span>
+  390         <span class="n">PsiAngles</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">Psi</span><span class="p">))</span>
+  391 
+  392     <span class="k">return</span> <span class="n">PhiAngles</span><span class="p">,</span> <span class="n">PsiAngles</span>
+  393 
+  394 <span class="k">def</span> <span class="nf">RetrieveInfileInfo</span><span class="p">():</span>
+  395     <span class="sd">&quot;&quot;&quot;Retrieve information for input file.&quot;&quot;&quot;</span>
+  396     
+  397     <span class="n">Infile</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">]</span>
+  398     <span class="n">InfileRoot</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileRoot&quot;</span><span class="p">]</span>
+  399     
+  400     <span class="n">ChainsAndLigandsInfo</span> <span class="o">=</span> <span class="n">PyMOLUtil</span><span class="o">.</span><span class="n">GetChainsAndLigandsInfo</span><span class="p">(</span><span class="n">Infile</span><span class="p">,</span> <span class="n">InfileRoot</span><span class="p">)</span>
+  401     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ChainsAndLigandsInfo&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ChainsAndLigandsInfo</span>
+  402 
+  403 <span class="k">def</span> <span class="nf">ProcessChainIDs</span><span class="p">():</span>
+  404     <span class="sd">&quot;&quot;&quot;Process specified chain IDs for infile.&quot;&quot;&quot;</span>
+  405     
+  406     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Processing specified chain IDs for input file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">])</span>        
+  407     <span class="n">ChainsAndLigandsInfo</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ChainsAndLigandsInfo&quot;</span><span class="p">]</span>
+  408     <span class="n">SpecifiedChainsAndLigandsInfo</span> <span class="o">=</span> <span class="n">PyMOLUtil</span><span class="o">.</span><span class="n">ProcessChainsAndLigandsOptionsInfo</span><span class="p">(</span><span class="n">ChainsAndLigandsInfo</span><span class="p">,</span> <span class="s2">&quot;-c, --chainIDs&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ChainIDs&quot;</span><span class="p">],</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+  409     
+  410     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SpecifiedChainsAndLigandsInfo&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">SpecifiedChainsAndLigandsInfo</span>
+  411     
+  412     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Specified chain IDs: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">SpecifiedChainsAndLigandsInfo</span><span class="p">[</span><span class="s2">&quot;ChainIDs&quot;</span><span class="p">])))</span>
+  413 
+  414 <span class="k">def</span> <span class="nf">SetupPlotsInfo</span><span class="p">():</span>
+  415     <span class="sd">&quot;&quot;&quot;Setup information for generating plots. &quot;&quot;&quot;</span>
+  416 
+  417     <span class="n">InitializePlotTypesInfo</span><span class="p">()</span>
+  418     <span class="n">SetupPlotTypesOutfiles</span><span class="p">()</span>
+  419     
+  420     <span class="n">ProessContourLevelsAndColors</span><span class="p">()</span>
+  421 
+  422 <span class="k">def</span> <span class="nf">ProessContourLevelsAndColors</span><span class="p">():</span>
+  423     <span class="sd">&quot;&quot;&quot;Process specified contour levels and colors. &quot;&quot;&quot;</span>
+  424 
+  425     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^auto$&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;LevelsAndColors&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  426         <span class="k">return</span>
+  427     
+  428     <span class="c1"># Setup canonical plot types for validation...</span>
+  429     <span class="n">CanonicalPlotTypes</span> <span class="o">=</span> <span class="p">{}</span>
+  430     <span class="k">for</span> <span class="n">PlotType</span> <span class="ow">in</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;Types&quot;</span><span class="p">]:</span>
+  431         <span class="n">CanonicalPlotTypes</span><span class="p">[</span><span class="n">PlotType</span><span class="o">.</span><span class="n">lower</span><span class="p">()]</span> <span class="o">=</span> <span class="n">PlotType</span>
+  432     
+  433     <span class="n">LevelsAndColors</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;LevelsAndColors&quot;</span><span class="p">])</span>
+  434     <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">LevelsAndColors</span><span class="p">):</span>
+  435         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The levels and colors specified using </span><span class="se">\&quot;</span><span class="s2">-l, --levelsAndColors</span><span class="se">\&quot;</span><span class="s2"> option are empty.&quot;</span><span class="p">)</span>
+  436         
+  437     <span class="k">for</span> <span class="n">TypeLevelsColorsWord</span> <span class="ow">in</span> <span class="n">LevelsAndColors</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;;&quot;</span><span class="p">):</span>
+  438         <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">TypeLevelsColorsWord</span><span class="p">):</span>
+  439             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The plot types, levels, and colors, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2"> specified using </span><span class="se">\&quot;</span><span class="s2">-l, --levelsAndColors</span><span class="se">\&quot;</span><span class="s2"> option in, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, is empty.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">TypeLevelsColorsWord</span><span class="p">,</span> <span class="n">LevelsAndColors</span><span class="p">))</span>
+  440             
+  441         <span class="n">TypeLevelsColorsWords</span> <span class="o">=</span> <span class="n">TypeLevelsColorsWord</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)</span>
+  442         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">TypeLevelsColorsWords</span><span class="p">)</span> <span class="o">!=</span><span class="mi">2</span><span class="p">:</span>
+  443             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The format of plot type, levels, and colors specification, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-l, --levelsAndColors</span><span class="se">\&quot;</span><span class="s2"> option, in </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">,  is not valid: Supported format: &lt;PlotType&gt;: &lt;Level&gt;, &lt;Color&gt;, &lt;Level&gt;,...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">TypeLevelsColorsWord</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;LevelsAndColors&quot;</span><span class="p">]))</span>
+  444         
+  445         <span class="n">PlotType</span> <span class="o">=</span> <span class="n">TypeLevelsColorsWords</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+  446         <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">PlotType</span><span class="p">):</span>
+  447             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The plot type, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2"> specified using </span><span class="se">\&quot;</span><span class="s2">-l, --levelsAndColors</span><span class="se">\&quot;</span><span class="s2"> option in, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, is empty.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">PlotType</span><span class="p">,</span> <span class="n">TypeLevelsColorsWord</span><span class="p">))</span>
+  448         <span class="n">CanonicalPlotType</span> <span class="o">=</span> <span class="n">PlotType</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+  449         
+  450         <span class="k">if</span> <span class="ow">not</span> <span class="n">CanonicalPlotType</span> <span class="ow">in</span> <span class="n">CanonicalPlotTypes</span><span class="p">:</span>
+  451             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The plot type, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2"> specified using </span><span class="se">\&quot;</span><span class="s2">-l, --levelsAndColors</span><span class="se">\&quot;</span><span class="s2"> option in, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, is not valid. Supported valus: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">PlotType</span><span class="p">,</span> <span class="n">TypeLevelsColorsWord</span><span class="p">,</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;Types&quot;</span><span class="p">])))</span>
+  452         <span class="n">PlotType</span> <span class="o">=</span> <span class="n">CanonicalPlotTypes</span><span class="p">[</span><span class="n">CanonicalPlotType</span><span class="p">]</span>
+  453             
+  454         <span class="n">LevelsColorsWords</span> <span class="o">=</span> <span class="n">TypeLevelsColorsWords</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+  455         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">LevelsColorsWords</span><span class="p">)</span> <span class="o">%</span> <span class="mi">2</span><span class="p">):</span>
+  456             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The format of levels and colors specifification, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-l, --levelsAndColors</span><span class="se">\&quot;</span><span class="s2"> option in, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">,  is not valid. It must contain odd number of values. Supported format: &lt;PlotType&gt;: &lt;Level&gt;, &lt;Color&gt;, &lt;Level&gt;,...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">LevelsColorsWords</span><span class="p">),</span> <span class="n">TypeLevelsColorsWord</span><span class="p">))</span>
+  457 
+  458         <span class="c1"># Retrieve levels and colors...</span>
+  459         <span class="n">Levels</span> <span class="o">=</span> <span class="p">[]</span>
+  460         <span class="n">Colors</span> <span class="o">=</span> <span class="p">[]</span>
+  461         <span class="k">for</span> <span class="n">Index</span><span class="p">,</span> <span class="n">SpecWord</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">LevelsColorsWords</span><span class="p">):</span>
+  462             <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">SpecWord</span><span class="p">):</span>
+  463                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The level or color, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2"> specified using </span><span class="se">\&quot;</span><span class="s2">-l, --levelsAndColors</span><span class="se">\&quot;</span><span class="s2"> option in, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, is empty.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">SpecWord</span><span class="p">,</span> <span class="n">TypeLevelsColorsWord</span><span class="p">))</span>
+  464             
+  465             <span class="k">if</span> <span class="n">Index</span> <span class="o">%</span> <span class="mi">2</span><span class="p">:</span>
+  466                 <span class="n">Colors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">SpecWord</span><span class="p">)</span>
+  467                 <span class="k">continue</span>
+  468             
+  469             <span class="c1"># Process level...</span>
+  470             <span class="k">if</span> <span class="ow">not</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">IsFloat</span><span class="p">(</span><span class="n">SpecWord</span><span class="p">):</span>
+  471                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The level, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2"> specified using </span><span class="se">\&quot;</span><span class="s2">-l, --levelsAndColors</span><span class="se">\&quot;</span><span class="s2"> option in, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, must be a number.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">SpecWord</span><span class="p">,</span> <span class="n">TypeLevelsColorsWord</span><span class="p">))</span>
+  472             
+  473             <span class="n">Level</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">SpecWord</span><span class="p">)</span>
+  474             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">Levels</span><span class="p">):</span>
+  475                 <span class="c1"># The current level must be greater than all previous levels..</span>
+  476                 <span class="k">for</span> <span class="n">PreviousLevel</span> <span class="ow">in</span> <span class="n">Levels</span><span class="p">:</span>
+  477                     <span class="k">if</span> <span class="n">Level</span> <span class="o">&lt;=</span> <span class="n">PreviousLevel</span><span class="p">:</span>
+  478                         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The level, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2"> specified using </span><span class="se">\&quot;</span><span class="s2">-l, --levelsAndColors</span><span class="se">\&quot;</span><span class="s2"> option in, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, must be greater than all previous levels.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">SpecWord</span><span class="p">,</span> <span class="n">TypeLevelsColorsWord</span><span class="p">))</span>
+  479 
+  480             <span class="n">Levels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Level</span><span class="p">)</span>
+  481         
+  482         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;Levels&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">]</span> <span class="o">=</span> <span class="n">Levels</span>
+  483         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;Colors&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">]</span> <span class="o">=</span> <span class="n">Colors</span>
+  484         
+  485 <span class="k">def</span> <span class="nf">InitializePlotTypesInfo</span><span class="p">():</span>
+  486     <span class="sd">&quot;&quot;&quot;Initialize information for generating plots. &quot;&quot;&quot;</span>
+  487 
+  488     <span class="n">PlotTypesInfo</span> <span class="o">=</span> <span class="p">{}</span>
+  489     <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;Types&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+  490     <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;PhiPsiDensityFiles&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  491     <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;PhiPsiDensityInfo&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  492     <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;PhiPsiContourInfo&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  493     
+  494     <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;Titles&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  495     <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;DrawXLabel&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  496     <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;DrawYLabel&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  497     
+  498     <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;Limits&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  499     <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;MajorTickPositions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  500     <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;MajorTickLabels&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  501     <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;MinorTickPositions&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  502     
+  503     <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;Levels&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  504     <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;Colors&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  505     <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;Outfiles&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  506     <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;PhiAngles&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  507     <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;PsiAngles&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  508 
+  509     <span class="n">MayaChemToolsDataDir</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetMayaChemToolsLibDataPath</span><span class="p">()</span>
+  510 
+  511     <span class="c1"># Setup contour colors for supported default schemes...</span>
+  512     <span class="n">ContourColorSchemes</span> <span class="o">=</span> <span class="p">{}</span>
+  513     <span class="n">ContourColorSchemes</span><span class="p">[</span><span class="s2">&quot;General&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;MuttedColorShades1&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;#FFFFFF&quot;</span><span class="p">,</span> <span class="s2">&quot;#EBF1DE&quot;</span><span class="p">,</span> <span class="s2">&quot;#C3D69B&quot;</span><span class="p">],</span>
+  514                                       <span class="s2">&quot;MuttedColorShades2&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;#FFFFFF&quot;</span><span class="p">,</span> <span class="s2">&quot;#EBF1DE&quot;</span><span class="p">,</span> <span class="s2">&quot;#D7E4BD&quot;</span><span class="p">],</span>
+  515                                       <span class="s2">&quot;BrightColorShades&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;#FFFFFF&quot;</span><span class="p">,</span> <span class="s2">&quot;#B3E8FF&quot;</span><span class="p">,</span> <span class="s2">&quot;#7FD9FF&quot;</span><span class="p">]}</span>
+  516     <span class="n">ContourColorSchemes</span><span class="p">[</span><span class="s2">&quot;Glycine&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;MuttedColorShades1&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;#FFFFFF&quot;</span><span class="p">,</span> <span class="s2">&quot;#FDEADA&quot;</span><span class="p">,</span> <span class="s2">&quot;#FAC090&quot;</span><span class="p">],</span>
+  517                                       <span class="s2">&quot;MuttedColorShades2&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;#FFFFFF&quot;</span><span class="p">,</span> <span class="s2">&quot;#FDEADA&quot;</span><span class="p">,</span> <span class="s2">&quot;#FCD5B5&quot;</span><span class="p">],</span>
+  518                                       <span class="s2">&quot;BrightColorShades&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;#FFFFFF&quot;</span><span class="p">,</span> <span class="s2">&quot;#FFE8C5&quot;</span><span class="p">,</span> <span class="s2">&quot;#FFCC7F&quot;</span><span class="p">]}</span>
+  519     <span class="n">ContourColorSchemes</span><span class="p">[</span><span class="s2">&quot;Proline&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;MuttedColorShades1&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;#FFFFFF&quot;</span><span class="p">,</span> <span class="s2">&quot;#E6E0EC&quot;</span><span class="p">,</span> <span class="s2">&quot;#B3A2C7&quot;</span><span class="p">],</span>
+  520                                       <span class="s2">&quot;MuttedColorShades2&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;#FFFFFF&quot;</span><span class="p">,</span> <span class="s2">&quot;#E6E0EC&quot;</span><span class="p">,</span> <span class="s2">&quot;#CCC1DA&quot;</span><span class="p">],</span>
+  521                                       <span class="s2">&quot;BrightColorShades&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;#FFFFFF&quot;</span><span class="p">,</span> <span class="s2">&quot;#D0FFC5&quot;</span><span class="p">,</span> <span class="s2">&quot;#7FFF8C&quot;</span><span class="p">]}</span>
+  522     <span class="n">ContourColorSchemes</span><span class="p">[</span><span class="s2">&quot;PreProline&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;MuttedColorShades1&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;#FFFFFF&quot;</span><span class="p">,</span> <span class="s2">&quot;#DCE6F2&quot;</span><span class="p">,</span> <span class="s2">&quot;#95B3D7&quot;</span><span class="p">],</span>
+  523                                          <span class="s2">&quot;MuttedColorShades2&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;#FFFFFF&quot;</span><span class="p">,</span> <span class="s2">&quot;#DCE6F2&quot;</span><span class="p">,</span> <span class="s2">&quot;#B9CDE5&quot;</span><span class="p">],</span>
+  524                                          <span class="s2">&quot;BrightColorShades&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;#FFFFFF&quot;</span><span class="p">,</span> <span class="s2">&quot;#B3E8FF&quot;</span><span class="p">,</span> <span class="s2">&quot;#7FD9FF&quot;</span><span class="p">]}</span>
+  525 
+  526     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^MuttedColorShades1$&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;LevelsAndColorsScheme&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  527         <span class="n">DefaultColorScheme</span> <span class="o">=</span> <span class="s2">&quot;MuttedColorShades1&quot;</span>
+  528     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^MuttedColorShades2$&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;LevelsAndColorsScheme&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  529         <span class="n">DefaultColorScheme</span> <span class="o">=</span> <span class="s2">&quot;MuttedColorShades2&quot;</span>
+  530     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^BrightColorShades$&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;LevelsAndColorsScheme&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  531         <span class="n">DefaultColorScheme</span> <span class="o">=</span> <span class="s2">&quot;BrightColorShades&quot;</span>
+  532     <span class="k">else</span><span class="p">:</span>
+  533         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The color scheme, </span><span class="si">%s</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">--levelsAndColorsScheme</span><span class="se">\&quot;</span><span class="s2"> option is not supported.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;LevelsAndColorsScheme&quot;</span><span class="p">]))</span>
+  534     
+  535     <span class="k">for</span> <span class="n">Type</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;General&quot;</span><span class="p">,</span> <span class="s2">&quot;Glycine&quot;</span><span class="p">,</span> <span class="s2">&quot;Proline&quot;</span><span class="p">,</span> <span class="s2">&quot;PreProline&quot;</span><span class="p">]:</span>
+  536         <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;Types&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Type</span><span class="p">)</span>
+  537         
+  538         <span class="c1"># Setup phi and psi density file...</span>
+  539         <span class="n">DensityFile</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">MayaChemToolsDataDir</span><span class="p">,</span> <span class="s2">&quot;PhiPsiDensity</span><span class="si">%s</span><span class="s2">.csv&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">Type</span><span class="p">))</span>
+  540         <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">DensityFile</span><span class="p">):</span>
+  541             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The phi and psi density file file, </span><span class="si">%s</span><span class="s2">, doesn&#39;t exist. This is required for generating contour plots.</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">DensityFile</span><span class="p">))</span>
+  542         <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;PhiPsiDensityFiles&quot;</span><span class="p">][</span><span class="n">Type</span><span class="p">]</span> <span class="o">=</span> <span class="n">DensityFile</span>
+  543         
+  544         <span class="c1"># Setup plot title...</span>
+  545         <span class="n">Title</span> <span class="o">=</span> <span class="n">Type</span>
+  546         <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^PreProline$&quot;</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  547             <span class="n">Title</span> <span class="o">=</span> <span class="s2">&quot;pre-Proline&quot;</span>
+  548         <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;Titles&quot;</span><span class="p">][</span><span class="n">Type</span><span class="p">]</span> <span class="o">=</span> <span class="n">Title</span>
+  549 
+  550         <span class="c1"># Setup flags for drawing axis labels...</span>
+  551         <span class="n">DrawXLabel</span><span class="p">,</span> <span class="n">DrawYLabel</span> <span class="o">=</span> <span class="p">[</span><span class="bp">True</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span>
+  552         <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MultipleOutFiles&quot;</span><span class="p">]:</span>
+  553             <span class="c1"># Turn off XLabel for plots in first row...</span>
+  554             <span class="n">DrawXLabel</span> <span class="o">=</span> <span class="bp">False</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^(General|Glycine)$&quot;</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">True</span>
+  555             
+  556             <span class="c1"># Turn off YLabel for plots in second column...</span>
+  557             <span class="n">DrawYLabel</span> <span class="o">=</span> <span class="bp">False</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^(Glycine|PreProline)$&quot;</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">True</span>
+  558         <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;DrawXLabel&quot;</span><span class="p">][</span><span class="n">Type</span><span class="p">]</span> <span class="o">=</span> <span class="n">DrawXLabel</span>
+  559         <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;DrawYLabel&quot;</span><span class="p">][</span><span class="n">Type</span><span class="p">]</span> <span class="o">=</span> <span class="n">DrawYLabel</span>
+  560 
+  561         <span class="c1"># Setup limits...</span>
+  562         <span class="p">(</span><span class="n">MinLimit</span><span class="p">,</span> <span class="n">MaxLimit</span><span class="p">)</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">180</span><span class="p">,</span> <span class="mi">180</span><span class="p">]</span>
+  563         <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;Limits&quot;</span><span class="p">][</span><span class="n">Type</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">MinLimit</span><span class="p">,</span> <span class="n">MaxLimit</span><span class="p">]</span>
+  564 
+  565         <span class="c1"># Setup major tick labels and positions...</span>
+  566         <span class="n">MajorTickPositions</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">MinLimit</span><span class="p">,</span> <span class="n">MaxLimit</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;TicksMajorInterval&quot;</span><span class="p">]))</span>
+  567         <span class="n">MajorTickPositions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">MaxLimit</span><span class="p">)</span>
+  568         <span class="n">MajorTickLabels</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">Position</span> <span class="k">for</span> <span class="n">Position</span> <span class="ow">in</span> <span class="n">MajorTickPositions</span><span class="p">]</span>
+  569         <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;MajorTickPositions&quot;</span><span class="p">][</span><span class="n">Type</span><span class="p">]</span> <span class="o">=</span> <span class="n">MajorTickPositions</span>
+  570         <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;MajorTickLabels&quot;</span><span class="p">][</span><span class="n">Type</span><span class="p">]</span> <span class="o">=</span> <span class="n">MajorTickLabels</span>
+  571 
+  572         <span class="c1"># Setup minor tick positions without any labels...</span>
+  573         <span class="n">MinorTickPositions</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">MinLimit</span><span class="p">,</span> <span class="n">MaxLimit</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;TicksMinorInterval&quot;</span><span class="p">]))</span>
+  574         <span class="n">MinorTickPositions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">MaxLimit</span><span class="p">)</span>
+  575         <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;MinorTickPositions&quot;</span><span class="p">][</span><span class="n">Type</span><span class="p">]</span> <span class="o">=</span> <span class="n">MinorTickPositions</span>
+  576 
+  577         <span class="c1"># Setup contour levels and colors...</span>
+  578         <span class="n">Levels</span> <span class="o">=</span> <span class="p">[]</span>
+  579         <span class="n">Colors</span> <span class="o">=</span> <span class="p">[]</span>
+  580         <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^General$&quot;</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  581             <span class="n">Levels</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.0005</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]</span>
+  582             <span class="n">Colors</span> <span class="o">=</span> <span class="n">ContourColorSchemes</span><span class="p">[</span><span class="n">Type</span><span class="p">][</span><span class="n">DefaultColorScheme</span><span class="p">]</span>
+  583         <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^Glycine$&quot;</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  584             <span class="n">Levels</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.002</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]</span>
+  585             <span class="n">Colors</span> <span class="o">=</span> <span class="n">ContourColorSchemes</span><span class="p">[</span><span class="n">Type</span><span class="p">][</span><span class="n">DefaultColorScheme</span><span class="p">]</span>
+  586         <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^Proline$&quot;</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  587             <span class="n">Levels</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.002</span><span class="p">,</span>  <span class="mf">0.02</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]</span>
+  588             <span class="n">Colors</span> <span class="o">=</span> <span class="n">ContourColorSchemes</span><span class="p">[</span><span class="n">Type</span><span class="p">][</span><span class="n">DefaultColorScheme</span><span class="p">]</span>
+  589         <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^PreProline$&quot;</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  590             <span class="n">Levels</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">0.002</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">]</span>
+  591             <span class="n">Colors</span> <span class="o">=</span> <span class="n">ContourColorSchemes</span><span class="p">[</span><span class="n">Type</span><span class="p">][</span><span class="n">DefaultColorScheme</span><span class="p">]</span>
+  592         
+  593         <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;Levels&quot;</span><span class="p">][</span><span class="n">Type</span><span class="p">]</span> <span class="o">=</span> <span class="n">Levels</span>
+  594         <span class="n">PlotTypesInfo</span><span class="p">[</span><span class="s2">&quot;Colors&quot;</span><span class="p">][</span><span class="n">Type</span><span class="p">]</span> <span class="o">=</span> <span class="n">Colors</span>
+  595 
+  596     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">PlotTypesInfo</span>
+  597 
+  598 <span class="k">def</span> <span class="nf">SetupPlotTypesOutfiles</span><span class="p">():</span>
+  599     <span class="sd">&quot;&quot;&quot;Setup output file names for plot types &quot;&quot;&quot;</span>
+  600 
+  601     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfilesList&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+  602     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfilesList&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">])</span>
+  603 
+  604     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;Outfiles&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+  605     <span class="k">for</span> <span class="n">PlotType</span> <span class="ow">in</span>  <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;Types&quot;</span><span class="p">]:</span>
+  606         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;Outfiles&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">]</span> <span class="o">=</span> <span class="bp">None</span>
+  607 
+  608     <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MultipleOutFiles&quot;</span><span class="p">]:</span>
+  609         <span class="k">return</span>
+  610 
+  611     <span class="n">FileDir</span><span class="p">,</span> <span class="n">FileName</span><span class="p">,</span> <span class="n">FileExt</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ParseFileName</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">])</span>
+  612     <span class="n">OutfileRoot</span> <span class="o">=</span> <span class="n">FileName</span>
+  613     <span class="n">OutfileExt</span> <span class="o">=</span> <span class="n">FileExt</span>
+  614     
+  615     <span class="k">for</span> <span class="n">PlotType</span> <span class="ow">in</span>  <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;Types&quot;</span><span class="p">]:</span>
+  616         <span class="n">PlotOutfile</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">_</span><span class="si">%s</span><span class="s2">.</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">OutfileRoot</span><span class="p">,</span> <span class="n">PlotType</span><span class="p">,</span> <span class="n">OutfileExt</span><span class="p">)</span>
+  617         <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">PlotOutfile</span><span class="p">):</span>
+  618             <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Overwrite&quot;</span><span class="p">]:</span>
+  619                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The plot output file, </span><span class="si">%s</span><span class="s2">, already exist. Use option </span><span class="se">\&quot;</span><span class="s2">--ov</span><span class="se">\&quot;</span><span class="s2"> or </span><span class="se">\&quot;</span><span class="s2">--overwrite</span><span class="se">\&quot;</span><span class="s2"> and try again.</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">PlotOutfile</span><span class="p">))</span>
+  620                 
+  621         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;PlotTypesInfo&quot;</span><span class="p">][</span><span class="s2">&quot;Outfiles&quot;</span><span class="p">][</span><span class="n">PlotType</span><span class="p">]</span> <span class="o">=</span> <span class="n">PlotOutfile</span>
+  622         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfilesList&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">PlotOutfile</span><span class="p">)</span>
+  623         
+  624 <span class="k">def</span> <span class="nf">ProcessOptions</span><span class="p">():</span>
+  625     <span class="sd">&quot;&quot;&quot;Process and validate command line arguments and options&quot;&quot;&quot;</span>
+  626 
+  627     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Processing options...&quot;</span><span class="p">)</span>
+  628     
+  629     <span class="c1"># Validate options...</span>
+  630     <span class="n">ValidateOptions</span><span class="p">()</span>
+  631     
+  632     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutMode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outMode&quot;</span><span class="p">]</span>
+  633     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MultipleOutFiles&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^MultipleFiles$&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutMode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+  634     <span class="n">MultipleOutFiles</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MultipleOutFiles&quot;</span><span class="p">]</span>
+  635 
+  636     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FigDPI&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--figDPI&quot;</span><span class="p">])</span>
+  637     
+  638     <span class="n">FigSize</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--figSize&quot;</span><span class="p">]</span>
+  639     <span class="n">Width</span> <span class="o">=</span> <span class="mf">6.4</span>
+  640     <span class="n">Height</span> <span class="o">=</span> <span class="mf">4.8</span> <span class="k">if</span> <span class="n">MultipleOutFiles</span> <span class="k">else</span> <span class="mf">6.4</span>
+  641     
+  642     <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^auto$&quot;</span><span class="p">,</span> <span class="n">FigSize</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  643         <span class="n">FigSizeWords</span> <span class="o">=</span> <span class="n">FigSize</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+  644         <span class="n">Width</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">FigSizeWords</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+  645         <span class="n">Height</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">FigSizeWords</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+  646     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FigSize&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">FigSize</span>
+  647     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FigWidth&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Width</span>
+  648     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FigHeight&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Height</span>
+  649     
+  650     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FontFamily&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--fontFamily&quot;</span><span class="p">]</span>
+  651     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FontAxesSize&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--fontAxesSize&quot;</span><span class="p">]</span>
+  652     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FontAxesWeight&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--fontAxesWeight&quot;</span><span class="p">]</span>
+  653     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FontTicksSize&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--fontTicksSize&quot;</span><span class="p">]</span>
+  654     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FontTicksWeight&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--fontTicksWeight&quot;</span><span class="p">]</span>
+  655     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FontTitleSize&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--fontTitleSize&quot;</span><span class="p">]</span>
+  656     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;FontTitleWeight&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--fontTitleWeight&quot;</span><span class="p">]</span>
+  657     
+  658     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Greek&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^Yes$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--greek&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+  659     
+  660     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Grid&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^Yes$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--grid&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+  661     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;GridLineColor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--gridLineColor&quot;</span><span class="p">]</span>
+  662     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;GridLineStyle&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--gridLineStyle&quot;</span><span class="p">]</span>
+  663     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;GridLineWidth&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--gridLineWidth&quot;</span><span class="p">])</span>
+  664     
+  665     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">]</span>
+  666     <span class="n">FileDir</span><span class="p">,</span> <span class="n">FileName</span><span class="p">,</span> <span class="n">FileExt</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ParseFileName</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">])</span>
+  667     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileRoot&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">FileName</span>
+  668     
+  669     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;LevelsAndColorsScheme&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--levelsAndColorsScheme&quot;</span><span class="p">]</span>
+  670     
+  671     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">]</span>
+  672     <span class="n">FileDir</span><span class="p">,</span> <span class="n">FileName</span><span class="p">,</span> <span class="n">FileExt</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ParseFileName</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">])</span>
+  673     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileRoot&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">FileName</span>
+  674     
+  675     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Overwrite&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--overwrite&quot;</span><span class="p">]</span>
+  676     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Precision&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--precision&quot;</span><span class="p">])</span>
+  677     
+  678     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ScatterMarkerColor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--scatterMarkerColor&quot;</span><span class="p">]</span>
+  679     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ScatterMarkerSize&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--scatterMarkerSize&quot;</span><span class="p">])</span>
+  680     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ScatterMarkerStyle&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--scatterMarkerStyle&quot;</span><span class="p">]</span>
+  681 
+  682     <span class="n">TicksMajorInterval</span> <span class="o">=</span> <span class="mi">90</span> <span class="k">if</span> <span class="n">MultipleOutFiles</span> <span class="k">else</span> <span class="mi">180</span>
+  683     <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^auto$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--ticksMajorInterval&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  684         <span class="n">TicksMajorInterval</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--ticksMajorInterval&quot;</span><span class="p">])</span>
+  685     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;TicksMajorInterval&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TicksMajorInterval</span>
+  686         
+  687     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;TicksMinor&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^Yes$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--ticksMinor&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+  688     <span class="n">TicksMinorInterval</span> <span class="o">=</span> <span class="mi">10</span> <span class="k">if</span> <span class="n">MultipleOutFiles</span> <span class="k">else</span> <span class="mi">45</span>
+  689     <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^auto$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--ticksMinorInterval&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  690         <span class="n">TicksMinorInterval</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--ticksMinorInterval&quot;</span><span class="p">])</span>
+  691     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;TicksMinorInterval&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">TicksMinorInterval</span>
+  692     
+  693     <span class="n">RetrieveInfileInfo</span><span class="p">()</span>
+  694     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ChainIDs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--chainIDs&quot;</span><span class="p">]</span>
+  695     
+  696     <span class="n">ProcessChainIDs</span><span class="p">()</span>
+  697     
+  698     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;LevelsAndColors&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--levelsAndColors&quot;</span><span class="p">]</span>
+  699     <span class="n">SetupPlotsInfo</span><span class="p">()</span>
+  700 
+  701 <span class="k">def</span> <span class="nf">RetrieveOptions</span><span class="p">():</span> 
+  702     <span class="sd">&quot;&quot;&quot;Retrieve command line arguments and options&quot;&quot;&quot;</span>
+  703     
+  704     <span class="c1"># Get options...</span>
+  705     <span class="k">global</span> <span class="n">Options</span>
+  706     <span class="n">Options</span> <span class="o">=</span> <span class="n">docopt</span><span class="p">(</span><span class="n">_docoptUsage_</span><span class="p">)</span>
+  707     
+  708     <span class="c1"># Set current working directory to the specified directory...</span>
+  709     <span class="n">WorkingDir</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--workingdir&quot;</span><span class="p">]</span>
+  710     <span class="k">if</span> <span class="n">WorkingDir</span><span class="p">:</span>
+  711         <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">WorkingDir</span><span class="p">)</span>
+  712     
+  713     <span class="c1"># Handle examples option...</span>
+  714     <span class="k">if</span> <span class="s2">&quot;--examples&quot;</span> <span class="ow">in</span> <span class="n">Options</span> <span class="ow">and</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--examples&quot;</span><span class="p">]:</span>
+  715         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetExamplesTextFromDocOptText</span><span class="p">(</span><span class="n">_docoptUsage_</span><span class="p">))</span>
+  716         <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+  717 
+  718 <span class="k">def</span> <span class="nf">ValidateOptions</span><span class="p">():</span>
+  719     <span class="sd">&quot;&quot;&quot;Validate option values&quot;&quot;&quot;</span>
+  720 
+  721     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionIntegerValue</span><span class="p">(</span><span class="s2">&quot;--figDPI&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--figDPI&quot;</span><span class="p">],</span> <span class="p">{</span><span class="s2">&quot;&gt;&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span>
+  722     <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^auto$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--figSize&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  723         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionNumberValues</span><span class="p">(</span><span class="s2">&quot;--figSize&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--figSize&quot;</span><span class="p">],</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;,&quot;</span><span class="p">,</span> <span class="s2">&quot;float&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;&gt;&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span>
+  724     
+  725     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFilePath</span><span class="p">(</span><span class="s2">&quot;-i, --infile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">])</span>
+  726     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFileExt</span><span class="p">(</span><span class="s2">&quot;-i, --infile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">],</span> <span class="s2">&quot;pdb cif&quot;</span><span class="p">)</span>
+  727 
+  728     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;-g, --greek&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--greek&quot;</span><span class="p">],</span> <span class="s2">&quot;yes no&quot;</span><span class="p">)</span>
+  729     
+  730     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;--grid&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--grid&quot;</span><span class="p">],</span> <span class="s2">&quot;yes no&quot;</span><span class="p">)</span>
+  731     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFloatValue</span><span class="p">(</span><span class="s2">&quot;--gridLineWidth&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--gridLineWidth&quot;</span><span class="p">],</span> <span class="p">{</span><span class="s2">&quot;&gt;&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span>
+  732     
+  733     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;--levelsAndColorsScheme&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--levelsAndColorsScheme&quot;</span><span class="p">],</span> <span class="s2">&quot;MuttedColorShades1 MuttedColorShades2 BrightColorShades&quot;</span><span class="p">)</span>
+  734     
+  735     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionsOutputFileOverwrite</span><span class="p">(</span><span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">],</span> <span class="s2">&quot;--overwrite&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--overwrite&quot;</span><span class="p">])</span>
+  736     
+  737     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;--outMode&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outMode&quot;</span><span class="p">],</span> <span class="s2">&quot;SingleFile MultipleFiles&quot;</span><span class="p">)</span>
+  738     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionIntegerValue</span><span class="p">(</span><span class="s2">&quot;-p, --precision&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--precision&quot;</span><span class="p">],</span> <span class="p">{</span><span class="s2">&quot;&gt;&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span>
+  739     
+  740     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFloatValue</span><span class="p">(</span><span class="s2">&quot;--scatterMarkerSize&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--scatterMarkerSize&quot;</span><span class="p">],</span> <span class="p">{</span><span class="s2">&quot;&gt;&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span>
+  741 
+  742     <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^auto$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--ticksMajorInterval&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  743         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionIntegerValue</span><span class="p">(</span><span class="s2">&quot;--ticksMajorInterval&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--ticksMajorInterval&quot;</span><span class="p">],</span> <span class="p">{</span><span class="s2">&quot;&gt;&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;&lt;&quot;</span><span class="p">:</span> <span class="mi">360</span><span class="p">})</span>
+  744     
+  745     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;--ticksMinor&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--ticksMinor&quot;</span><span class="p">],</span> <span class="s2">&quot;yes no&quot;</span><span class="p">)</span>
+  746     <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^auto$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--ticksMinorInterval&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  747         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionIntegerValue</span><span class="p">(</span><span class="s2">&quot;--ticksMinorInterval&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--ticksMinorInterval&quot;</span><span class="p">],</span> <span class="p">{</span><span class="s2">&quot;&gt;&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;&lt;&quot;</span><span class="p">:</span> <span class="mi">360</span><span class="p">})</span>
+  748 
+  749 <span class="c1"># Setup a usage string for docopt...</span>
+  750 <span class="n">_docoptUsage_</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+  751 <span class="s2">PyMOLGenerateRamachandranPlots.py - Generate Ramachandran plots</span>
+  752 
+  753 <span class="s2">Usage:</span>
+  754 <span class="s2">    PyMOLGenerateRamachandranPlots.py [--chainIDs &lt;First, All or ID1,ID2...&gt;]</span>
+  755 <span class="s2">                                      [--figDPI &lt;number&gt;] [--figSize &lt;width, height&gt;] [--fontFamily &lt;text&gt;]</span>
+  756 <span class="s2">                                      [--fontAxesSize &lt;number or text&gt;] [--fontAxesWeight &lt;number or text&gt;]</span>
+  757 <span class="s2">                                      [--fontTicksSize &lt;number or text&gt;] [--fontTicksWeight &lt;number or text&gt;]</span>
+  758 <span class="s2">                                      [--fontTitleSize &lt;number or text&gt;] [--fontTitleWeight &lt;number or text&gt;] [--greek &lt;yes or no&gt;]</span>
+  759 <span class="s2">                                      [--grid &lt;yes or no&gt;] [--gridLineColor &lt;text&gt;] [--gridLineStyle &lt;text&gt;] [--gridLineWidth &lt;number&gt;]</span>
+  760 <span class="s2">                                      [--levelsAndColors &lt;PlotType:Level,color,Level,...;...&gt;] [--levelsAndColorsScheme &lt;text&gt;]</span>
+  761 <span class="s2">                                      [--outMode &lt;SingleFile or MultipleFiles&gt;] [--overwrite]  [--precision &lt;number&gt;]</span>
+  762 <span class="s2">                                      [--scatterMarkerColor &lt;text&gt;] [--scatterMarkerSize &lt;number&gt;] [--scatterMarkerStyle &lt;text&gt;]</span>
+  763 <span class="s2">                                      [--ticksMajorInterval &lt;number&gt;] [--ticksMinor &lt;yes or no&gt;] [--ticksMinorInterval &lt;number&gt;]</span>
+  764 <span class="s2">                                      [-w &lt;dir&gt;] -i &lt;infile&gt; -o &lt;outfile&gt;</span>
+  765 <span class="s2">    PyMOLGenerateRamachandranPlots.py -h | --help | -e | --examples</span>
+  766 
+  767 <span class="s2">Description:</span>
+  768 <span class="s2">    Generate Ramachandran plots for amino acid residues present in macromolecules.</span>
+  769 <span class="s2">    </span>
+  770 <span class="s2">    The Ramachandran plots are generated by plotting phi and psi backbone angles</span>
+  771 <span class="s2">    corresponding to the following four categories of amino acids:</span>
+  772 <span class="s2">    </span>
+  773 <span class="s2">        General: All residues except glycine, proline, or pre-proline</span>
+  774 <span class="s2">        Glycine: Only glycine residues</span>
+  775 <span class="s2">        Proline: Only proline residues</span>
+  776 <span class="s2">        PreProline: Only residues before proline not including glycine or</span>
+  777 <span class="s2">            proline</span>
+  778 <span class="s2">    </span>
+  779 <span class="s2">    In addition to the scatter plots for phi and psi angles, the filled contours</span>
+  780 <span class="s2">    are generated for the density of phi and psi angles [ Ref 144 ] for the</span>
+  781 <span class="s2">    Ramachandran plots. The contours are generated for &quot;favored&quot; and &quot;allowed&quot;</span>
+  782 <span class="s2">    regions. The phi and psi density is retrieved from the following density files</span>
+  783 <span class="s2">    available in MAYACHEMTOOLS/lib/data/ directory:</span>
+  784 <span class="s2">    </span>
+  785 <span class="s2">        General: PhiPsiDensityGeneral.csv </span>
+  786 <span class="s2">        Glycine: PhiPsiDensityGlycine.csv</span>
+  787 <span class="s2">        Proline: PhiPsiDensityProline.csv</span>
+  788 <span class="s2">        PreProline: PhiPsiDensityPreProline.csv</span>
+  789 <span class="s2">    </span>
+  790 <span class="s2">    The supported input  file format are: PDB (.pdb), mmCIF (.cif)</span>
+  791 <span class="s2">    </span>
+  792 <span class="s2">    The output image file can be saved in any format supported by Python</span>
+  793 <span class="s2">    module Matplotlib. The image format is automatically detected from the</span>
+  794 <span class="s2">    output file extension. </span>
+  795 <span class="s2">    </span>
+  796 <span class="s2">    Some of the most common output image file formats are: EPS (.eps), PDF (.pdf),</span>
+  797 <span class="s2">    PNG (.png), PS (.ps), SVG (.svg).</span>
+  798 
+  799 <span class="s2">Options:</span>
+  800 <span class="s2">    -c, --chainIDs &lt;First, All or ID1,ID2...&gt;  [default: All]</span>
+  801 <span class="s2">        List of chain IDs to use for calculating phi and psi angles for residues</span>
+  802 <span class="s2">        in chains. Possible values: First, All, or a comma delimited list of chain</span>
+  803 <span class="s2">        IDs. The default is to use all chain IDs in input file.</span>
+  804 <span class="s2">    -e, --examples</span>
+  805 <span class="s2">        Print examples.</span>
+  806 <span class="s2">    --figDPI &lt;number&gt;  [default: 300]</span>
+  807 <span class="s2">        Figure resolution in dots per inches. The DPI value must be supported</span>
+  808 <span class="s2">        by Matplotlib during generation of an image of a specific format. No</span>
+  809 <span class="s2">        validation is performed.</span>
+  810 <span class="s2">    --figSize &lt;width, height&gt;  [default: auto]</span>
+  811 <span class="s2">        Figure dimensions in inches. The default values are dependent on the</span>
+  812 <span class="s2">        the value of &#39;--outMode&#39; option as shown below:</span>
+  813 <span class="s2">        </span>
+  814 <span class="s2">            SingleFile: 6.4, 6.4</span>
+  815 <span class="s2">            MultipleFiles: 6.4, 4.8</span>
+  816 <span class="s2">        </span>
+  817 <span class="s2">    --fontFamily &lt;text&gt;  [default: auto]</span>
+  818 <span class="s2">        Font family to use for title, axes labels, and tick marks. It must be a</span>
+  819 <span class="s2">        valid Matplotlib value. The default value corresponds to the value </span>
+  820 <span class="s2">        plt.rcParams[&quot;font.family&quot;] in your environment. For example: serif,</span>
+  821 <span class="s2">        sans-serif, cursive, etc. </span>
+  822 <span class="s2">    --fontAxesSize &lt;number or text&gt;  [default: 10]</span>
+  823 <span class="s2">        Font size for labels on axes. It must be valid Matplotlib font size. For</span>
+  824 <span class="s2">        example: size in points, xx-small, x-small, small, medium, etc.</span>
+  825 <span class="s2">    --fontAxesWeight &lt;number or text&gt;  [default: regular]</span>
+  826 <span class="s2">        Font weight for labels on axes. It must be valid Matplotlib value. For</span>
+  827 <span class="s2">        example: a numeric value in range 0-1000, ultralight, light, normal,</span>
+  828 <span class="s2">        regular, book, medium, etc.</span>
+  829 <span class="s2">    --fontTicksSize &lt;number or text&gt;  [default: 8]</span>
+  830 <span class="s2">        Font size for tick labels. It must be a valid Matplotlib font size. For</span>
+  831 <span class="s2">        example: size in points, xx-small, x-small, small, medium, etc.</span>
+  832 <span class="s2">    --fontTicksWeight &lt;number or text&gt;  [default: regular]</span>
+  833 <span class="s2">        Font weight for tick labels. It must be valid Matplotlib value. For</span>
+  834 <span class="s2">        example: a numeric value in range 0-1000, ultralight, light,</span>
+  835 <span class="s2">        normal, regular, book, medium, etc.</span>
+  836 <span class="s2">    --fontTitleSize &lt;number or text&gt;  [default: 10]</span>
+  837 <span class="s2">        Font size for title. It must be a valid Matplotlib font size. For example:</span>
+  838 <span class="s2">        size in points, xx-small, x-small, small, medium, etc.</span>
+  839 <span class="s2">    --fontTitleWeight &lt;number or text&gt;  [default: bold]</span>
+  840 <span class="s2">        Font weight for title. It must be a valid Matplotlib value. For example: a</span>
+  841 <span class="s2">        numeric value in range 0-1000, ultralight, light, normal, regular, book,</span>
+  842 <span class="s2">        medium, etc.</span>
+  843 <span class="s2">    -g, --greek &lt;yes or no&gt;  [default: yes]</span>
+  844 <span class="s2">        Show phi and psi labels as greek characters.</span>
+  845 <span class="s2">    --grid &lt;yes or no&gt;  [default: yes]</span>
+  846 <span class="s2">        Display grid lines at major tick marks.</span>
+  847 <span class="s2">    --gridLineColor &lt;text&gt;  [default: #b0b0b0]</span>
+  848 <span class="s2">        Grid line color. It must be a valid Matplotlib value. The default color</span>
+  849 <span class="s2">        is light gray.</span>
+  850 <span class="s2">    --gridLineStyle &lt;text&gt;  [default: dotted]</span>
+  851 <span class="s2">        Grid line style. It must be a valid Matplotlib value. For example:</span>
+  852 <span class="s2">        &#39;-&#39; or &#39;solid&#39;, --&#39; or &#39;dashed&#39;, &#39;-.&#39; or &#39;dashdot&#39;, &#39;:&#39; or &#39;dotted&#39; etc.</span>
+  853 <span class="s2">    --gridLineWidth &lt;number&gt;  [default: 0.8]</span>
+  854 <span class="s2">        Grid line width. It must be a valid Matplotlib value.</span>
+  855 <span class="s2">    -h, --help</span>
+  856 <span class="s2">        Print this help message.</span>
+  857 <span class="s2">    -i, --infile &lt;infile&gt;</span>
+  858 <span class="s2">        Input file name.</span>
+  859 <span class="s2">    -l, --levelsAndColors &lt;PlotType:Level,color,Level,...;...&gt;  [default: auto]</span>
+  860 <span class="s2">        Semicolon delimited list of contour levels and colors for four types</span>
+  861 <span class="s2">        of Ramachandran plots.</span>
+  862 <span class="s2">        </span>
+  863 <span class="s2">        Three default contour level and color scheme may be specified by</span>
+  864 <span class="s2">        &#39;--levelsAndColorsScheme&#39; option. By default, the &#39;MuttedColorShades1&#39;</span>
+  865 <span class="s2">        scheme is used. The default contour levels correspond to &#39;favored&#39; and</span>
+  866 <span class="s2">        &#39;allowed&#39; regions [ Ref 144 ] for phi and psi angles.</span>
+  867 <span class="s2">        </span>
+  868 <span class="s2">        The colors are used to fill spaces between contour levels. The values</span>
+  869 <span class="s2">        for contour levels must be ascending order. The number of colors</span>
+  870 <span class="s2">        must be one less than the number contour levels.</span>
+  871 <span class="s2">        </span>
+  872 <span class="s2">        The format of contour level and color specification is as follows:</span>
+  873 <span class="s2">        </span>
+  874 <span class="s2">            PlotType:Level,Color,Level,...;PlotType:Level,Color,Level,...</span>
+  875 <span class="s2">        </span>
+  876 <span class="s2">        The valid values for plot type are:</span>
+  877 <span class="s2">        </span>
+  878 <span class="s2">            General, Glycine, Proline, or PreProline</span>
+  879 <span class="s2">        </span>
+  880 <span class="s2">        The contour level must be a number. The color value must be a valid color</span>
+  881 <span class="s2">        name or a hexadecimal color string supported by Matplotlib. No validation</span>
+  882 <span class="s2">        is performed.</span>
+  883 <span class="s2">        </span>
+  884 <span class="s2">        For example:</span>
+  885 <span class="s2">        </span>
+  886 <span class="s2">            General: 0.0, #FFFFFF, 0.0005, #EBF1DE, 0.02, #C3D69B, 1.0</span>
+  887 <span class="s2">        </span>
+  888 <span class="s2">    --levelsAndColorsScheme &lt;text&gt;  [default: MuttedColorShades1]</span>
+  889 <span class="s2">        Default contour levels and colors scheme.  Possible values:</span>
+  890 <span class="s2">        MuttedColorShades1, MuttedColorShades2, or BrightColorShades.</span>
+  891 <span class="s2">        </span>
+  892 <span class="s2">        This option is only used during &#39;auto&#39; value of &#39;--levelsAndColors&#39; option.</span>
+  893 <span class="s2">        The default contour levels correspond to &#39;favored&#39; and &#39;allowed&#39; regions</span>
+  894 <span class="s2">        [ Ref 144 ] for phi and psi angles.</span>
+  895 <span class="s2">        </span>
+  896 <span class="s2">        The default contour and color values for different default schemes are</span>
+  897 <span class="s2">        shown below:</span>
+  898 <span class="s2">        </span>
+  899 <span class="s2">        MuttedColorShades1:</span>
+  900 <span class="s2">        </span>
+  901 <span class="s2">            General: 0.0, #FFFFFF, 0.0005, #EBF1DE, 0.02, #C3D69B, 1.0</span>
+  902 <span class="s2">            Glycine: 0.0, #FFFFFF, 0.002, #7FD9FF, 0.02, #FAC090, 1.0</span>
+  903 <span class="s2">            Proline: 0.0, #FFFFFF, 0.002, #E6E0EC, 0.02, #B3A2C7, 1.0</span>
+  904 <span class="s2">            PreProline: 0.0, #FFFFFF, 0.002, #DCE6F2, 0.02, #95B3D7, 1.0</span>
+  905 <span class="s2">        </span>
+  906 <span class="s2">        MuttedColorShades2:</span>
+  907 <span class="s2">        </span>
+  908 <span class="s2">            General: 0.0, #FFFFFF, 0.0005, #EBF1DE, 0.02, #D7E4BD, 1.0</span>
+  909 <span class="s2">            Glycine: 0.0, #FFFFFF, 0.002, #FDEADA, 0.02, #FCD5B5, 1.0</span>
+  910 <span class="s2">            Proline: 0.0, #FFFFFF, 0.002, #E6E0EC, 0.02, #CCC1DA, 1.0</span>
+  911 <span class="s2">            PreProline: 0.0, #FFFFFF, 0.002, #DCE6F2, 0.02, #B9CDE5, 1.0</span>
+  912 <span class="s2">        </span>
+  913 <span class="s2">        BrightColorShades: [ Ref 145 ]</span>
+  914 <span class="s2">        </span>
+  915 <span class="s2">            General: 0.0, #FFFFFF, 0.0005, #B3E8FF, 0.02, #7FD9FF, 1.0</span>
+  916 <span class="s2">            Glycine: 0.0, #FFFFFF, 0.002, #FFE8C5, 0.02, #FFCC7F, 1.0</span>
+  917 <span class="s2">            Proline: 0.0, #FFFFFF, 0.002, #D0FFC5, 0.02, #7FFF8C, 1.0</span>
+  918 <span class="s2">            PreProline: 0.0, #FFFFFF, 0.002, #B3E8FF, 0.02, #7FD9FF, 1.0</span>
+  919 <span class="s2">        </span>
+  920 <span class="s2">    -o, --outfile &lt;outfile&gt;</span>
+  921 <span class="s2">        Output image file name.</span>
+  922 <span class="s2">        </span>
+  923 <span class="s2">        A set of output files is optionally generated for &#39;MultipleFiles&#39; value of</span>
+  924 <span class="s2">        &#39;--outMode&#39; option. The names of these output files are automatically</span>
+  925 <span class="s2">        generated from the the name of the specified output file as shown</span>
+  926 <span class="s2">        below:</span>
+  927 <span class="s2">        </span>
+  928 <span class="s2">            General: &lt;OutfileRoot&gt;_General.&lt;OutfileExt&gt;</span>
+  929 <span class="s2">            Glycine: &lt;OutfileRoot&gt;_Glycine.&lt;OutfileExt&gt;</span>
+  930 <span class="s2">            Proline: &lt;OutfileRoot&gt;_Proline.&lt;OutfileExt&gt;</span>
+  931 <span class="s2">            PreProline: &lt;OutfileRoot&gt;_PreProline.&lt;OutfileExt&gt;</span>
+  932 <span class="s2">        </span>
+  933 <span class="s2">    --outMode &lt;Single or Multiple&gt;  [default: SingleFile]</span>
+  934 <span class="s2">        A single output file containing all four Ramachandran plots or multiple</span>
+  935 <span class="s2">        output files corresponding to different types of Ramachandran plots.</span>
+  936 <span class="s2">        </span>
+  937 <span class="s2">        The phi and psi angles are categorized into the following groups</span>
+  938 <span class="s2">        corresponding to four types of Ramachandran plots:</span>
+  939 <span class="s2">        </span>
+  940 <span class="s2">            General: All residues except glycine, proline, or pre-proline</span>
+  941 <span class="s2">            Glycine: Only glycine residues</span>
+  942 <span class="s2">            Proline: Only proline residues</span>
+  943 <span class="s2">            PreProline: Only residues before proline not including glycine or</span>
+  944 <span class="s2">                proline</span>
+  945 <span class="s2">        </span>
+  946 <span class="s2">    --overwrite</span>
+  947 <span class="s2">        Overwrite existing files.</span>
+  948 <span class="s2">    -p, --precision &lt;number&gt;  [default: 2]</span>
+  949 <span class="s2">        Floating point precision for plotting the calculated phi and psi angles.</span>
+  950 <span class="s2">    --scatterMarkerColor &lt;text&gt;  [default: #1f77b4]</span>
+  951 <span class="s2">        Scatter marker color for plotting to phi and psi angles. It must be a</span>
+  952 <span class="s2">        valid Matplotlib value. The default color is dark blue.</span>
+  953 <span class="s2">    --scatterMarkerSize &lt;number&gt;  [default: 1.0]</span>
+  954 <span class="s2">        Scatter marker size for piloting phi and psi angles. It must be a valid</span>
+  955 <span class="s2">        Matplotlib value.</span>
+  956 <span class="s2">    --scatterMarkerStyle &lt;text&gt;  [default: .]</span>
+  957 <span class="s2">        Scatter marker style for piloting phi and psi angles. It must be a valid</span>
+  958 <span class="s2">        Matplotlib value. For example: &#39;.&#39; (point), &#39;,&#39; (pixel), &#39;o&#39; (circle), etc.</span>
+  959 <span class="s2">    --ticksMajorInterval &lt;number&gt;  [default: auto]</span>
+  960 <span class="s2">        Display major marks on axes at intervals specified in degrees for phi and</span>
+  961 <span class="s2">        psi angles. The default value is dependent on the the value of &#39;--outMode&#39;</span>
+  962 <span class="s2">        option: SingleFile: 180; MultipleFiles: 90</span>
+  963 <span class="s2">        </span>
+  964 <span class="s2">        The grid lines are drawn at the locations of major tick marks.</span>
+  965 <span class="s2">    --ticksMinor &lt;yes or no&gt;  [default: yes]</span>
+  966 <span class="s2">        Display minor tick marks. The major tick mark are always displayed.</span>
+  967 <span class="s2">    --ticksMinorInterval &lt;number&gt;  [default: auto]</span>
+  968 <span class="s2">        Display minor marks on axes at intervals specified in degrees for phi and</span>
+  969 <span class="s2">        psi angles. The default value is dependent on the the value of &#39;--outMode&#39;</span>
+  970 <span class="s2">        option: SingleFile:  45; MultipleFiles: 10</span>
+  971 <span class="s2">    -w, --workingdir &lt;dir&gt;</span>
+  972 <span class="s2">        Location of working directory which defaults to the current directory.</span>
+  973 
+  974 <span class="s2">Examples:</span>
+  975 <span class="s2">    To generate Ramachandran plot for all residues across all chains in input</span>
+  976 <span class="s2">    file and write out a single SVG file containing all four types of plots, type:</span>
+  977 
+  978 <span class="s2">        % PyMOLGenerateRamachandranPlots.py -i Sample3.pdb -o Sample3Out.svg</span>
+  979 
+  980 <span class="s2">    To generate Ramachandran plot for all residues across all chains in input</span>
+  981 <span class="s2">    file and write out four SVG files corresponding to four types of plots, type:</span>
+  982 
+  983 <span class="s2">        % PyMOLGenerateRamachandranPlots.py --outMode MultipleFiles</span>
+  984 <span class="s2">          -i Sample3.pdb -o Sample3Out.svg</span>
+  985 
+  986 <span class="s2">    To generate Ramachandran plot for all residues in a specific chain in input</span>
+  987 <span class="s2">    file and write out a single PDF file containing all four types of plots, type:</span>
+  988 
+  989 <span class="s2">        % PyMOLGenerateRamachandranPlots.py -c E -i Sample3.pdb</span>
+  990 <span class="s2">          -o Sample3Out.pdf</span>
+  991 
+  992 <span class="s2">    To generate Ramachandran plot for all residues across all chains in input</span>
+  993 <span class="s2">    file using specific options and write out four PNG files containing all four</span>
+  994 <span class="s2">    types of plots, type:</span>
+  995 
+  996 <span class="s2">        % PyMOLGenerateRamachandranPlots.py --outMode MultipleFiles</span>
+  997 <span class="s2">          --figSize &quot;6,4&quot; --figDPI 600 --fontTitleSize 10 --fontTitleWeight</span>
+  998 <span class="s2">          normal --greek no --grid no --levelsAndColors</span>
+  999 <span class="s2">          &quot;General: 0.0, #FFFFFF, 0.0005, #B3E8FF, 0.02, #7FD9FF, 1.0&quot;</span>
+ 1000 <span class="s2">          -i Sample3.pdb -o Sample3Out.png</span>
+ 1001 
+ 1002 <span class="s2">Author:</span>
+ 1003 <span class="s2">    Manish Sud(msud@san.rr.com)</span>
+ 1004 
+ 1005 <span class="s2">See also:</span>
+ 1006 <span class="s2">    DownloadPDBFiles.pl, PyMOLCalculatePhiPsiAngles.py, PyMOLCalculateRMSD.py,</span>
+ 1007 <span class="s2">    PyMOLCalculateProperties.py</span>
+ 1008 
+ 1009 <span class="s2">Copyright:</span>
+ 1010 <span class="s2">    Copyright (C) 2020 Manish Sud. All rights reserved.</span>
+ 1011 
+ 1012 <span class="s2">    The functionality available in this script is implemented using PyMOL, a</span>
+ 1013 <span class="s2">    molecular visualization system on an open source foundation originally</span>
+ 1014 <span class="s2">    developed by Warren DeLano.</span>
+ 1015 
+ 1016 <span class="s2">    This file is part of MayaChemTools.</span>
+ 1017 
+ 1018 <span class="s2">    MayaChemTools is free software; you can redistribute it and/or modify it under</span>
+ 1019 <span class="s2">    the terms of the GNU Lesser General Public License as published by the Free</span>
+ 1020 <span class="s2">    Software Foundation; either version 3 of the License, or (at your option) any</span>
+ 1021 <span class="s2">    later version.</span>
+ 1022 
+ 1023 <span class="s2">&quot;&quot;&quot;</span>
+ 1024 
+ 1025 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+ 1026     <span class="n">main</span><span class="p">()</span>
+</pre>
+<br />
+<center>
+<img src="../../../images/h2o2.png">
+</center>
+</body>
+</html>

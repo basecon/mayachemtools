@@ -1,0 +1,871 @@
+<html>
+<head>
+<title>MayaChemTools:Code:DownloadPDBFiles.pl</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../../css/MayaChemToolsCode.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<pre>
+   1 #!/usr/bin/perl -w
+   2 <span class="c">#</span>
+   3 <span class="c"># File: DownloadPDBFiles.pl</span>
+   4 <span class="c"># Author: Manish Sud &lt;msud@san.rr.com&gt;</span>
+   5 <span class="c">#</span>
+   6 <span class="c"># Copyright (C) 2020 Manish Sud. All rights reserved.</span>
+   7 <span class="c">#</span>
+   8 <span class="c"># This file is part of MayaChemTools.</span>
+   9 <span class="c">#</span>
+  10 <span class="c"># MayaChemTools is free software; you can redistribute it and/or modify it under</span>
+  11 <span class="c"># the terms of the GNU Lesser General Public License as published by the Free</span>
+  12 <span class="c"># Software Foundation; either version 3 of the License, or (at your option) any</span>
+  13 <span class="c"># later version.</span>
+  14 <span class="c">#</span>
+  15 <span class="c"># MayaChemTools is distributed in the hope that it will be useful, but without</span>
+  16 <span class="c"># any warranty; without even the implied warranty of merchantability of fitness</span>
+  17 <span class="c"># for a particular purpose.  See the GNU Lesser General Public License for more</span>
+  18 <span class="c"># details.</span>
+  19 <span class="c">#</span>
+  20 <span class="c"># You should have received a copy of the GNU Lesser General Public License</span>
+  21 <span class="c"># along with MayaChemTools; if not, see &lt;http://www.gnu.org/licenses/&gt; or</span>
+  22 <span class="c"># write to the Free Software Foundation Inc., 59 Temple Place, Suite 330,</span>
+  23 <span class="c"># Boston, MA, 02111-1307, USA.</span>
+  24 <span class="c">#</span>
+  25 
+  26 <span class="k">use</span> <span class="w">strict</span><span class="sc">;</span>
+  27 <span class="k">use</span> <span class="w">FindBin</span><span class="sc">;</span> <span class="k">use</span> <span class="w">lib</span> <span class="q">&quot;$FindBin::Bin/../lib&quot;</span><span class="sc">;</span>
+  28 <span class="k">use</span> <span class="w">Getopt::Long</span><span class="sc">;</span>
+  29 <span class="k">use</span> <span class="w">File::Basename</span><span class="sc">;</span>
+  30 <span class="k">use</span> <span class="w">File::Fetch</span><span class="sc">;</span>
+  31 <span class="k">use</span> <span class="w">File::Copy</span><span class="sc">;</span>
+  32 <span class="k">use</span> <span class="w">Text::ParseWords</span><span class="sc">;</span>
+  33 <span class="k">use</span> <span class="w">Benchmark</span><span class="sc">;</span>
+  34 <span class="k">use</span> <span class="w">FileUtil</span><span class="sc">;</span>
+  35 <span class="k">use</span> <span class="w">TextUtil</span><span class="sc">;</span>
+  36 <span class="k">use</span> <span class="w">PDBFileUtil</span><span class="sc">;</span>
+  37 
+  38 <span class="k">my</span><span class="s">(</span><span class="i">$ScriptName</span><span class="cm">,</span> <span class="i">%Options</span><span class="cm">,</span> <span class="i">$StartTime</span><span class="cm">,</span> <span class="i">$EndTime</span><span class="cm">,</span> <span class="i">$TotalTime</span><span class="s">)</span><span class="sc">;</span>
+  39 
+  40 <span class="c"># Autoflush STDOUT</span>
+  41 <span class="i">$|</span> = <span class="n">1</span><span class="sc">;</span>
+  42 
+  43 <span class="c"># Starting message...</span>
+  44 <span class="i">$ScriptName</span> = <span class="i">basename</span><span class="s">(</span><span class="i">$0</span><span class="s">)</span><span class="sc">;</span>
+  45 <span class="k">print</span> <span class="q">&quot;\n$ScriptName: Starting...\n\n&quot;</span><span class="sc">;</span>
+  46 <span class="i">$StartTime</span> = <span class="w">new</span> <span class="w">Benchmark</span><span class="sc">;</span>
+  47 
+  48 <span class="c"># Get the options and setup script...</span>
+  49 <span class="i">SetupScriptUsage</span><span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+  50 <span class="k">if</span> <span class="s">(</span><span class="i">$Options</span>{<span class="w">help</span>} || <span class="i">@ARGV</span> &lt; <span class="n">1</span><span class="s">)</span> <span class="s">{</span>
+  51   <span class="k">die</span> <span class="i">GetUsageFromPod</span><span class="s">(</span><span class="q">&quot;$FindBin::Bin/$ScriptName&quot;</span><span class="s">)</span><span class="sc">;</span>
+  52 <span class="s">}</span>
+  53 
+  54 <span class="c"># Process options...</span>
+  55 <span class="k">print</span> <span class="q">&quot;Processing options...\n&quot;</span><span class="sc">;</span>
+  56 <span class="k">my</span><span class="s">(</span><span class="i">%OptionsInfo</span><span class="cm">,</span> <span class="i">%PDBIDsFileInfo</span><span class="s">)</span><span class="sc">;</span>
+  57 <span class="i">ProcessOptions</span><span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+  58 
+  59 <span class="c"># Collect PDB IDs and download corresponding files...</span>
+  60 <span class="k">my</span><span class="s">(</span><span class="i">%PDBFilesInfo</span><span class="s">)</span><span class="sc">;</span>
+  61 <span class="i">SetupPDBFilesInfo</span><span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+  62 <span class="i">DownloadPDBFiles</span><span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+  63 
+  64 <span class="k">print</span> <span class="q">&quot;\n$ScriptName:Done...\n\n&quot;</span><span class="sc">;</span>
+  65 
+  66 <span class="i">$EndTime</span> = <span class="w">new</span> <span class="w">Benchmark</span><span class="sc">;</span>
+  67 <span class="i">$TotalTime</span> = <span class="w">timediff</span> <span class="s">(</span><span class="i">$EndTime</span><span class="cm">,</span> <span class="i">$StartTime</span><span class="s">)</span><span class="sc">;</span>
+  68 <span class="k">print</span> <span class="q">&quot;Total time: &quot;</span><span class="cm">,</span> <span class="i">timestr</span><span class="s">(</span><span class="i">$TotalTime</span><span class="s">)</span><span class="cm">,</span> <span class="q">&quot;\n&quot;</span><span class="sc">;</span>
+  69 
+  70 <span class="c">###############################################################################</span>
+  71 
+  72 <span class="c"># Download appropriate PDB fies...</span>
+<a name="DownloadPDBFiles-"></a>  73 <span class="k">sub </span><span class="m">DownloadPDBFiles</span> <span class="s">{</span>
+  74   <span class="k">my</span><span class="s">(</span><span class="i">$PDBIDCount</span><span class="cm">,</span> <span class="i">$PDBIDOkayCount</span><span class="cm">,</span> <span class="i">$PDBIDFailedCount</span><span class="cm">,</span> <span class="i">$PDBIDsIgnoredCount</span><span class="cm">,</span> <span class="i">$PDBID</span><span class="cm">,</span> <span class="i">$PDBStatus</span><span class="cm">,</span> <span class="i">$CIFStatus</span><span class="cm">,</span> <span class="i">$DownloadDensityMap</span><span class="cm">,</span> <span class="i">$CryoEMDataStatus</span><span class="cm">,</span> <span class="i">$EMDBID</span><span class="cm">,</span> <span class="i">$TotalEDMapOkayCount</span> <span class="cm">,</span> <span class="i">$TotalEDMapFailedCount</span><span class="cm">,</span> <span class="i">$EDMapOkayCount</span><span class="cm">,</span> <span class="i">$EDMapFailedCount</span><span class="cm">,</span> <span class="i">$TotalCryoEMMapOkayCount</span><span class="cm">,</span> <span class="i">$TotalCryoEMMapFailedCount</span><span class="cm">,</span> <span class="i">$CryoEMMapOkayCount</span><span class="cm">,</span> <span class="i">$CryoEMMapFailedCount</span><span class="s">)</span><span class="sc">;</span>
+  75 
+  76   <span class="k">print</span> <span class="q">&quot;\nDownloading PDB files...\n&quot;</span><span class="sc">;</span>
+  77 
+  78   <span class="s">(</span><span class="i">$PDBIDCount</span><span class="cm">,</span> <span class="i">$PDBIDOkayCount</span><span class="cm">,</span> <span class="i">$PDBIDFailedCount</span><span class="cm">,</span> <span class="i">$PDBIDsIgnoredCount</span><span class="cm">,</span> <span class="i">$TotalEDMapOkayCount</span> <span class="cm">,</span> <span class="i">$TotalEDMapFailedCount</span><span class="cm">,</span> <span class="i">$TotalCryoEMMapOkayCount</span><span class="cm">,</span> <span class="i">$TotalCryoEMMapFailedCount</span><span class="s">)</span> = <span class="s">(</span><span class="n">0</span><span class="s">)</span> x <span class="n">8</span><span class="sc">;</span>
+  79 
+  80   <span class="i">$DownloadDensityMap</span> = <span class="i">$OptionsInfo</span>{<span class="w">DensityMap</span>}<span class="sc">;</span>
+  81 
+  82   <span class="c"># Turn off warnings from File::Fetch</span>
+  83   <span class="i">$File::Fetch::WARN</span> = <span class="n">0</span><span class="sc">;</span>
+  84 
+  85   <span class="j">PDBID:</span> <span class="k">for</span> <span class="i">$PDBID</span> <span class="s">(</span><span class="i">@</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">PDBIDs</span>}}<span class="s">)</span> <span class="s">{</span>
+  86     <span class="i">$PDBIDCount</span>++<span class="sc">;</span>
+  87 
+  88     <span class="k">print</span> <span class="q">&quot;\nProcessing PDB ID $PDBID...\n&quot;</span><span class="sc">;</span>
+  89 
+  90     <span class="k">if</span> <span class="s">(</span><span class="i">$PDBID</span> =~ <span class="q">/\./</span><span class="s">)</span> <span class="s">{</span>
+  91       <span class="i">$PDBIDsIgnoredCount</span>++<span class="sc">;</span>
+  92       <span class="k">warn</span> <span class="q">&quot;Warning: Ignoring invalid PDB ID $PDBID\n&quot;</span><span class="sc">;</span>
+  93       <span class="k">next</span> <span class="j">PDBID</span><span class="sc">;</span>
+  94     <span class="s">}</span>
+  95 
+  96     <span class="i">$PDBStatus</span> = <span class="n">0</span><span class="sc">;</span>
+  97     <span class="c"># Download PDB format file...</span>
+  98     <span class="k">if</span> <span class="s">(</span><span class="i">$PDBFilesInfo</span>{<span class="w">DownloadPDB</span>}{<span class="i">$PDBID</span>}<span class="s">)</span> <span class="s">{</span>
+  99       <span class="k">print</span> <span class="q">&quot;Downloading PDB file: $PDBFilesInfo{RemoteFilePDBFormat}{$PDBID}\n&quot;</span><span class="sc">;</span>
+ 100       <span class="i">$PDBStatus</span> = <span class="i">DownloadFile</span><span class="s">(</span><span class="i">$PDBFilesInfo</span>{<span class="w">RemoteFilePDBFormat</span>}{<span class="i">$PDBID</span>}<span class="cm">,</span> <span class="i">$PDBFilesInfo</span>{<span class="w">LocalFilePDBFormat</span>}{<span class="i">$PDBID</span>}<span class="s">)</span><span class="sc">;</span>
+ 101     <span class="s">}</span>
+ 102 
+ 103     <span class="c"># Try downloading CIF format file...</span>
+ 104     <span class="i">$CIFStatus</span> = <span class="n">0</span><span class="sc">;</span>
+ 105     <span class="k">if</span> <span class="s">(</span><span class="i">$PDBFilesInfo</span>{<span class="w">DownloadCIF</span>}{<span class="i">$PDBID</span>} &amp;&amp; !<span class="i">$PDBStatus</span><span class="s">)</span> <span class="s">{</span>
+ 106       <span class="k">print</span> <span class="q">&quot;Downloading PDB file: $PDBFilesInfo{RemoteFileCIFFormat}{$PDBID}\n&quot;</span><span class="sc">;</span>
+ 107       <span class="i">$CIFStatus</span> = <span class="i">DownloadFile</span><span class="s">(</span><span class="i">$PDBFilesInfo</span>{<span class="w">RemoteFileCIFFormat</span>}{<span class="i">$PDBID</span>}<span class="cm">,</span> <span class="i">$PDBFilesInfo</span>{<span class="w">LocalFileCIFFormat</span>}{<span class="i">$PDBID</span>}<span class="s">)</span><span class="sc">;</span>
+ 108     <span class="s">}</span>
+ 109 
+ 110     <span class="c"># Check status of download...</span>
+ 111     <span class="k">if</span> <span class="s">(</span>!<span class="s">(</span><span class="i">$PDBStatus</span> || <span class="i">$CIFStatus</span><span class="s">)</span><span class="s">)</span> <span class="s">{</span>
+ 112       <span class="i">$PDBIDFailedCount</span>++<span class="sc">;</span>
+ 113       <span class="k">next</span> <span class="j">PDBID</span><span class="sc">;</span>
+ 114     <span class="s">}</span>
+ 115     <span class="i">$PDBIDOkayCount</span>++<span class="sc">;</span>
+ 116 
+ 117     <span class="c"># Any need to download density files...</span>
+ 118     <span class="k">if</span> <span class="s">(</span>!<span class="i">$DownloadDensityMap</span><span class="s">)</span> <span class="s">{</span>
+ 119       <span class="k">next</span> <span class="j">PDBID</span><span class="sc">;</span>
+ 120     <span class="s">}</span>
+ 121 
+ 122     <span class="c"># Check whether it&#39;s cryo-EM data file...</span>
+ 123     <span class="c">#</span>
+ 124     <span class="i">$CryoEMDataStatus</span> = <span class="n">0</span><span class="sc">;</span>
+ 125     <span class="i">$EMDBID</span> = <span class="n">0</span><span class="sc">;</span>
+ 126     <span class="k">if</span> <span class="s">(</span><span class="i">$PDBStatus</span><span class="s">)</span> <span class="s">{</span>
+ 127       <span class="s">(</span><span class="i">$CryoEMDataStatus</span><span class="cm">,</span> <span class="i">$EMDBID</span><span class="s">)</span> = <span class="i">RetrieveEMDBIDFromPDBFile</span><span class="s">(</span><span class="i">$PDBFilesInfo</span>{<span class="w">LocalFilePDBFormat</span>}{<span class="i">$PDBID</span>}<span class="s">)</span><span class="sc">;</span>
+ 128     <span class="s">}</span>
+ 129     <span class="k">elsif</span> <span class="s">(</span><span class="i">$CIFStatus</span><span class="s">)</span> <span class="s">{</span>
+ 130       <span class="s">(</span><span class="i">$CryoEMDataStatus</span><span class="cm">,</span> <span class="i">$EMDBID</span><span class="s">)</span> = <span class="i">RetrieveEMDBIDFromCIFFile</span><span class="s">(</span><span class="i">$PDBFilesInfo</span>{<span class="w">LocalFileCIFFormat</span>}{<span class="i">$PDBID</span>}<span class="s">)</span><span class="sc">;</span>
+ 131     <span class="s">}</span>
+ 132 
+ 133     <span class="s">(</span><span class="i">$EDMapOkayCount</span><span class="cm">,</span> <span class="i">$EDMapFailedCount</span><span class="s">)</span> = <span class="i">DownloadEDMapFiles</span><span class="s">(</span><span class="i">$PDBID</span><span class="cm">,</span> <span class="i">$CryoEMDataStatus</span><span class="s">)</span><span class="sc">;</span>
+ 134     <span class="i">$TotalEDMapOkayCount</span> += <span class="i">$EDMapOkayCount</span><span class="sc">;</span>
+ 135     <span class="i">$TotalEDMapFailedCount</span> += <span class="i">$EDMapFailedCount</span><span class="cm">,</span>
+ 136 
+ 137     <span class="s">(</span><span class="i">$CryoEMMapOkayCount</span><span class="cm">,</span> <span class="i">$CryoEMMapFailedCount</span><span class="s">)</span> = <span class="i">DownloadCryoEMMapFiles</span><span class="s">(</span><span class="i">$PDBID</span><span class="cm">,</span> <span class="i">$CryoEMDataStatus</span><span class="cm">,</span> <span class="i">$EMDBID</span><span class="s">)</span><span class="sc">;</span>
+ 138     <span class="i">$TotalCryoEMMapOkayCount</span> += <span class="i">$CryoEMMapOkayCount</span><span class="sc">;</span>
+ 139     <span class="i">$TotalCryoEMMapFailedCount</span> += <span class="i">$CryoEMMapFailedCount</span><span class="cm">,</span>
+ 140   <span class="s">}</span>
+ 141 
+ 142   <span class="k">print</span> <span class="q">&quot;\nTotal number of PDB IDs:  $PDBIDCount\n&quot;</span><span class="sc">;</span>
+ 143   <span class="k">print</span> <span class="q">&quot;Number of PDB IDs ignored:  $PDBIDsIgnoredCount\n&quot;</span><span class="sc">;</span>
+ 144 
+ 145   <span class="k">print</span> <span class="q">&quot;\nNumber of successful downloads:  $PDBIDOkayCount\n&quot;</span><span class="sc">;</span>
+ 146   <span class="k">print</span> <span class="q">&quot;Number of failed downloads:  $PDBIDFailedCount\n&quot;</span><span class="sc">;</span>
+ 147 
+ 148   <span class="k">if</span> <span class="s">(</span><span class="i">$DownloadDensityMap</span><span class="s">)</span> <span class="s">{</span>
+ 149     <span class="k">print</span> <span class="q">&quot;\nNumber of successful ED map downloads:  $TotalEDMapOkayCount\n&quot;</span><span class="sc">;</span>
+ 150     <span class="k">print</span> <span class="q">&quot;Number of failed ED map downloads:  $TotalEDMapFailedCount\n&quot;</span><span class="sc">;</span>
+ 151 
+ 152     <span class="k">print</span> <span class="q">&quot;\nNumber of successful cryo-EM map downloads:  $TotalCryoEMMapOkayCount\n&quot;</span><span class="sc">;</span>
+ 153     <span class="k">print</span> <span class="q">&quot;Number of failed cryo-EM map downloads:  $TotalCryoEMMapFailedCount\n&quot;</span><span class="sc">;</span>
+ 154   <span class="s">}</span>
+ 155 <span class="s">}</span>
+ 156 
+ 157 <span class="c"># Download x-ray electron density files...</span>
+<a name="DownloadEDMapFiles-"></a> 158 <span class="k">sub </span><span class="m">DownloadEDMapFiles</span> <span class="s">{</span>
+ 159   <span class="k">my</span><span class="s">(</span><span class="i">$PDBID</span><span class="cm">,</span> <span class="i">$CryoEMDataStatus</span><span class="s">)</span> = <span class="i">@_</span><span class="sc">;</span>
+ 160   <span class="k">my</span><span class="s">(</span><span class="i">$Index</span><span class="cm">,</span> <span class="i">$RemoteEDMapFile</span><span class="cm">,</span> <span class="i">$LocalEDMapFile</span><span class="cm">,</span> <span class="i">$TmpLocalEDMapFile</span><span class="cm">,</span> <span class="i">$FinalLocalEDMapFile</span><span class="cm">,</span> <span class="i">$EDMapFailedCount</span><span class="cm">,</span> <span class="i">$EDMapOkayCount</span><span class="cm">,</span> <span class="i">$Status</span><span class="s">)</span><span class="sc">;</span>
+ 161 
+ 162   <span class="s">(</span><span class="i">$EDMapOkayCount</span><span class="cm">,</span> <span class="i">$EDMapFailedCount</span><span class="s">)</span> = <span class="s">(</span><span class="n">0</span><span class="s">)</span> x <span class="n">2</span><span class="sc">;</span>
+ 163 
+ 164   <span class="k">if</span> <span class="s">(</span><span class="i">$CryoEMDataStatus</span><span class="s">)</span> <span class="s">{</span>
+ 165     <span class="k">print</span> <span class="q">&quot;Skipping download of x-ray electron density files for cryo-EM PDB data...\n&quot;</span><span class="sc">;</span>
+ 166     <span class="k">return</span> <span class="s">(</span><span class="i">$EDMapOkayCount</span><span class="cm">,</span> <span class="i">$EDMapFailedCount</span><span class="s">)</span><span class="sc">;</span>
+ 167   <span class="s">}</span>
+ 168 
+ 169  <span class="j">EDMAPFILE:</span> <span class="k">for</span> <span class="i">$Index</span> <span class="s">(</span><span class="n">0</span> .. <span class="i">$#</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">RemoteEDMapFiles</span>}{<span class="i">$PDBID</span>}}<span class="s">)</span> <span class="s">{</span>
+ 170     <span class="i">$RemoteEDMapFile</span> = <span class="i">$PDBFilesInfo</span>{<span class="w">RemoteEDMapFiles</span>}{<span class="i">$PDBID</span>}[<span class="i">$Index</span>]<span class="sc">;</span>
+ 171     <span class="i">$LocalEDMapFile</span> = <span class="i">$PDBFilesInfo</span>{<span class="w">LocalEDMapFiles</span>}{<span class="i">$PDBID</span>}[<span class="i">$Index</span>]<span class="sc">;</span>
+ 172     <span class="i">$TmpLocalEDMapFile</span> = <span class="i">$PDBFilesInfo</span>{<span class="w">TmpLocalEDMapFiles</span>}{<span class="i">$PDBID</span>}[<span class="i">$Index</span>]<span class="sc">;</span>
+ 173     <span class="i">$FinalLocalEDMapFile</span> = <span class="i">$PDBFilesInfo</span>{<span class="w">FinalLocalEDMapFiles</span>}{<span class="i">$PDBID</span>}[<span class="i">$Index</span>]<span class="sc">;</span>
+ 174 
+ 175     <span class="k">print</span> <span class="q">&quot;Downloading x-ray electron density map file: $RemoteEDMapFile\n&quot;</span><span class="sc">;</span>
+ 176     <span class="i">$Status</span> = <span class="i">DownloadFile</span><span class="s">(</span><span class="i">$RemoteEDMapFile</span><span class="cm">,</span> <span class="i">$LocalEDMapFile</span><span class="s">)</span><span class="sc">;</span>
+ 177 
+ 178     <span class="k">if</span> <span class="s">(</span>!<span class="i">$Status</span><span class="s">)</span> <span class="s">{</span>
+ 179       <span class="i">$EDMapFailedCount</span>++<span class="sc">;</span>
+ 180       <span class="k">next</span> <span class="j">EDMAPFILE</span><span class="sc">;</span>
+ 181     <span class="s">}</span>
+ 182     <span class="c"># Rename downloaded ED file...</span>
+ 183     <span class="k">print</span> <span class="q">&quot;Moving file from $LocalEDMapFile to $FinalLocalEDMapFile\n&quot;</span><span class="sc">;</span>
+ 184     <span class="w">move</span> <span class="i">$LocalEDMapFile</span><span class="cm">,</span> <span class="i">$TmpLocalEDMapFile</span> <span class="k">or</span> <span class="k">warn</span> <span class="q">&quot;Warning: Couldn&#39;t move file $LocalEDMapFile to $TmpLocalEDMapFile\n&quot;</span><span class="sc">;</span>
+ 185     <span class="w">move</span> <span class="i">$TmpLocalEDMapFile</span><span class="cm">,</span> <span class="i">$FinalLocalEDMapFile</span> <span class="k">or</span> <span class="k">warn</span> <span class="q">&quot;Warning: Couldn&#39;t move file $TmpLocalEDMapFile to $FinalLocalEDMapFile\n&quot;</span><span class="sc">;</span>
+ 186     <span class="i">$EDMapOkayCount</span>++<span class="sc">;</span>
+ 187   <span class="s">}</span>
+ 188 
+ 189   <span class="k">return</span> <span class="s">(</span><span class="i">$EDMapOkayCount</span><span class="cm">,</span> <span class="i">$EDMapFailedCount</span><span class="s">)</span><span class="sc">;</span>
+ 190 <span class="s">}</span>
+ 191 
+ 192 <span class="c"># Download cryo-EM density files...</span>
+<a name="DownloadCryoEMMapFiles-"></a> 193 <span class="k">sub </span><span class="m">DownloadCryoEMMapFiles</span> <span class="s">{</span>
+ 194   <span class="k">my</span><span class="s">(</span><span class="i">$PDBID</span><span class="cm">,</span> <span class="i">$CryoEMDataStatus</span><span class="cm">,</span> <span class="i">$EMDBID</span><span class="s">)</span> = <span class="i">@_</span><span class="sc">;</span>
+ 195   <span class="k">my</span><span class="s">(</span><span class="i">$Index</span><span class="cm">,</span> <span class="i">$RemoteCryoEMMapFile</span><span class="cm">,</span> <span class="i">$LocalCryoEMMapFile</span><span class="cm">,</span> <span class="i">$CryoEMMapFailedCount</span><span class="cm">,</span> <span class="i">$CryoEMMapOkayCount</span><span class="cm">,</span> <span class="i">$Status</span><span class="cm">,</span> <span class="i">$FileType</span><span class="s">)</span><span class="sc">;</span>
+ 196 
+ 197   <span class="s">(</span><span class="i">$CryoEMMapOkayCount</span><span class="cm">,</span> <span class="i">$CryoEMMapFailedCount</span><span class="s">)</span> = <span class="s">(</span><span class="n">0</span><span class="s">)</span> x <span class="n">2</span><span class="sc">;</span>
+ 198 
+ 199   <span class="k">if</span> <span class="s">(</span>!<span class="i">$CryoEMDataStatus</span><span class="s">)</span> <span class="s">{</span>
+ 200     <span class="k">print</span> <span class="q">&quot;Skipping download of cryo-EM density files for non cryo-EM PDB data...\n&quot;</span><span class="sc">;</span>
+ 201     <span class="k">return</span> <span class="s">(</span><span class="i">$CryoEMMapOkayCount</span><span class="cm">,</span> <span class="i">$CryoEMMapFailedCount</span><span class="s">)</span><span class="sc">;</span>
+ 202   <span class="s">}</span>
+ 203 
+ 204   <span class="j">CRYOEMMAPFILE:</span> <span class="k">for</span> <span class="i">$Index</span> <span class="s">(</span><span class="n">0</span> .. <span class="i">$#</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">RemoteCyroEMMapFiles</span>}{<span class="i">$PDBID</span>}}<span class="s">)</span> <span class="s">{</span>
+ 205     <span class="i">$FileType</span> = <span class="i">$PDBFilesInfo</span>{<span class="w">RemoteCyroEMMapFileTypes</span>}{<span class="i">$PDBID</span>}[<span class="i">$Index</span>]<span class="sc">;</span>
+ 206     <span class="i">$RemoteCryoEMMapFile</span> = <span class="i">$PDBFilesInfo</span>{<span class="w">RemoteCyroEMMapFiles</span>}{<span class="i">$PDBID</span>}[<span class="i">$Index</span>]<span class="sc">;</span>
+ 207     <span class="i">$LocalCryoEMMapFile</span> = <span class="i">$PDBFilesInfo</span>{<span class="w">LocalCyroEMMapFiles</span>}{<span class="i">$PDBID</span>}[<span class="i">$Index</span>]<span class="sc">;</span>
+ 208 
+ 209     <span class="c"># Update file names with actual EMDBID...</span>
+ 210     <span class="i">$RemoteCryoEMMapFile</span> =~ <span class="q">s/EMDBIDPlaceHolder/$EMDBID/ig</span><span class="sc">;</span>
+ 211     <span class="i">$LocalCryoEMMapFile</span> =~ <span class="q">s/EMDBIDPlaceHolder/$EMDBID/ig</span><span class="sc">;</span>
+ 212 
+ 213     <span class="k">print</span> <span class="q">&quot;Downloading cryo-EM density $FileType file: $RemoteCryoEMMapFile\n&quot;</span><span class="sc">;</span>
+ 214     <span class="i">$Status</span> = <span class="i">DownloadFile</span><span class="s">(</span><span class="i">$RemoteCryoEMMapFile</span><span class="cm">,</span> <span class="i">$LocalCryoEMMapFile</span><span class="s">)</span><span class="sc">;</span>
+ 215 
+ 216     <span class="k">if</span> <span class="s">(</span>!<span class="i">$Status</span><span class="s">)</span> <span class="s">{</span>
+ 217       <span class="i">$CryoEMMapFailedCount</span>++<span class="sc">;</span>
+ 218       <span class="k">next</span> <span class="j">CRYOEMMAPFILE</span><span class="sc">;</span>
+ 219     <span class="s">}</span>
+ 220     <span class="i">$CryoEMMapOkayCount</span>++<span class="sc">;</span>
+ 221   <span class="s">}</span>
+ 222 
+ 223   <span class="k">return</span> <span class="s">(</span><span class="i">$CryoEMMapOkayCount</span><span class="cm">,</span> <span class="i">$CryoEMMapFailedCount</span><span class="s">)</span><span class="sc">;</span>
+ 224 <span class="s">}</span>
+ 225 
+ 226 
+ 227 <span class="c"># Download specified file...</span>
+<a name="DownloadFile-"></a> 228 <span class="k">sub </span><span class="m">DownloadFile</span> <span class="s">{</span>
+ 229   <span class="k">my</span><span class="s">(</span><span class="i">$RemoteFileURL</span><span class="cm">,</span> <span class="i">$LocalFileName</span><span class="s">)</span> = <span class="i">@_</span><span class="sc">;</span>
+ 230   <span class="k">my</span><span class="s">(</span><span class="i">$Status</span><span class="cm">,</span> <span class="i">$FileFetch</span><span class="cm">,</span> <span class="i">$FetchedFilePath</span><span class="s">)</span><span class="sc">;</span>
+ 231 
+ 232   <span class="i">$Status</span> = <span class="n">1</span><span class="sc">;</span>
+ 233 
+ 234   <span class="c"># Setup a fetch object...</span>
+ 235   <span class="i">$FileFetch</span> = <span class="w">File::Fetch</span><span class="w">-&gt;new</span><span class="s">(</span><span class="w">uri</span> <span class="cm">=&gt;</span> <span class="i">$RemoteFileURL</span><span class="s">)</span><span class="sc">;</span>
+ 236 
+ 237   <span class="c"># Fetch file to the CWD...</span>
+ 238   <span class="i">$FetchedFilePath</span> = <span class="i">$FileFetch</span><span class="i">-&gt;fetch</span><span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 239 
+ 240   <span class="k">if</span> <span class="s">(</span><span class="i">IsEmpty</span><span class="s">(</span><span class="i">$FetchedFilePath</span><span class="s">)</span><span class="s">)</span> <span class="s">{</span>
+ 241     <span class="k">warn</span> <span class="q">&quot;Warning: Download failed for file $RemoteFileURL: &quot;</span> . <span class="i">$FileFetch</span><span class="i">-&gt;error</span><span class="s">(</span><span class="s">)</span> . <span class="q">&quot;\n&quot;</span><span class="sc">;</span>
+ 242     <span class="k">if</span> <span class="s">(</span><span class="k">-e</span> <span class="i">$LocalFileName</span><span class="s">)</span> <span class="s">{</span>
+ 243       <span class="k">warn</span> <span class="q">&quot;Warning: Deleting empty file $LocalFileName\n&quot;</span><span class="sc">;</span>
+ 244       <span class="k">unlink</span> <span class="i">$LocalFileName</span> <span class="k">or</span> <span class="k">warn</span> <span class="q">&quot;Warning: Couldn&#39;t delete file $LocalFileName\n&quot;</span><span class="sc">;</span>
+ 245     <span class="s">}</span>
+ 246     <span class="i">$Status</span> = <span class="n">0</span><span class="sc">;</span>
+ 247   <span class="s">}</span>
+ 248   <span class="k">return</span> <span class="i">$Status</span><span class="sc">;</span>
+ 249 <span class="s">}</span>
+ 250 
+ 251 <span class="c"># Collect specified PDB IDs along with settting up PDB and ED file names for all</span>
+ 252 <span class="c"># specified PDB IDs...</span>
+ 253 <span class="c">#</span>
+<a name="SetupPDBFilesInfo-"></a> 254 <span class="k">sub </span><span class="m">SetupPDBFilesInfo</span> <span class="s">{</span>
+ 255 
+ 256   <span class="i">%PDBFilesInfo</span> = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 257   <span class="i">RetrievePDBIDs</span><span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 258   <span class="i">SetupPDBandEDFileNames</span><span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 259 <span class="s">}</span>
+ 260 
+ 261 <span class="c"># Retrieve EMDB ID from PDB file...</span>
+<a name="RetrieveEMDBIDFromPDBFile-"></a> 262 <span class="k">sub </span><span class="m">RetrieveEMDBIDFromPDBFile</span> <span class="s">{</span>
+ 263   <span class="k">my</span><span class="s">(</span><span class="i">$PDBFile</span><span class="s">)</span> = <span class="i">@_</span><span class="sc">;</span>
+ 264   <span class="k">my</span><span class="s">(</span><span class="i">$EMDBID</span><span class="cm">,</span> <span class="i">$CryoEMDataType</span><span class="cm">,</span> <span class="i">$Line</span><span class="s">)</span><span class="sc">;</span>
+ 265 
+ 266   <span class="i">$EMDBID</span> = <span class="n">0</span><span class="sc">;</span>
+ 267 
+ 268   <span class="k">if</span> <span class="s">(</span>!<span class="k">-e</span> <span class="i">$PDBFile</span><span class="s">)</span> <span class="s">{</span>
+ 269     <span class="k">return</span> <span class="i">$EMDBID</span><span class="sc">;</span>
+ 270   <span class="s">}</span>
+ 271 
+ 272   <span class="i">$CryoEMDataType</span> = <span class="n">0</span><span class="sc">;</span>
+ 273 
+ 274   <span class="k">open</span> <span class="w">PDBFILE</span><span class="cm">,</span> <span class="q">&quot;$PDBFile&quot;</span> <span class="k">or</span> <span class="k">die</span> <span class="q">&quot;Couldn&#39;t open $PDBFile: $! \n&quot;</span><span class="sc">;</span>
+ 275   <span class="j">LINE:</span> <span class="k">while</span> <span class="s">(</span><span class="i">$Line</span> = <span class="i">GetTextLine</span><span class="s">(</span>\<span class="i">*PDBFILE</span><span class="s">)</span><span class="s">)</span> <span class="s">{</span>
+ 276     <span class="k">if</span> <span class="s">(</span><span class="i">$Line</span> =~ <span class="q">/^EXPDTA/i</span><span class="s">)</span> <span class="s">{</span>
+ 277       <span class="k">if</span> <span class="s">(</span><span class="i">$Line</span> =~ <span class="q">/ELECTRON MICROSCOPY/i</span><span class="s">)</span> <span class="s">{</span>
+ 278          <span class="i">$CryoEMDataType</span> = <span class="n">1</span><span class="sc">;</span>
+ 279       <span class="s">}</span>
+ 280     <span class="s">}</span>
+ 281     <span class="k">elsif</span> <span class="s">(</span><span class="i">$Line</span> =~ <span class="q">/^REMARK/i</span><span class="s">)</span> <span class="s">{</span>
+ 282       <span class="k">if</span> <span class="s">(</span><span class="i">$Line</span> =~ <span class="q">/DB: EMDB/i</span><span class="s">)</span> <span class="s">{</span>
+ 283          <span class="s">(</span><span class="k">undef</span><span class="cm">,</span> <span class="i">$EMDBID</span><span class="cm">,</span> <span class="k">undef</span><span class="s">)</span> = <span class="s">(</span><span class="i">$Line</span> =~ <span class="q">/^(.*?) EMD-([0-9]+) (.*?)$/</span><span class="s">)</span><span class="sc">;</span>
+ 284          <span class="k">if</span> <span class="s">(</span>!<span class="k">defined</span> <span class="i">$EMDBID</span><span class="s">)</span> <span class="s">{</span>
+ 285            <span class="i">$EMDBID</span> = <span class="n">0</span><span class="sc">;</span>
+ 286          <span class="s">}</span>
+ 287          <span class="k">last</span> <span class="j">LINE</span><span class="sc">;</span>
+ 288       <span class="s">}</span>
+ 289     <span class="s">}</span>
+ 290   <span class="s">}</span>
+ 291   <span class="k">close</span> <span class="w">PDBFILE</span><span class="sc">;</span>
+ 292 
+ 293   <span class="k">return</span> <span class="s">(</span><span class="i">$CryoEMDataType</span><span class="cm">,</span> <span class="i">$EMDBID</span><span class="s">)</span><span class="sc">;</span>
+ 294 <span class="s">}</span>
+ 295 
+ 296 <span class="c"># Retrieve EMDB ID from CIF file...</span>
+<a name="RetrieveEMDBIDFromCIFFile-"></a> 297 <span class="k">sub </span><span class="m">RetrieveEMDBIDFromCIFFile</span> <span class="s">{</span>
+ 298   <span class="k">my</span><span class="s">(</span><span class="i">$CIFFile</span><span class="s">)</span> = <span class="i">@_</span><span class="sc">;</span>
+ 299   <span class="k">my</span><span class="s">(</span><span class="i">$EMDBID</span><span class="cm">,</span> <span class="i">$CryoEMDataType</span><span class="cm">,</span> <span class="i">$Line</span><span class="s">)</span><span class="sc">;</span>
+ 300 
+ 301   <span class="i">$EMDBID</span> = <span class="n">0</span><span class="sc">;</span>
+ 302 
+ 303   <span class="k">if</span> <span class="s">(</span>!<span class="k">-e</span> <span class="i">$CIFFile</span><span class="s">)</span> <span class="s">{</span>
+ 304     <span class="k">return</span> <span class="i">$EMDBID</span><span class="sc">;</span>
+ 305   <span class="s">}</span>
+ 306 
+ 307   <span class="i">$CryoEMDataType</span> = <span class="n">0</span><span class="sc">;</span>
+ 308 
+ 309   <span class="k">open</span> <span class="w">CIFFILE</span><span class="cm">,</span> <span class="q">&quot;$CIFFile&quot;</span> <span class="k">or</span> <span class="k">die</span> <span class="q">&quot;Couldn&#39;t open $CIFFile: $! \n&quot;</span><span class="sc">;</span>
+ 310   <span class="j">LINE:</span> <span class="k">while</span> <span class="s">(</span><span class="i">$Line</span> = <span class="i">GetTextLine</span><span class="s">(</span>\<span class="i">*CIFFILE</span><span class="s">)</span><span class="s">)</span> <span class="s">{</span>
+ 311     <span class="k">if</span> <span class="s">(</span><span class="i">$Line</span> =~ <span class="q">/^_exptl.method/i</span><span class="s">)</span> <span class="s">{</span>
+ 312       <span class="k">if</span> <span class="s">(</span><span class="i">$Line</span> =~ <span class="q">/ELECTRON MICROSCOPY/i</span><span class="s">)</span> <span class="s">{</span>
+ 313          <span class="i">$CryoEMDataType</span> = <span class="n">1</span><span class="sc">;</span>
+ 314          <span class="k">last</span> <span class="j">LINE</span><span class="sc">;</span>
+ 315       <span class="s">}</span>
+ 316     <span class="s">}</span>
+ 317     <span class="k">elsif</span> <span class="s">(</span><span class="i">$Line</span> =~ <span class="q">/^EMDB  EMD-/i</span><span class="s">)</span> <span class="s">{</span>
+ 318       <span class="s">(</span><span class="k">undef</span><span class="cm">,</span> <span class="i">$EMDBID</span><span class="cm">,</span> <span class="k">undef</span><span class="s">)</span> = <span class="s">(</span><span class="i">$Line</span> =~ <span class="q">/^(.*?) EMD-([0-9]+)(.*?)$/</span><span class="s">)</span><span class="sc">;</span>
+ 319        <span class="k">if</span> <span class="s">(</span>!<span class="k">defined</span> <span class="i">$EMDBID</span><span class="s">)</span> <span class="s">{</span>
+ 320          <span class="i">$EMDBID</span> = <span class="n">0</span><span class="sc">;</span>
+ 321        <span class="s">}</span>
+ 322     <span class="s">}</span>
+ 323   <span class="s">}</span>
+ 324   <span class="k">close</span> <span class="w">CIFFILE</span><span class="sc">;</span>
+ 325 
+ 326   <span class="k">return</span> <span class="s">(</span><span class="i">$CryoEMDataType</span><span class="cm">,</span> <span class="i">$EMDBID</span><span class="s">)</span><span class="sc">;</span>
+ 327 <span class="s">}</span>
+ 328 
+ 329 
+ 330 <span class="c"># Set up PDB and ED file names for downloading....</span>
+<a name="SetupPDBandEDFileNames-"></a> 331 <span class="k">sub </span><span class="m">SetupPDBandEDFileNames</span> <span class="s">{</span>
+ 332   <span class="k">my</span><span class="s">(</span><span class="i">$PDBID</span><span class="cm">,</span> <span class="i">$DownloadDensityMap</span><span class="cm">,</span> <span class="i">$PDBDataLocationURL</span><span class="cm">,</span> <span class="i">$EDMapDataLocaltionURL</span><span class="cm">,</span> <span class="i">$EDMapType</span><span class="cm">,</span> <span class="i">$EDMapPDBID</span><span class="cm">,</span> <span class="i">$EDMapSuffix</span><span class="cm">,</span> <span class="i">$EDMapFileExt</span><span class="cm">,</span> <span class="i">$CryoEMDataLocationURL</span><span class="cm">,</span> <span class="i">$EMDBID</span><span class="s">)</span><span class="sc">;</span>
+ 333 
+ 334   <span class="i">@</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">PDBIDs</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 335 
+ 336   <span class="i">%</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">DownloadPDB</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 337   <span class="i">%</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">RemoteFilePDBFormat</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 338   <span class="i">%</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">LocalFilePDBFormat</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 339 
+ 340   <span class="i">%</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">DownloadCIF</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 341   <span class="i">%</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">RemoteFileCIFFormat</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 342   <span class="i">%</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">LocalFileCIFFormat</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 343 
+ 344   <span class="c"># Initilaize X-ray electron density file names...</span>
+ 345   <span class="i">%</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">DownloadEDMap</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 346   <span class="i">%</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">RemoteEDMapFiles</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 347   <span class="i">%</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">LocalEDMapFiles</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 348   <span class="i">%</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">TmpLocalEDMapFiles</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 349   <span class="i">%</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">FinalLocalEDMapFiles</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 350 
+ 351   <span class="c"># Initilaize cryo-EM  density file names...</span>
+ 352   <span class="i">%</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">DownloadCryoEMMap</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 353   <span class="i">%</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">RemoteCyroEMMapFileTypes</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 354   <span class="i">%</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">RemoteCyroEMMapFiles</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 355   <span class="i">%</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">LocalCyroEMMapFiles</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 356 
+ 357   <span class="i">$DownloadDensityMap</span> = <span class="i">$OptionsInfo</span>{<span class="w">DensityMap</span>}<span class="sc">;</span>
+ 358 
+ 359   <span class="i">$PDBDataLocationURL</span> = <span class="i">$OptionsInfo</span>{<span class="w">DataLocationURL</span>}<span class="sc">;</span>
+ 360   <span class="k">if</span> <span class="s">(</span><span class="i">$PDBDataLocationURL</span> !~ <span class="q">/\/$/</span><span class="s">)</span> <span class="s">{</span>
+ 361     <span class="i">$PDBDataLocationURL</span> .= <span class="q">&quot;/&quot;</span><span class="sc">;</span>
+ 362   <span class="s">}</span>
+ 363 
+ 364   <span class="i">$EDMapDataLocaltionURL</span> = <span class="i">$OptionsInfo</span>{<span class="w">DenistyMapLocationURLXRay</span>}<span class="sc">;</span>
+ 365   <span class="k">if</span> <span class="s">(</span><span class="i">$EDMapDataLocaltionURL</span> !~ <span class="q">/\/$/</span><span class="s">)</span> <span class="s">{</span>
+ 366     <span class="i">$EDMapDataLocaltionURL</span> .= <span class="q">&quot;/&quot;</span><span class="sc">;</span>
+ 367   <span class="s">}</span>
+ 368 
+ 369   <span class="i">$CryoEMDataLocationURL</span> = <span class="i">$OptionsInfo</span>{<span class="w">DensityMapLocationURLCryoEM</span>}<span class="sc">;</span>
+ 370   <span class="k">if</span> <span class="s">(</span><span class="i">$CryoEMDataLocationURL</span> !~ <span class="q">/\/$/</span><span class="s">)</span> <span class="s">{</span>
+ 371     <span class="i">$CryoEMDataLocationURL</span> .= <span class="q">&quot;/&quot;</span><span class="sc">;</span>
+ 372   <span class="s">}</span>
+ 373 
+ 374   <span class="j">PDBID:</span> <span class="k">for</span> <span class="i">$PDBID</span> <span class="s">(</span><span class="i">@</span>{<span class="i">$OptionsInfo</span>{<span class="w">PDBIDs</span>}}<span class="s">)</span> <span class="s">{</span>
+ 375     <span class="c"># Track PDB IDs..</span>
+ 376     <span class="k">push</span> <span class="i">@</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">PDBIDs</span>}}<span class="cm">,</span> <span class="i">$PDBID</span><span class="sc">;</span>
+ 377 
+ 378     <span class="c"># Intialize PDB file names...</span>
+ 379     <span class="i">$PDBFilesInfo</span>{<span class="w">DownloadPDB</span>}{<span class="i">$PDBID</span>} = <span class="n">0</span><span class="sc">;</span>
+ 380     <span class="i">$PDBFilesInfo</span>{<span class="w">RemoteFilePDBFormat</span>}{<span class="i">$PDBID</span>} = <span class="q">&quot;&quot;</span><span class="sc">;</span>
+ 381     <span class="i">$PDBFilesInfo</span>{<span class="w">LocalFilePDBFormat</span>}{<span class="i">$PDBID</span>} = <span class="q">&quot;&quot;</span><span class="sc">;</span>
+ 382 
+ 383     <span class="i">$PDBFilesInfo</span>{<span class="w">DownloadCIF</span>}{<span class="i">$PDBID</span>} = <span class="n">0</span><span class="sc">;</span>
+ 384     <span class="i">$PDBFilesInfo</span>{<span class="w">RemoteFileCIFFormat</span>}{<span class="i">$PDBID</span>} = <span class="q">&quot;&quot;</span><span class="sc">;</span>
+ 385     <span class="i">$PDBFilesInfo</span>{<span class="w">LocalFileCIFFormat</span>}{<span class="i">$PDBID</span>} = <span class="q">&quot;&quot;</span><span class="sc">;</span>
+ 386 
+ 387     <span class="k">if</span> <span class="s">(</span><span class="i">$OptionsInfo</span>{<span class="w">PDBFormat</span>} =~ <span class="q">/^(PDB|Auto)$/i</span><span class="s">)</span> <span class="s">{</span>
+ 388       <span class="i">$PDBFilesInfo</span>{<span class="w">DownloadPDB</span>}{<span class="i">$PDBID</span>} = <span class="n">1</span><span class="sc">;</span>
+ 389       <span class="i">$PDBFilesInfo</span>{<span class="w">RemoteFilePDBFormat</span>}{<span class="i">$PDBID</span>} = <span class="q">&quot;${PDBDataLocationURL}${PDBID}.pdb&quot;</span><span class="sc">;</span>
+ 390       <span class="i">$PDBFilesInfo</span>{<span class="w">LocalFilePDBFormat</span>}{<span class="i">$PDBID</span>} = <span class="q">&quot;${PDBID}.pdb&quot;</span><span class="sc">;</span>
+ 391     <span class="s">}</span>
+ 392     <span class="k">if</span> <span class="s">(</span><span class="i">$OptionsInfo</span>{<span class="w">PDBFormat</span>} =~ <span class="q">/^(CIF|Auto)$/i</span><span class="s">)</span> <span class="s">{</span>
+ 393       <span class="i">$PDBFilesInfo</span>{<span class="w">DownloadCIF</span>}{<span class="i">$PDBID</span>} = <span class="n">1</span><span class="sc">;</span>
+ 394       <span class="i">$PDBFilesInfo</span>{<span class="w">RemoteFileCIFFormat</span>}{<span class="i">$PDBID</span>} = <span class="q">&quot;${PDBDataLocationURL}${PDBID}.cif&quot;</span><span class="sc">;</span>
+ 395       <span class="i">$PDBFilesInfo</span>{<span class="w">LocalFileCIFFormat</span>}{<span class="i">$PDBID</span>} = <span class="q">&quot;${PDBID}.cif&quot;</span><span class="sc">;</span>
+ 396     <span class="s">}</span>
+ 397 
+ 398     <span class="c"># Initialize x-ray ED map file names...</span>
+ 399     <span class="i">$PDBFilesInfo</span>{<span class="w">DownloadEDMap</span>}{<span class="i">$PDBID</span>} = <span class="n">0</span><span class="sc">;</span>
+ 400     <span class="i">@</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">RemoteEDMapFiles</span>}{<span class="i">$PDBID</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 401     <span class="i">@</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">LocalEDMapFiles</span>}{<span class="i">$PDBID</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 402     <span class="i">@</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">TmpLocalEDMapFiles</span>}{<span class="i">$PDBID</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 403     <span class="i">@</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">FinalLocalEDMapFiles</span>}{<span class="i">$PDBID</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 404 
+ 405     <span class="c"># Initialize cryo-EM map file names...</span>
+ 406     <span class="i">$PDBFilesInfo</span>{<span class="w">DownloadCryoEMMap</span>}{<span class="i">$PDBID</span>} = <span class="n">0</span><span class="sc">;</span>
+ 407     <span class="i">@</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">RemoteCyroEMMapFileTypes</span>}{<span class="i">$PDBID</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 408     <span class="i">@</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">RemoteCyroEMMapFiles</span>}{<span class="i">$PDBID</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 409     <span class="i">@</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">LocalCyroEMMapFiles</span>}{<span class="i">$PDBID</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 410 
+ 411     <span class="k">if</span> <span class="s">(</span>!<span class="i">$DownloadDensityMap</span><span class="s">)</span> <span class="s">{</span>
+ 412       <span class="k">next</span> <span class="j">PDBID</span><span class="sc">;</span>
+ 413     <span class="s">}</span>
+ 414 
+ 415     <span class="c"># Setup x-ray ED file names...</span>
+ 416     <span class="k">if</span> <span class="s">(</span><span class="i">$OptionsInfo</span>{<span class="w">DensityMapMode</span>} =~ <span class="q">/^(XRayElectronDensity|Auto)$/i</span><span class="s">)</span> <span class="s">{</span>
+ 417       <span class="i">$PDBFilesInfo</span>{<span class="w">DownloadEDMap</span>}{<span class="i">$PDBID</span>} = <span class="n">1</span><span class="sc">;</span>
+ 418 
+ 419       <span class="i">$EDMapPDBID</span> = <span class="k">lc</span> <span class="i">$PDBID</span><span class="sc">;</span>
+ 420 
+ 421       <span class="k">for</span> <span class="i">$EDMapType</span> <span class="s">(</span><span class="i">@</span>{<span class="i">$OptionsInfo</span>{<span class="w">EDMapTypesList</span>}}<span class="s">)</span> <span class="s">{</span>
+ 422         <span class="i">$EDMapSuffix</span> = <span class="i">$OptionsInfo</span>{<span class="w">EDMapLocationSuffixesMap</span>}{<span class="i">$EDMapType</span>}<span class="sc">;</span>
+ 423         <span class="i">$EDMapFileExt</span> = <span class="i">$OptionsInfo</span>{<span class="w">EDMapLocationFileExtMap</span>}{<span class="i">$EDMapType</span>}<span class="sc">;</span>
+ 424 
+ 425         <span class="k">push</span> <span class="i">@</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">RemoteEDMapFiles</span>}{<span class="i">$PDBID</span>}}<span class="cm">,</span> <span class="q">&quot;${EDMapDataLocaltionURL}${EDMapPDBID}${EDMapSuffix}.${EDMapFileExt}&quot;</span><span class="sc">;</span>
+ 426         <span class="k">push</span> <span class="i">@</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">LocalEDMapFiles</span>}{<span class="i">$PDBID</span>}}<span class="cm">,</span> <span class="q">&quot;${EDMapPDBID}${EDMapSuffix}.${EDMapFileExt}&quot;</span><span class="sc">;</span>
+ 427 
+ 428         <span class="k">push</span> <span class="i">@</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">TmpLocalEDMapFiles</span>}{<span class="i">$PDBID</span>}}<span class="cm">,</span> <span class="q">&quot;${EDMapPDBID}${EDMapSuffix}Tmp.${EDMapFileExt}&quot;</span><span class="sc">;</span>
+ 429         <span class="k">push</span> <span class="i">@</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">FinalLocalEDMapFiles</span>}{<span class="i">$PDBID</span>}}<span class="cm">,</span> <span class="q">&quot;${PDBID}${EDMapSuffix}.${EDMapFileExt}&quot;</span><span class="sc">;</span>
+ 430       <span class="s">}</span>
+ 431     <span class="s">}</span>
+ 432     <span class="k">if</span> <span class="s">(</span><span class="i">$OptionsInfo</span>{<span class="w">DensityMapMode</span>} =~ <span class="q">/^(CryoEMDensity|Auto)$/i</span><span class="s">)</span> <span class="s">{</span>
+ 433       <span class="c"># Set up cryo-EM map file names using &quot;EMDBIDPlaceHolder&quot; to be replaced later by</span>
+ 434       <span class="c"># a valid ID retrieved from PDB or CIF file...</span>
+ 435       <span class="c">#</span>
+ 436       <span class="i">$EMDBID</span> = <span class="q">&quot;EMDBIDPlaceHolder&quot;</span><span class="sc">;</span>
+ 437       <span class="i">$PDBFilesInfo</span>{<span class="w">DownloadCryoEMMap</span>}{<span class="i">$PDBID</span>} = <span class="n">1</span><span class="sc">;</span>
+ 438 
+ 439       <span class="c"># Map files...</span>
+ 440       <span class="k">push</span> <span class="i">@</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">RemoteCyroEMMapFileTypes</span>}{<span class="i">$PDBID</span>}}<span class="cm">,</span> <span class="q">&quot;map&quot;</span><span class="sc">;</span>
+ 441       <span class="k">push</span> <span class="i">@</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">RemoteCyroEMMapFiles</span>}{<span class="i">$PDBID</span>}}<span class="cm">,</span> <span class="q">&quot;${CryoEMDataLocationURL}EMD-${EMDBID}/map/emd_${EMDBID}.map.gz&quot;</span><span class="sc">;</span>
+ 442       <span class="k">push</span> <span class="i">@</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">LocalCyroEMMapFiles</span>}{<span class="i">$PDBID</span>}}<span class="cm">,</span> <span class="q">&quot;emd_${EMDBID}.map.gz&quot;</span><span class="sc">;</span>
+ 443 
+ 444       <span class="c"># Metadata files...</span>
+ 445       <span class="k">push</span> <span class="i">@</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">RemoteCyroEMMapFileTypes</span>}{<span class="i">$PDBID</span>}}<span class="cm">,</span> <span class="q">&quot;header&quot;</span><span class="sc">;</span>
+ 446       <span class="k">push</span> <span class="i">@</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">RemoteCyroEMMapFiles</span>}{<span class="i">$PDBID</span>}}<span class="cm">,</span> <span class="q">&quot;${CryoEMDataLocationURL}EMD-${EMDBID}/header/emd-${EMDBID}.xml&quot;</span><span class="sc">;</span>
+ 447       <span class="k">push</span> <span class="i">@</span>{<span class="i">$PDBFilesInfo</span>{<span class="w">LocalCyroEMMapFiles</span>}{<span class="i">$PDBID</span>}}<span class="cm">,</span> <span class="q">&quot;emd-${EMDBID}.xml&quot;</span><span class="sc">;</span>
+ 448 
+ 449     <span class="s">}</span>
+ 450   <span class="s">}</span>
+ 451 <span class="s">}</span>
+ 452 
+ 453 <span class="c"># Collect PDB IDs...</span>
+ 454 <span class="c">#</span>
+<a name="RetrievePDBIDs-"></a> 455 <span class="k">sub </span><span class="m">RetrievePDBIDs</span> <span class="s">{</span>
+ 456   <span class="i">@</span>{<span class="i">$OptionsInfo</span>{<span class="w">PDBIDs</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 457 
+ 458   <span class="k">if</span> <span class="s">(</span><span class="i">$OptionsInfo</span>{<span class="w">Mode</span>} =~ <span class="q">/^IDsOnCmdLine$/i</span><span class="s">)</span> <span class="s">{</span>
+ 459     <span class="i">RetriveCommandLinePDBIDs</span><span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 460   <span class="s">}</span>
+ 461   <span class="k">elsif</span> <span class="s">(</span><span class="i">$OptionsInfo</span>{<span class="w">Mode</span>} =~ <span class="q">/^IDsInFile$/i</span><span class="s">)</span> <span class="s">{</span>
+ 462     <span class="i">RetriveTextFilePDBIDs</span><span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 463   <span class="s">}</span>
+ 464 <span class="s">}</span>
+ 465 
+ 466 <span class="c"># Collect PDB IDs specified on the command line...</span>
+ 467 <span class="c">#</span>
+<a name="RetriveCommandLinePDBIDs-"></a> 468 <span class="k">sub </span><span class="m">RetriveCommandLinePDBIDs</span> <span class="s">{</span>
+ 469   <span class="k">my</span><span class="s">(</span><span class="i">$SpecifiedPDBID</span><span class="cm">,</span> <span class="i">@PDBIDs</span><span class="cm">,</span> <span class="i">@ProcessedPDBIDs</span><span class="s">)</span><span class="sc">;</span>
+ 470 
+ 471   <span class="k">print</span> <span class="q">&quot;\nProcessing PDB ID(s) from command line...\n&quot;</span><span class="sc">;</span>
+ 472 
+ 473   <span class="i">@PDBIDs</span> = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 474   <span class="k">for</span> <span class="i">$SpecifiedPDBID</span> <span class="s">(</span><span class="i">@</span>{<span class="i">$OptionsInfo</span>{<span class="w">CmdLinePDBIDs</span>}}<span class="s">)</span> <span class="s">{</span>
+ 475     <span class="i">@ProcessedPDBIDs</span> = <span class="i">ProcessSpecifiedPDBIDs</span><span class="s">(</span><span class="i">$SpecifiedPDBID</span><span class="s">)</span><span class="sc">;</span>
+ 476     <span class="k">if</span> <span class="s">(</span><span class="i">@ProcessedPDBIDs</span><span class="s">)</span> <span class="s">{</span>
+ 477       <span class="k">push</span> <span class="i">@PDBIDs</span><span class="cm">,</span> <span class="i">@ProcessedPDBIDs</span><span class="sc">;</span>
+ 478     <span class="s">}</span>
+ 479   <span class="s">}</span>
+ 480   <span class="i">@</span>{<span class="i">$OptionsInfo</span>{<span class="w">PDBIDs</span>}} = <span class="i">@PDBIDs</span><span class="sc">;</span>
+ 481 
+ 482   <span class="i">RetrieveUniquePDBIDs</span><span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 483 <span class="s">}</span>
+ 484 
+ 485 <span class="c"># Collect PDB IDs specified in the text file...</span>
+ 486 <span class="c">#</span>
+<a name="RetriveTextFilePDBIDs-"></a> 487 <span class="k">sub </span><span class="m">RetriveTextFilePDBIDs</span> <span class="s">{</span>
+ 488   <span class="k">my</span><span class="s">(</span><span class="i">$TextFile</span><span class="cm">,</span> <span class="i">$InDelim</span><span class="cm">,</span> <span class="i">$IDsColIndex</span><span class="cm">,</span> <span class="i">$LineCount</span><span class="cm">,</span> <span class="i">$ProcessedLineCount</span><span class="cm">,</span> <span class="i">$IgnoredLineCount</span><span class="cm">,</span> <span class="i">$PDBID</span><span class="cm">,</span> <span class="i">$Line</span><span class="cm">,</span> <span class="i">@PDBIDs</span><span class="cm">,</span> <span class="i">@ProcessedPDBIDs</span><span class="cm">,</span> <span class="i">@LineWords</span><span class="s">)</span><span class="sc">;</span>
+ 489 
+ 490   <span class="i">$TextFile</span> = <span class="i">$PDBIDsFileInfo</span>{<span class="w">Name</span>}<span class="sc">;</span>
+ 491 
+ 492   <span class="i">$IDsColIndex</span> = <span class="i">$PDBIDsFileInfo</span>{<span class="w">IDsColIndex</span>}<span class="sc">;</span>
+ 493   <span class="i">$InDelim</span> = <span class="i">$PDBIDsFileInfo</span>{<span class="w">InDelim</span>} <span class="sc">;</span>
+ 494 
+ 495   <span class="s">(</span><span class="i">$LineCount</span><span class="cm">,</span> <span class="i">$ProcessedLineCount</span><span class="cm">,</span> <span class="i">$IgnoredLineCount</span><span class="s">)</span> = <span class="s">(</span><span class="n">0</span><span class="s">)</span> x <span class="n">3</span><span class="sc">;</span>
+ 496 
+ 497   <span class="k">print</span> <span class="q">&quot;\nProcessing PDB ID(s) from PDB IDs  file $TextFile...\n&quot;</span><span class="sc">;</span>
+ 498 
+ 499   <span class="k">open</span> <span class="w">TEXTFILE</span><span class="cm">,</span> <span class="q">&quot;$TextFile&quot;</span> <span class="k">or</span> <span class="k">die</span> <span class="q">&quot;Couldn&#39;t open $TextFile: $! \n&quot;</span><span class="sc">;</span>
+ 500   <span class="c"># Skip label line...</span>
+ 501   <span class="i">$_</span> = <span class="q">&lt;TEXTFILE&gt;</span><span class="sc">;</span>
+ 502 
+ 503   <span class="i">@PDBIDs</span> = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 504   <span class="j">LINE:</span> <span class="k">while</span> <span class="s">(</span><span class="i">$Line</span> = <span class="i">GetTextLine</span><span class="s">(</span>\<span class="i">*TEXTFILE</span><span class="s">)</span><span class="s">)</span> <span class="s">{</span>
+ 505     <span class="i">$LineCount</span>++<span class="sc">;</span>
+ 506     <span class="i">@LineWords</span> = <span class="i">quotewords</span><span class="s">(</span><span class="i">$InDelim</span><span class="cm">,</span> <span class="n">0</span><span class="cm">,</span> <span class="i">$Line</span><span class="s">)</span><span class="sc">;</span>
+ 507 
+ 508     <span class="k">if</span> <span class="s">(</span><span class="i">$IDsColIndex</span> &gt;= <span class="k">scalar</span> <span class="i">@LineWords</span><span class="s">)</span> <span class="s">{</span>
+ 509       <span class="i">$IgnoredLineCount</span>++<span class="sc">;</span>
+ 510       <span class="k">warn</span> <span class="q">&quot;Warning: Ignoring line number $LineCount: PDB IDs column number, &quot;</span>. <span class="s">(</span><span class="i">$IDsColIndex</span> + <span class="n">1</span><span class="s">)</span> . <span class="q">&quot;, doesn&#39;t exist in the line containing, &quot;</span> . <span class="s">(</span><span class="k">scalar</span> <span class="i">@LineWords</span><span class="s">)</span> .  <span class="q">&quot;, columns.\nLine: $Line\n&quot;</span><span class="sc">;</span>
+ 511       <span class="k">next</span> <span class="j">LINE</span><span class="sc">;</span>
+ 512     <span class="s">}</span>
+ 513     <span class="i">$PDBID</span> = <span class="i">$LineWords</span>[<span class="i">$IDsColIndex</span>]<span class="sc">;</span>
+ 514     <span class="k">if</span> <span class="s">(</span><span class="i">IsEmpty</span><span class="s">(</span><span class="i">$PDBID</span> <span class="s">)</span><span class="s">)</span> <span class="s">{</span>
+ 515       <span class="i">$IgnoredLineCount</span>++<span class="sc">;</span>
+ 516       <span class="k">warn</span> <span class="q">&quot;Warning: Ignoring line number $LineCount: PDB ID value is empty.\nLine: $Line\n&quot;</span><span class="sc">;</span>
+ 517       <span class="k">next</span> <span class="j">LINE</span><span class="sc">;</span>
+ 518     <span class="s">}</span>
+ 519     <span class="i">$ProcessedLineCount</span>++<span class="sc">;</span>
+ 520 
+ 521     <span class="i">@ProcessedPDBIDs</span> = <span class="i">ProcessSpecifiedPDBIDs</span><span class="s">(</span><span class="i">$PDBID</span><span class="s">)</span><span class="sc">;</span>
+ 522     <span class="k">if</span> <span class="s">(</span><span class="i">@ProcessedPDBIDs</span><span class="s">)</span> <span class="s">{</span>
+ 523       <span class="k">push</span> <span class="i">@PDBIDs</span><span class="cm">,</span> <span class="i">@ProcessedPDBIDs</span><span class="sc">;</span>
+ 524     <span class="s">}</span>
+ 525   <span class="s">}</span>
+ 526   <span class="k">close</span> <span class="w">TEXTFILE</span><span class="sc">;</span>
+ 527 
+ 528   <span class="i">@</span>{<span class="i">$OptionsInfo</span>{<span class="w">PDBIDs</span>}} = <span class="i">@PDBIDs</span><span class="sc">;</span>
+ 529 
+ 530   <span class="k">print</span> <span class="q">&quot;\nTotal number of lines in PDB IDs text file: $LineCount\n&quot;</span><span class="sc">;</span>
+ 531   <span class="k">print</span> <span class="q">&quot;Total number of lines processed: $ProcessedLineCount\n&quot;</span><span class="sc">;</span>
+ 532   <span class="k">print</span> <span class="q">&quot;Total number of lines ignored: $IgnoredLineCount\n&quot;</span><span class="sc">;</span>
+ 533 
+ 534   <span class="i">RetrieveUniquePDBIDs</span><span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 535 <span class="s">}</span>
+ 536 
+ 537 <span class="c"># Process specified PDB IDs...</span>
+ 538 <span class="c">#</span>
+ 539 <span class="c"># Notes:</span>
+ 540 <span class="c">#   . Commas and spaces in the specification of PBD IDs are allowed.</span>
+ 541 <span class="c">#   . All PDB IDs are turned into uppercase letters.</span>
+ 542 <span class="c">#</span>
+<a name="ProcessSpecifiedPDBIDs-"></a> 543 <span class="k">sub </span><span class="m">ProcessSpecifiedPDBIDs</span> <span class="s">{</span>
+ 544   <span class="k">my</span><span class="s">(</span><span class="i">$SpecifiedPDBID</span><span class="s">)</span> = <span class="i">@_</span><span class="sc">;</span>
+ 545   <span class="k">my</span><span class="s">(</span><span class="i">$PDBID</span><span class="cm">,</span> <span class="i">@PDBIDWords</span><span class="cm">,</span> <span class="i">@PDBIDs</span><span class="s">)</span><span class="sc">;</span>
+ 546 
+ 547   <span class="i">$SpecifiedPDBID</span> = <span class="i">RemoveLeadingAndTrailingWhiteSpaces</span><span class="s">(</span><span class="i">$SpecifiedPDBID</span><span class="s">)</span><span class="sc">;</span>
+ 548    <span class="k">if</span> <span class="s">(</span><span class="i">$SpecifiedPDBID</span> =~ <span class="q">/ /</span><span class="s">)</span> <span class="s">{</span>
+ 549     <span class="i">@PDBIDWords</span> = <span class="k">split</span> <span class="q">&quot; &quot;</span><span class="cm">,</span>  <span class="i">$SpecifiedPDBID</span><span class="sc">;</span>
+ 550   <span class="s">}</span>
+ 551   <span class="k">elsif</span> <span class="s">(</span><span class="i">$SpecifiedPDBID</span> =~ <span class="q">/,/</span><span class="s">)</span> <span class="s">{</span>
+ 552     <span class="i">@PDBIDWords</span> = <span class="k">split</span> <span class="q">&quot;,&quot;</span><span class="cm">,</span>  <span class="i">$SpecifiedPDBID</span><span class="sc">;</span>
+ 553   <span class="s">}</span>
+ 554   <span class="k">else</span> <span class="s">{</span>
+ 555     <span class="k">push</span> <span class="i">@PDBIDWords</span><span class="cm">,</span> <span class="i">$SpecifiedPDBID</span><span class="sc">;</span>
+ 556   <span class="s">}</span>
+ 557 
+ 558   <span class="i">@PDBIDs</span> = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 559   <span class="k">for</span> <span class="i">$PDBID</span> <span class="s">(</span><span class="i">@PDBIDWords</span><span class="s">)</span> <span class="s">{</span>
+ 560     <span class="i">$PDBID</span> =~ <span class="q">s/( |,)//g</span><span class="sc">;</span>
+ 561     <span class="k">push</span> <span class="i">@PDBIDs</span><span class="cm">,</span> <span class="k">uc</span> <span class="i">$PDBID</span><span class="sc">;</span>
+ 562   <span class="s">}</span>
+ 563   <span class="k">return</span> <span class="i">@PDBIDs</span><span class="sc">;</span>
+ 564 <span class="s">}</span>
+ 565 
+ 566 <span class="c"># Collect unique PDB IDs...</span>
+<a name="RetrieveUniquePDBIDs-"></a> 567 <span class="k">sub </span><span class="m">RetrieveUniquePDBIDs</span> <span class="s">{</span>
+ 568   <span class="k">my</span><span class="s">(</span><span class="i">$PDBID</span><span class="cm">,</span> <span class="i">$PDBIDsCount</span><span class="cm">,</span> <span class="i">$PDBIDsIgnoredCount</span><span class="cm">,</span> <span class="i">@UniquePDBIDs</span><span class="cm">,</span> <span class="i">%PDBIDsMap</span><span class="s">)</span><span class="sc">;</span>
+ 569 
+ 570   <span class="i">%PDBIDsMap</span> = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 571   <span class="i">@UniquePDBIDs</span> = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 572 
+ 573   <span class="i">$PDBIDsCount</span> = <span class="n">0</span><span class="sc">;</span>
+ 574   <span class="i">$PDBIDsIgnoredCount</span> = <span class="n">0</span><span class="sc">;</span>
+ 575 
+ 576   <span class="j">PDBID:</span> <span class="k">for</span> <span class="i">$PDBID</span> <span class="s">(</span><span class="i">@</span>{<span class="i">$OptionsInfo</span>{<span class="w">PDBIDs</span>}}<span class="s">)</span> <span class="s">{</span>
+ 577    <span class="i">$PDBIDsCount</span>++<span class="sc">;</span>
+ 578     <span class="k">if</span> <span class="s">(</span><span class="k">exists</span> <span class="i">$PDBIDsMap</span>{<span class="i">$PDBID</span>}<span class="s">)</span> <span class="s">{</span>
+ 579       <span class="i">$PDBIDsIgnoredCount</span>++<span class="sc">;</span>
+ 580       <span class="k">warn</span> <span class="q">&quot;Warning: Ignoring duplicate PDB ID $PDBID\n&quot;</span><span class="sc">;</span>
+ 581       <span class="k">next</span> <span class="j">PDBID</span><span class="sc">;</span>
+ 582     <span class="s">}</span>
+ 583     <span class="i">$PDBIDsMap</span>{<span class="i">$PDBID</span>} = <span class="i">$PDBID</span><span class="sc">;</span>
+ 584     <span class="k">push</span> <span class="i">@UniquePDBIDs</span><span class="cm">,</span> <span class="i">$PDBID</span><span class="sc">;</span>
+ 585   <span class="s">}</span>
+ 586   <span class="i">@</span>{<span class="i">$OptionsInfo</span>{<span class="w">PDBIDs</span>}} = <span class="i">@UniquePDBIDs</span><span class="sc">;</span>
+ 587   <span class="k">print</span> <span class="q">&quot;\nTotal number of PDB IDs:  $PDBIDsCount\n&quot;</span><span class="sc">;</span>
+ 588   <span class="k">print</span> <span class="q">&quot;Number of duplicate PDB IDs ignored:  $PDBIDsIgnoredCount\n&quot;</span><span class="sc">;</span>
+ 589 <span class="s">}</span>
+ 590 
+ 591 <span class="c"># Process option values...</span>
+<a name="ProcessOptions-"></a> 592 <span class="k">sub </span><span class="m">ProcessOptions</span> <span class="s">{</span>
+ 593   <span class="k">my</span><span class="s">(</span><span class="i">$EDMapTypes</span><span class="cm">,</span> <span class="i">$EDMapType</span><span class="cm">,</span> <span class="i">$EDLocationSuffixes</span><span class="cm">,</span> <span class="i">$EDMapSuffix</span><span class="cm">,</span> <span class="i">$Index</span><span class="cm">,</span> <span class="i">@EDMapTypesList</span><span class="cm">,</span> <span class="i">@EDLocationSuffixesList</span><span class="cm">,</span> <span class="i">%EDLocationSuffixesMap</span><span class="s">)</span><span class="sc">;</span>
+ 594 
+ 595   <span class="i">%OptionsInfo</span> = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 596   <span class="i">%PDBIDsFileInfo</span> = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 597 
+ 598   <span class="i">$OptionsInfo</span>{<span class="w">Mode</span>} = <span class="i">$Options</span>{<span class="w">mode</span>}<span class="sc">;</span>
+ 599   <span class="i">$OptionsInfo</span>{<span class="w">ColMode</span>} = <span class="i">$Options</span>{<span class="w">colmode</span>}<span class="sc">;</span>
+ 600 
+ 601   <span class="i">$OptionsInfo</span>{<span class="w">DataLocationURL</span>} = <span class="i">$Options</span>{<span class="w">datalocationurl</span>}<span class="sc">;</span>
+ 602   <span class="k">if</span> <span class="s">(</span><span class="i">IsEmpty</span><span class="s">(</span><span class="i">$OptionsInfo</span>{<span class="w">DataLocationURL</span>} <span class="s">)</span><span class="s">)</span> <span class="s">{</span>
+ 603     <span class="k">die</span> <span class="q">&quot;Error: PDB data location URL specified using \&quot;-d, --dataLocationURL\&quot; is empty. Allowed value: Non empty string\n&quot;</span><span class="sc">;</span>
+ 604   <span class="s">}</span>
+ 605 
+ 606   <span class="i">$OptionsInfo</span>{<span class="w">DensityMap</span>} = <span class="i">$Options</span>{<span class="w">densitymap</span>} =~ <span class="q">/^Yes$/i</span> ? <span class="n">1</span> <span class="co">:</span> <span class="n">0</span><span class="sc">;</span>
+ 607   <span class="i">$OptionsInfo</span>{<span class="w">DensityMapMode</span>} = <span class="i">$Options</span>{<span class="w">densitymapmode</span>}<span class="sc">;</span>
+ 608 
+ 609   <span class="i">$OptionsInfo</span>{<span class="w">DensityMapLocationURLCryoEM</span>} = <span class="i">$Options</span>{<span class="w">densitymaplocationurlcryoem</span>}<span class="sc">;</span>
+ 610   <span class="i">$OptionsInfo</span>{<span class="w">DenistyMapLocationURLXRay</span>} = <span class="i">$Options</span>{<span class="w">denistymaplocationurlxray</span>}<span class="sc">;</span>
+ 611 
+ 612   <span class="c"># Process x-ray ED map location file suffixes...</span>
+ 613   <span class="i">$EDLocationSuffixes</span> = <span class="i">$Options</span>{<span class="w">edmaplocationsuffixes</span>}<span class="sc">;</span>
+ 614   <span class="i">$EDLocationSuffixes</span> =~ <span class="q">s/ //g</span><span class="sc">;</span>
+ 615   <span class="i">%EDLocationSuffixesMap</span> = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 616 
+ 617   <span class="i">@EDLocationSuffixesList</span> = <span class="k">split</span><span class="s">(</span><span class="q">&quot;,&quot;</span><span class="cm">,</span> <span class="i">$EDLocationSuffixes</span><span class="s">)</span><span class="sc">;</span>
+ 618   <span class="k">if</span> <span class="s">(</span><span class="i">@EDLocationSuffixesList</span> % <span class="n">2</span><span class="s">)</span> <span class="s">{</span>
+ 619     <span class="k">die</span> <span class="q">&quot;Invalid number  of values specified using \&quot;--EDMapLocationSuffixes\&quot; option: It must contain even number of valid values.\n&quot;</span><span class="sc">;</span>
+ 620   <span class="s">}</span>
+ 621   <span class="k">for</span> <span class="s">(</span><span class="i">$Index</span> = <span class="n">0</span><span class="sc">;</span> <span class="i">$Index</span> &lt; <span class="i">@EDLocationSuffixesList</span><span class="sc">;</span> <span class="i">$Index</span> += <span class="n">2</span><span class="s">)</span> <span class="s">{</span>
+ 622     <span class="i">$EDMapType</span> = <span class="i">$EDLocationSuffixesList</span>[<span class="i">$Index</span>]<span class="sc">;</span>
+ 623     <span class="i">$EDMapSuffix</span> = <span class="i">$EDLocationSuffixesList</span>[<span class="i">$Index</span> + <span class="n">1</span>]<span class="sc">;</span>
+ 624 
+ 625     <span class="k">if</span> <span class="s">(</span><span class="i">$EDMapType</span> !~ <span class="q">/^(CompositeMap|DifferenceMap|ReflectionMap)$/i</span><span class="s">)</span> <span class="s">{</span>
+ 626       <span class="k">die</span> <span class="q">&quot;Error: The value specified, $EDMapType, for option \&quot;--EDMapLocationSuffixes\&quot; is not valid. Allowed values: CompositeMap, DifferenceMap, ReflectionMap\n&quot;</span><span class="sc">;</span>
+ 627     <span class="s">}</span>
+ 628     <span class="k">if</span> <span class="s">(</span><span class="k">exists</span> <span class="i">$EDLocationSuffixesMap</span>{<span class="i">$EDMapType</span>}<span class="s">)</span> <span class="s">{</span>
+ 629       <span class="k">die</span> <span class="q">&quot;Error: Duplicate ED map type, $EDMapType, specified for option \&quot;--EDMapLocationSuffixes\&quot;\n&quot;</span><span class="sc">;</span>
+ 630     <span class="s">}</span>
+ 631 
+ 632     <span class="c"># Track suffixes...</span>
+ 633     <span class="k">if</span> <span class="s">(</span><span class="i">$EDMapSuffix</span> =~ <span class="q">/^None$/i</span><span class="s">)</span> <span class="s">{</span>
+ 634       <span class="i">$EDMapSuffix</span> = <span class="q">&quot;&quot;</span><span class="sc">;</span>
+ 635     <span class="s">}</span>
+ 636     <span class="i">$EDLocationSuffixesMap</span>{<span class="i">$EDMapType</span>} = <span class="i">$EDMapSuffix</span><span class="sc">;</span>
+ 637   <span class="s">}</span>
+ 638   <span class="i">$OptionsInfo</span>{<span class="w">EDMapLocationSuffixes</span>} = <span class="i">$EDLocationSuffixes</span><span class="sc">;</span>
+ 639   <span class="i">@</span>{<span class="i">$OptionsInfo</span>{<span class="w">EDMapLocationSuffixesList</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 640   <span class="i">@</span>{<span class="i">$OptionsInfo</span>{<span class="w">EDMapLocationSuffixesList</span>}} = <span class="i">@EDLocationSuffixesList</span><span class="sc">;</span>
+ 641 
+ 642   <span class="i">%</span>{<span class="i">$OptionsInfo</span>{<span class="w">EDMapLocationSuffixesMap</span>}} = <span class="s">(</span><span class="q">&quot;CompositeMap&quot;</span> <span class="cm">=&gt;</span> <span class="q">&quot;&quot;</span><span class="cm">,</span> <span class="q">&quot;DifferenceMap&quot;</span> <span class="cm">=&gt;</span> <span class="q">&quot;_diff&quot;</span><span class="cm">,</span> <span class="q">&quot;ReflectionMap&quot;</span> <span class="cm">=&gt;</span> <span class="q">&quot;_map&quot;</span><span class="s">)</span><span class="sc">;</span>
+ 643   <span class="i">%</span>{<span class="i">$OptionsInfo</span>{<span class="w">EDMapLocationFileExtMap</span>}} = <span class="s">(</span><span class="q">&quot;CompositeMap&quot;</span> <span class="cm">=&gt;</span> <span class="q">&quot;ccp4&quot;</span><span class="cm">,</span> <span class="q">&quot;DifferenceMap&quot;</span> <span class="cm">=&gt;</span> <span class="q">&quot;ccp4&quot;</span><span class="cm">,</span> <span class="q">&quot;ReflectionMap&quot;</span> <span class="cm">=&gt;</span> <span class="q">&quot;mtz&quot;</span><span class="s">)</span><span class="sc">;</span>
+ 644 
+ 645   <span class="k">for</span> <span class="i">$EDMapType</span> <span class="s">(</span><span class="k">keys</span> <span class="i">%EDLocationSuffixesMap</span><span class="s">)</span> <span class="s">{</span>
+ 646     <span class="i">$EDMapSuffix</span> = <span class="i">$EDLocationSuffixesMap</span>{<span class="i">$EDMapType</span>}<span class="sc">;</span>
+ 647     <span class="i">$OptionsInfo</span>{<span class="w">EDMapLocationSuffixesMap</span>}{<span class="i">$EDMapType</span>} = <span class="i">$EDMapSuffix</span><span class="sc">;</span>
+ 648   <span class="s">}</span>
+ 649 
+ 650   <span class="c"># Process x-ray ED map types...</span>
+ 651   <span class="i">$EDMapTypes</span> = <span class="i">$Options</span>{<span class="w">edmaptypes</span>}<span class="sc">;</span>
+ 652   <span class="i">$EDMapTypes</span> =~ <span class="q">s/ //g</span><span class="sc">;</span>
+ 653   <span class="i">@EDMapTypesList</span> = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 654   <span class="k">if</span> <span class="s">(</span><span class="i">$EDMapTypes</span> =~ <span class="q">/^All$/i</span><span class="s">)</span> <span class="s">{</span>
+ 655     <span class="k">push</span> <span class="i">@EDMapTypesList</span><span class="cm">,</span> <span class="s">(</span><span class="q">&quot;CompositeMap&quot;</span><span class="cm">,</span> <span class="q">&quot;DifferenceMap&quot;</span><span class="cm">,</span> <span class="q">&quot;ReflectionMap&quot;</span><span class="s">)</span><span class="sc">;</span>
+ 656   <span class="s">}</span>
+ 657   <span class="k">else</span> <span class="s">{</span>
+ 658     <span class="i">@EDMapTypesList</span> = <span class="k">split</span><span class="s">(</span><span class="q">&quot;,&quot;</span><span class="cm">,</span> <span class="i">$EDMapTypes</span><span class="s">)</span><span class="sc">;</span>
+ 659     <span class="k">for</span> <span class="i">$EDMapType</span> <span class="s">(</span><span class="i">@EDMapTypesList</span><span class="s">)</span> <span class="s">{</span>
+ 660       <span class="k">if</span> <span class="s">(</span><span class="i">$EDMapType</span> !~ <span class="q">/^(CompositeMap|DifferenceMap|ReflectionMap|All)$/i</span><span class="s">)</span> <span class="s">{</span>
+ 661         <span class="k">die</span> <span class="q">&quot;Error: The value specified, $EDMapType, for option \&quot;--EDMapTypes\&quot; is not valid. Allowed values: CompositeMap, DifferenceMap, ReflectionMap, All\n&quot;</span><span class="sc">;</span>
+ 662       <span class="s">}</span>
+ 663       <span class="k">if</span> <span class="s">(</span><span class="i">$EDMapType</span> =~ <span class="q">/^All$/i</span><span class="s">)</span> <span class="s">{</span>
+ 664         <span class="k">die</span> <span class="q">&quot;Error: The value specified, $EDMapType, for option \&quot;--EDMapTypes\&quot; must be specified alone. It can&#39;t be specified with other values.\n&quot;</span><span class="sc">;</span>
+ 665       <span class="s">}</span>
+ 666     <span class="s">}</span>
+ 667   <span class="s">}</span>
+ 668 
+ 669   <span class="i">$OptionsInfo</span>{<span class="w">EDMapTypes</span>} = <span class="i">$EDMapTypes</span><span class="sc">;</span>
+ 670   <span class="i">@</span>{<span class="i">$OptionsInfo</span>{<span class="w">EDMapTypesList</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 671   <span class="k">push</span> <span class="i">@</span>{<span class="i">$OptionsInfo</span>{<span class="w">EDMapTypesList</span>}}<span class="cm">,</span> <span class="i">@EDMapTypesList</span><span class="sc">;</span>
+ 672 
+ 673 
+ 674   <span class="i">$OptionsInfo</span>{<span class="w">InDelim</span>} = <span class="i">$Options</span>{<span class="w">indelim</span>}<span class="sc">;</span>
+ 675 
+ 676   <span class="i">$OptionsInfo</span>{<span class="w">PDBIDsCol</span> } = <span class="k">defined</span> <span class="i">$Options</span>{<span class="w">pdbidscol</span>} ? <span class="i">$Options</span>{<span class="w">pdbidscol</span>} <span class="co">:</span> <span class="q">&#39;&#39;</span><span class="sc">;</span>
+ 677 
+ 678   <span class="i">$OptionsInfo</span>{<span class="w">PDBFormat</span>} = <span class="i">$Options</span>{<span class="w">pdbformat</span>}<span class="sc">;</span>
+ 679 
+ 680   <span class="i">@</span>{<span class="i">$OptionsInfo</span>{<span class="w">CmdLinePDBIDs</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 681   <span class="i">$OptionsInfo</span>{<span class="w">PDBIDsFile</span>} = <span class="q">&quot;&quot;</span><span class="sc">;</span>
+ 682 
+ 683   <span class="k">if</span> <span class="s">(</span><span class="i">$OptionsInfo</span>{<span class="w">Mode</span>} =~ <span class="q">/^IDsOnCmdLine$/i</span><span class="s">)</span> <span class="s">{</span>
+ 684     <span class="k">push</span> <span class="i">@</span>{<span class="i">$OptionsInfo</span>{<span class="w">CmdLinePDBIDs</span>}}<span class="cm">,</span> <span class="i">@ARGV</span><span class="sc">;</span>
+ 685   <span class="s">}</span>
+ 686   <span class="k">elsif</span> <span class="s">(</span><span class="i">$OptionsInfo</span>{<span class="w">Mode</span>} =~ <span class="q">/^IDsInFile$/i</span><span class="s">)</span> <span class="s">{</span>
+ 687     <span class="k">if</span> <span class="s">(</span><span class="i">@ARGV</span> != <span class="n">1</span><span class="s">)</span> <span class="s">{</span>
+ 688       <span class="k">die</span> <span class="q">&quot;Error: Invalid number of PDB IDs text files, &quot;</span>. <span class="s">(</span><span class="k">scalar</span> <span class="i">@ARGV</span><span class="s">)</span> . <span class="q">&quot;,specified on the command line for \&quot;IDsInFile\&quot; value of  $Options{mode}, for option \&quot;-m --mode\&quot;. Allowed value: Only one text file\n&quot;</span><span class="sc">;</span>
+ 689     <span class="s">}</span>
+ 690     <span class="i">$OptionsInfo</span>{<span class="w">PDBIDsFile</span>} = <span class="i">$ARGV</span>[<span class="n">0</span>]<span class="sc">;</span>
+ 691 
+ 692     <span class="i">RetrievePDBIDsTextFileInfo</span><span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 693   <span class="s">}</span>
+ 694   <span class="k">else</span> <span class="s">{</span>
+ 695     <span class="k">die</span> <span class="q">&quot;Error: The value specified, $Options{mode}, for option \&quot;-m --mode\&quot; is not valid. Allowed values: IDsOnCmdLine or IDsInFile\n&quot;</span><span class="sc">;</span>
+ 696   <span class="s">}</span>
+ 697 <span class="s">}</span>
+ 698 
+ 699 <span class="c"># Retrieve information for PDB IDs text file...</span>
+ 700 <span class="c">#</span>
+<a name="RetrievePDBIDsTextFileInfo-"></a> 701 <span class="k">sub </span><span class="m">RetrievePDBIDsTextFileInfo</span> <span class="s">{</span>
+ 702   <span class="k">my</span><span class="s">(</span><span class="i">$TextFile</span><span class="cm">,</span> <span class="i">$FileDir</span><span class="cm">,</span> <span class="i">$FileName</span><span class="cm">,</span> <span class="i">$FileExt</span><span class="cm">,</span> <span class="i">$InDelim</span><span class="cm">,</span> <span class="i">$Line</span><span class="cm">,</span> <span class="i">$ColNum</span><span class="cm">,</span> <span class="i">$ColLabel</span><span class="cm">,</span> <span class="i">$PDBIDsColIndex</span><span class="cm">,</span> <span class="i">$ColMode</span><span class="cm">,</span> <span class="i">$PDBIDsCol</span> <span class="cm">,</span> <span class="i">$ColCount</span><span class="cm">,</span> <span class="i">$ColIndex</span><span class="cm">,</span> <span class="i">@ColLabels</span><span class="s">)</span><span class="sc">;</span>
+ 703 
+ 704   <span class="i">$TextFile</span> = <span class="i">$OptionsInfo</span>{<span class="w">PDBIDsFile</span>}<span class="sc">;</span>
+ 705 
+ 706   <span class="i">%PDBIDsFileInfo</span> = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 707   <span class="i">$PDBIDsFileInfo</span>{<span class="w">Name</span>} = <span class="i">$TextFile</span><span class="sc">;</span>
+ 708 
+ 709   <span class="i">$PDBIDsFileInfo</span>{<span class="w">ColCount</span>} = <span class="n">0</span><span class="sc">;</span>
+ 710   <span class="i">@</span>{<span class="i">$PDBIDsFileInfo</span>{<span class="w">ColLabels</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 711   <span class="i">%</span>{<span class="i">$PDBIDsFileInfo</span>{<span class="w">ColLabelToNumMap</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 712   <span class="i">$PDBIDsFileInfo</span>{<span class="w">InDelim</span>} = <span class="q">&quot;&quot;</span><span class="sc">;</span>
+ 713 
+ 714   <span class="i">$PDBIDsFileInfo</span>{<span class="w">IDsColIndex</span>} = <span class="q">&quot;&quot;</span><span class="sc">;</span>
+ 715 
+ 716   <span class="k">if</span> <span class="s">(</span>!<span class="k">-e</span> <span class="i">$TextFile</span><span class="s">)</span> <span class="s">{</span>
+ 717     <span class="k">die</span> <span class="q">&quot;Error: PDBIDs text file, $TextFile, doesn&#39;t exist\n&quot;</span><span class="sc">;</span>
+ 718   <span class="s">}</span>
+ 719 
+ 720   <span class="k">if</span> <span class="s">(</span>!<span class="i">CheckFileType</span><span class="s">(</span><span class="i">$TextFile</span><span class="cm">,</span> <span class="q">&quot;csv tsv&quot;</span><span class="s">)</span><span class="s">)</span> <span class="s">{</span>
+ 721     <span class="k">die</span> <span class="q">&quot;Error: Ignoring file $TextFile: It&#39;s not a csv or tsv file\n&quot;</span><span class="sc">;</span>
+ 722   <span class="s">}</span>
+ 723 
+ 724   <span class="s">(</span><span class="i">$FileDir</span><span class="cm">,</span> <span class="i">$FileName</span><span class="cm">,</span> <span class="i">$FileExt</span><span class="s">)</span> = <span class="i">ParseFileName</span><span class="s">(</span><span class="i">$TextFile</span><span class="s">)</span><span class="sc">;</span>
+ 725   <span class="k">if</span> <span class="s">(</span><span class="i">$FileExt</span> =~ <span class="q">/^tsv$/i</span><span class="s">)</span> <span class="s">{</span>
+ 726     <span class="i">$InDelim</span> = <span class="q">&quot;\t&quot;</span><span class="sc">;</span>
+ 727   <span class="s">}</span>
+ 728   <span class="k">else</span> <span class="s">{</span>
+ 729     <span class="i">$InDelim</span> = <span class="q">&quot;\,&quot;</span><span class="sc">;</span>
+ 730     <span class="k">if</span> <span class="s">(</span>!<span class="s">(</span><span class="i">$OptionsInfo</span>{<span class="w">InDelim</span>} =~ <span class="q">/^(comma|semicolon)$/i</span><span class="s">)</span><span class="s">)</span> <span class="s">{</span>
+ 731       <span class="k">die</span> <span class="q">&quot;Error: Ignoring file $TextFile: The value specified, $OptionsInfo{InDelim}, for option \&quot;--indelim\&quot; is not valid for textfile\n&quot;</span><span class="sc">;</span>
+ 732     <span class="s">}</span>
+ 733     <span class="k">if</span> <span class="s">(</span><span class="i">$OptionsInfo</span>{<span class="w">InDelim</span>} =~ <span class="q">/^semicolon$/i</span><span class="s">)</span> <span class="s">{</span>
+ 734       <span class="i">$InDelim</span> = <span class="q">&quot;\;&quot;</span><span class="sc">;</span>
+ 735     <span class="s">}</span>
+ 736   <span class="s">}</span>
+ 737 
+ 738   <span class="k">if</span> <span class="s">(</span>!<span class="k">open</span> <span class="w">TEXTFILE</span><span class="cm">,</span> <span class="q">&quot;$TextFile&quot;</span><span class="s">)</span> <span class="s">{</span>
+ 739     <span class="k">die</span> <span class="q">&quot;Error: Ignoring file $TextFile: Couldn&#39;t open it: $! \n&quot;</span><span class="sc">;</span>
+ 740   <span class="s">}</span>
+ 741 
+ 742   <span class="i">$Line</span> = <span class="i">GetTextLine</span><span class="s">(</span>\<span class="i">*TEXTFILE</span><span class="s">)</span><span class="sc">;</span>
+ 743   <span class="i">@ColLabels</span> = <span class="i">quotewords</span><span class="s">(</span><span class="i">$InDelim</span><span class="cm">,</span> <span class="n">0</span><span class="cm">,</span> <span class="i">$Line</span><span class="s">)</span><span class="sc">;</span>
+ 744   <span class="k">close</span> <span class="w">TEXTFILE</span><span class="sc">;</span>
+ 745   <span class="i">$ColCount</span> = <span class="k">scalar</span> <span class="i">@ColLabels</span><span class="sc">;</span>
+ 746 
+ 747   <span class="k">push</span> <span class="i">@</span>{<span class="i">$PDBIDsFileInfo</span>{<span class="w">ColLabels</span>}}<span class="cm">,</span> <span class="i">@ColLabels</span><span class="sc">;</span>
+ 748   <span class="i">$PDBIDsFileInfo</span>{<span class="w">ColCount</span>} = <span class="i">$ColCount</span> <span class="sc">;</span>
+ 749   <span class="i">$PDBIDsFileInfo</span>{<span class="w">InDelim</span>} = <span class="i">$InDelim</span><span class="sc">;</span>
+ 750 
+ 751   <span class="c"># Setup collabel to colnum map...</span>
+ 752   <span class="i">%</span>{<span class="i">$PDBIDsFileInfo</span>{<span class="w">ColLabelToNumMap</span>}} = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 753   <span class="k">for</span> <span class="i">$ColNum</span> <span class="s">(</span><span class="n">0</span> .. <span class="i">$#ColLabels</span><span class="s">)</span> <span class="s">{</span>
+ 754     <span class="i">$ColLabel</span> = <span class="i">$ColLabels</span>[<span class="i">$ColNum</span>]<span class="sc">;</span>
+ 755     <span class="i">$PDBIDsFileInfo</span>{<span class="w">ColLabelToNumMap</span>}{<span class="k">lc</span> <span class="i">$ColLabel</span>} = <span class="i">$ColNum</span><span class="sc">;</span>
+ 756   <span class="s">}</span>
+ 757 
+ 758   <span class="c"># Identify column containing PDB IDs...</span>
+ 759   <span class="i">$PDBIDsColIndex</span> = <span class="q">&quot;&quot;</span><span class="sc">;</span>
+ 760 
+ 761   <span class="i">$ColMode</span> = <span class="i">$OptionsInfo</span>{<span class="w">ColMode</span>}<span class="sc">;</span>
+ 762   <span class="i">$PDBIDsCol</span> = <span class="i">$OptionsInfo</span>{<span class="w">PDBIDsCol</span> }<span class="sc">;</span>
+ 763 
+ 764   <span class="k">if</span> <span class="s">(</span><span class="i">IsNotEmpty</span><span class="s">(</span><span class="i">$PDBIDsCol</span> <span class="s">)</span><span class="s">)</span> <span class="s">{</span>
+ 765     <span class="k">if</span> <span class="s">(</span><span class="i">$ColMode</span> =~ <span class="q">/^collabel$/i</span><span class="s">)</span> <span class="s">{</span>
+ 766       <span class="i">$ColLabel</span> = <span class="k">lc</span> <span class="i">$PDBIDsCol</span><span class="sc">;</span>
+ 767       <span class="k">if</span> <span class="s">(</span>!<span class="k">exists</span> <span class="i">$PDBIDsFileInfo</span>{<span class="w">ColLabelToNumMap</span>}{<span class="i">$ColLabel</span>} <span class="s">)</span> <span class="s">{</span>
+ 768         <span class="k">die</span> <span class="q">&quot;Error: Ignoring file $TextFile: The column name, $PDBIDsCol, specified for option \&quot;-p, --PDBIDsCol \&quot; is not valid for text file\n&quot;</span><span class="sc">;</span>
+ 769       <span class="s">}</span>
+ 770       <span class="i">$PDBIDsColIndex</span> = <span class="i">$PDBIDsFileInfo</span>{<span class="w">ColLabelToNumMap</span>}{<span class="i">$ColLabel</span>}<span class="sc">;</span>
+ 771     <span class="s">}</span>
+ 772     <span class="k">else</span> <span class="s">{</span>
+ 773       <span class="i">$ColNum</span> = <span class="i">$PDBIDsCol</span><span class="sc">;</span>
+ 774       <span class="k">if</span> <span class="s">(</span><span class="i">$ColNum</span> &lt;= <span class="n">0</span> || <span class="i">$ColNum</span> &gt; <span class="i">$ColCount</span><span class="s">)</span> <span class="s">{</span>
+ 775         <span class="k">die</span> <span class="q">&quot;Error: Ignoring file $TextFile: The column number, $PDBIDsCol, specified for option \&quot;-p, --PDBIDsCol \&quot; is not valid for text file. It must be &gt; 0 and &lt;= $ColCount\n&quot;</span><span class="sc">;</span>
+ 776       <span class="s">}</span>
+ 777       <span class="i">$PDBIDsColIndex</span> = <span class="i">$ColNum</span> - <span class="n">1</span><span class="sc">;</span>
+ 778     <span class="s">}</span>
+ 779   <span class="s">}</span>
+ 780   <span class="k">else</span> <span class="s">{</span>
+ 781     <span class="c"># Look for column name containing PDB_ID or PDBID text string...</span>
+ 782     <span class="i">$PDBIDsCol</span> = <span class="q">&quot;&quot;</span><span class="sc">;</span>
+ 783     <span class="i">$ColIndex</span> = <span class="n">0</span><span class="sc">;</span>
+ 784     <span class="j">COLLABEL:</span> <span class="k">for</span> <span class="i">$ColLabel</span> <span class="s">(</span><span class="i">@ColLabels</span><span class="s">)</span> <span class="s">{</span>
+ 785       <span class="k">if</span> <span class="s">(</span><span class="i">$ColLabel</span> =~ <span class="q">/(PDB_ID|PDBID)/i</span><span class="s">)</span> <span class="s">{</span>
+ 786         <span class="i">$PDBIDsCol</span> = <span class="i">$ColLabel</span><span class="sc">;</span>
+ 787         <span class="i">$PDBIDsColIndex</span> = <span class="i">$ColIndex</span><span class="sc">;</span>
+ 788         <span class="k">last</span> <span class="j">COLLABEL</span><span class="sc">;</span>
+ 789       <span class="s">}</span>
+ 790       <span class="i">$ColIndex</span>++<span class="sc">;</span>
+ 791     <span class="s">}</span>
+ 792     <span class="k">if</span> <span class="s">(</span><span class="i">IsEmpty</span><span class="s">(</span><span class="i">$PDBIDsCol</span><span class="s">)</span><span class="s">)</span> <span class="s">{</span>
+ 793       <span class="k">die</span> <span class="q">&quot;Error: Ignoring file $TextFile: Couldn&#39;t find PDB IDs default column containing text string PDB_ID or PDBID in its name\n&quot;</span><span class="sc">;</span>
+ 794     <span class="s">}</span>
+ 795   <span class="s">}</span>
+ 796   <span class="i">$PDBIDsFileInfo</span>{<span class="w">IDsColIndex</span>} = <span class="i">$PDBIDsColIndex</span><span class="sc">;</span>
+ 797 <span class="s">}</span>
+ 798 
+ 799 <span class="c"># Setup script usage  and retrieve command line arguments specified using various options...</span>
+<a name="SetupScriptUsage-"></a> 800 <span class="k">sub </span><span class="m">SetupScriptUsage</span> <span class="s">{</span>
+ 801 
+ 802   <span class="c"># Retrieve all the options...</span>
+ 803   <span class="i">%Options</span> = <span class="s">(</span><span class="s">)</span><span class="sc">;</span>
+ 804 
+ 805   <span class="i">$Options</span>{<span class="w">colmode</span>} = <span class="q">&quot;colnum&quot;</span><span class="sc">;</span>
+ 806   <span class="i">$Options</span>{<span class="w">datalocationurl</span>} = <span class="q">&quot;http://www.rcsb.org/pdb/files/&quot;</span><span class="sc">;</span>
+ 807 
+ 808   <span class="i">$Options</span>{<span class="w">densitymap</span>} = <span class="q">&quot;no&quot;</span><span class="sc">;</span>
+ 809   <span class="i">$Options</span>{<span class="w">densitymapmode</span>} = <span class="q">&quot;auto&quot;</span><span class="sc">;</span>
+ 810 
+ 811   <span class="i">$Options</span>{<span class="w">densitymaplocationurlcryoem</span>} = <span class="q">&quot;ftp://ftp.wwpdb.org/pub/emdb/structures/&quot;</span><span class="sc">;</span>
+ 812   <span class="i">$Options</span>{<span class="w">denistymaplocationurlxray</span>} = <span class="q">&quot;http://www.ebi.ac.uk/pdbe/coordinates/files/&quot;</span><span class="sc">;</span>
+ 813 
+ 814   <span class="i">$Options</span>{<span class="w">edmaplocationsuffixes</span>} = <span class="q">&quot;CompositeMap,None,DifferenceMap,_diff,ReflectionMap, _map&quot;</span><span class="sc">;</span>
+ 815   <span class="i">$Options</span>{<span class="w">edmaptypes</span>} = <span class="q">&quot;CompositeMap,DifferenceMap&quot;</span><span class="sc">;</span>
+ 816 
+ 817   <span class="i">$Options</span>{<span class="w">indelim</span>} = <span class="q">&quot;comma&quot;</span><span class="sc">;</span>
+ 818   <span class="i">$Options</span>{<span class="w">mode</span>} = <span class="q">&quot;IDsOnCmdLine&quot;</span><span class="sc">;</span>
+ 819 
+ 820   <span class="i">$Options</span>{<span class="w">pdbformat</span>} = <span class="q">&quot;Auto&quot;</span><span class="sc">;</span>
+ 821 
+ 822   <span class="k">if</span> <span class="s">(</span>!<span class="i">GetOptions</span><span class="s">(</span>\<span class="i">%Options</span><span class="cm">,</span> <span class="q">&quot;colmode|c=s&quot;</span><span class="cm">,</span> <span class="q">&quot;datalocationurl|d=s&quot;</span><span class="cm">,</span>  <span class="q">&quot;densitymap=s&quot;</span><span class="cm">,</span> <span class="q">&quot;densitymapmode=s&quot;</span><span class="cm">,</span> <span class="q">&quot;densitymaplocationurlcryoem=s&quot;</span><span class="cm">,</span> <span class="q">&quot;denistymaplocationurlxray=s&quot;</span><span class="cm">,</span> <span class="q">&quot;edmaplocationsuffixes=s&quot;</span><span class="cm">,</span> <span class="q">&quot;edmaptypes=s&quot;</span><span class="cm">,</span>  <span class="q">&quot;help|h&quot;</span><span class="cm">,</span>  <span class="q">&quot;indelim=s&quot;</span><span class="cm">,</span> <span class="q">&quot;mode|m=s&quot;</span><span class="cm">,</span> <span class="q">&quot;pdbidscol|p=s&quot;</span><span class="cm">,</span> <span class="q">&quot;pdbformat=s&quot;</span><span class="cm">,</span> <span class="q">&quot;workingdir|w=s&quot;</span><span class="s">)</span><span class="s">)</span> <span class="s">{</span>
+ 823     <span class="k">die</span> <span class="q">&quot;\nTo get a list of valid options and their values, use \&quot;$ScriptName -h\&quot; or\n\&quot;perl -S $ScriptName -h\&quot; command and try again...\n&quot;</span><span class="sc">;</span>
+ 824   <span class="s">}</span>
+ 825   <span class="k">if</span> <span class="s">(</span><span class="i">$Options</span>{<span class="w">workingdir</span>}<span class="s">)</span> <span class="s">{</span>
+ 826     <span class="k">if</span> <span class="s">(</span>! <span class="k">-d</span> <span class="i">$Options</span>{<span class="w">workingdir</span>}<span class="s">)</span> <span class="s">{</span>
+ 827       <span class="k">die</span> <span class="q">&quot;Error: The value specified, $Options{workingdir}, for option \&quot;-w --workingdir\&quot; is not a directory name.\n&quot;</span><span class="sc">;</span>
+ 828     <span class="s">}</span>
+ 829     <span class="k">chdir</span> <span class="i">$Options</span>{<span class="w">workingdir</span>} <span class="k">or</span> <span class="k">die</span> <span class="q">&quot;Error: Couldn&#39;t chdir $Options{workingdir}: $! \n&quot;</span><span class="sc">;</span>
+ 830   <span class="s">}</span>
+ 831   <span class="k">if</span> <span class="s">(</span><span class="i">$Options</span>{<span class="w">colmode</span>} !~ <span class="q">/^(colnum|collabel)$/i</span><span class="s">)</span> <span class="s">{</span>
+ 832     <span class="k">die</span> <span class="q">&quot;Error: The value specified, $Options{colmode}, for option \&quot;-c, --colmode\&quot; is not valid. Allowed values: colnum or collabel\n&quot;</span><span class="sc">;</span>
+ 833   <span class="s">}</span>
+ 834   <span class="k">if</span> <span class="s">(</span><span class="i">$Options</span>{<span class="w">densitymap</span>} !~ <span class="q">/^(yes|no)$/i</span><span class="s">)</span> <span class="s">{</span>
+ 835     <span class="k">die</span> <span class="q">&quot;Error: The value specified, $Options{densitymap}, for option \&quot;--DensityMap\&quot; is not valid. Allowed values: yes or no\n&quot;</span><span class="sc">;</span>
+ 836   <span class="s">}</span>
+ 837   <span class="k">if</span> <span class="s">(</span><span class="i">$Options</span>{<span class="w">densitymapmode</span>} !~ <span class="q">/^(XRayElectronDensity|CryoEMDensity|Auto)$/i</span><span class="s">)</span> <span class="s">{</span>
+ 838     <span class="k">die</span> <span class="q">&quot;Error: The value specified, $Options{densitymapmode}, for option \&quot;--DensityMapMode\&quot; is not valid. Allowed values: XRayElectronDensity, CryoEMDensity, Auto\n&quot;</span><span class="sc">;</span>
+ 839   <span class="s">}</span>
+ 840   <span class="k">if</span> <span class="s">(</span><span class="i">$Options</span>{<span class="w">indelim</span>} !~ <span class="q">/^(comma|semicolon)$/i</span><span class="s">)</span> <span class="s">{</span>
+ 841     <span class="k">die</span> <span class="q">&quot;Error: The value specified, $Options{indelim}, for option \&quot;--indelim\&quot; is not valid. Allowed values: comma or semicolon\n&quot;</span><span class="sc">;</span>
+ 842   <span class="s">}</span>
+ 843   <span class="k">if</span> <span class="s">(</span><span class="i">$Options</span>{<span class="w">mode</span>} !~ <span class="q">/^(IDsOnCmdLine|IDsInFile)$/i</span><span class="s">)</span> <span class="s">{</span>
+ 844     <span class="k">die</span> <span class="q">&quot;Error: The value specified, $Options{mode}, for option \&quot;-m --mode\&quot; is not valid. Allowed values: IDsOnCmdLine or IDsInFile\n&quot;</span><span class="sc">;</span>
+ 845   <span class="s">}</span>
+ 846   <span class="k">if</span> <span class="s">(</span><span class="i">$Options</span>{<span class="w">pdbformat</span>} !~ <span class="q">/^(PDB|CIF|Auto)$/i</span><span class="s">)</span> <span class="s">{</span>
+ 847     <span class="k">die</span> <span class="q">&quot;Error: The value specified, $Options{pdbformat}, for option \&quot;--indelim\&quot; is not valid. Allowed values: PDB, CIF or Auto\n&quot;</span><span class="sc">;</span>
+ 848   <span class="s">}</span>
+ 849 <span class="s">}</span>
+ 850 
+<a name="EOF-"></a></pre>
+<p>&nbsp;</p>
+<br />
+<center>
+<img src="../../../images/h2o2.png">
+</center>
+</body>
+</html>

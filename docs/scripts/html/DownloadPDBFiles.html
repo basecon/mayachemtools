@@ -1,0 +1,141 @@
+<html>
+<head>
+<title>MayaChemTools:Documentation:DownloadPDBFiles.pl</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../css/MayaChemTools.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./DBTablesToTextFiles.html" title="DBTablesToTextFiles.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./EStateIndiciesFingerprints.html" title="EStateIndiciesFingerprints.html">Next</a></td><td width="34%" align="middle"><strong>DownloadPDBFiles.pl</strong></td><td width="33%" align="right"><a href="././code/DownloadPDBFiles.html" title="View source code">Code</a>&nbsp;|&nbsp;<a href="./../pdf/DownloadPDBFiles.pdf" title="PDF US Letter Size">PDF</a>&nbsp;|&nbsp;<a href="./../pdfa4/DownloadPDBFiles.pdf" title="PDF A4 Size">PDFA4</a></td></tr>
+</table>
+</div>
+<h1 id="NAME">NAME</h2>
+<p>DownloadPDBFiles.pl - Download PDB files for PDB ID(s)</p>
+<h1 id="SYNOPSIS">SYNOPSIS</h2>
+<p>DownloadPDBFiles.pl PDBID(s) or PDBIDsTextFile</p>
+<p>DownloadPDBFiles.pl [<b>-c, --colmode</b> <i>colnum | collabel</i>] [<b>-d, --dataLocationURL</b> <i>PDB URL</i>] [<b>--DensityMap</b> <i>yes | no</i>] [<b>--DensityMapMode</b> <i>XRayElectronDensity, CryoEMDensity, Auto</i>] [<b>--DensityMapLocationURLCryoEM</b> <i>Map URL</i>] [<b>--DenistyMapLocationURLXRay</b> <i>Map URL</i>] [<b>--EDMapLocationSuffixes</b> <i>CompositeMap,None,...</i>] [<b>--EDMapTypes</b>][<b>-h, --help</b>] [<b>--indelim</b> <i>comma | semicolon</i>] [<b>-m, --mode</b> &lt;IDsOnCmdLine | IDsInFile&gt;] [<b>--PDBIDsCol </b> <i>number | string</i>] [<b>-p, --PDBFormat</b> <i>PDB, CIF or Auto</i>] [<b>-w, --WorkingDir</b> dirname] PDBID(s) or PDBIDsTextFile</p>
+<h1 id="DESCRIPTION">DESCRIPTION</h2>
+<p>Download PDB files corresponding to PDB IDs specified in a column in a CSV/TSV text file or on the command line as space delimited parameters.</p>
+<p>It is also possible to download x-ray electron density and cryo-EM density maps for the specified PDB IDs.</p>
+<h1 id="OPTIONS">OPTIONS</h2>
+<dl>
+<dt id="c---colmode-colnum-collabel"><b>-c, --colmode</b> <i>colnum | collabel</i></dt>
+<dd>
+<p>Specify how columns are identified in a <i>TextFile</i> containing PDB IDs: using column number or column label. Possible values: <i>colnum or collabel</i>. Default value: <i>colnum</i>.</p>
+</dd>
+<dt id="d---DataLocationURL-PDB-URL"><b>-d, --DataLocationURL</b> <i>PDB URL</i></dt>
+<dd>
+<p>Specify location of PDB URL where data files are available for download. Default value: <i>http://www.rcsb.org/pdb/files/</i>.</p>
+</dd>
+<dt id="DensityMap-yes-no"><b>--DensityMap</b> <i>yes | no</i></dt>
+<dd>
+<p>Download x-ray electron density and cryo-EM density map file(s). Possible values: <i>Yes or No</i>. Default value: <i>no</i>.</p>
+</dd>
+<dt id="DensityMapMode-XRayElectronDensity-CryoEMDensity-Auto"><b>--DensityMapMode</b> <i>XRayElectronDensity, CryoEMDensity, Auto</i></dt>
+<dd>
+<p>Specify type of density map files to download. Possible values: <i>XRayElectronDensity, CryoEMDensity, Auto</i>. Default value: <i>Auto</i>. The x-ray electron density and cryo-EM density map files are downloaded for <i>XRayElectronDensity</i> and <i>CryoEMDensity</i> values. The availability of both <b>XRayElectronDensity</b> and <b>XRayElectronDensity</b> is checked for <i>Auto</i> value by attempting to download x-ray map files followed by cryo-EM map files.</p>
+<p>X-ray Electron Density (ED ) map file(s) are downloaded in CCP4 and MTZ format. Three different types of ED map files may be downloaded using option <b>--EDMapTypes</b>: CompositeMap (2Fobs - Fcalc), DifferenceMap (Fobs - Fcalc), ReflectionMap. The format of ED data in first two file types is CCP4. The third file type contains ED data in MTZ format.</p>
+<p>The names of the downloaded ED files are derived from input PDB IDs as shown below:</p>
+<div class="OptionsBox">    CompositeMap (2Fobs - Fcalc):  &lt;PDBID&gt;.ccp4
+<br/>    DifferenceMap (Fobs - Fcalc): &lt;PDBID&gt;_Diff.ccp4
+<br/>    ReflectionMap:  &lt;PDBID&gt;_Map.mtz</div>
+<p>CryoEM density map file(s) are also downloaded in CCP4 format. The names of the cyroEM density map files is derived from EMDB ID in downloaded PDB or CIF file:</p>
+<div class="OptionsBox">    CryoEMFile:  emd_&lt;EMDBID&gt;.map.gz
+<br/>    Path: &lt;CryoEMMapLocationURL&gt;/EMD-&lt;EMDBID&gt;/map/emd_&lt;EMDBID&gt;.map.gz</div>
+</dd>
+<dt id="DensityMapLocationURLCryoEM-Map-URL"><b>--DensityMapLocationURLCryoEM</b> <i>Map URL</i></dt>
+<dd>
+<p>Specify location of cryoEM map URL where data files are available for download. Default value: <i>ftp://ftp.wwpdb.org/pub/emdb/structures/</i>.</p>
+<p>The cryo-EM map files are also availabe at the following FTP server:</p>
+<div class="OptionsBox">    ftp://ftp.ebi.ac.uk/pub/databases/emdb/structures/</div>
+<p>The cryoEM database ID is automatically retrieved from the downloaded PDB or CIF file. It is used to generate the complete path name of the cryoEM map files:</p>
+<div class="OptionsBox">    ftp://ftp.wwpdb.org/pub/emdb/structures/EMD-&lt;ID&gt;/map/emd_&lt;ID&gt;.map.gz</div>
+<p>In addition to map file, the following metadata file is automatically downloaded from FTP server:</p>
+<div class="OptionsBox">    ftp://ftp.wwpdb.org/pub/emdb/structures/EMD-&lt;ID&gt;/header/emd_&lt;ID&gt;.xml</div>
+</dd>
+<dt id="DenistyMapLocationURLXRay-Map-URL"><b>--DenistyMapLocationURLXRay</b> <i>Map URL</i></dt>
+<dd>
+<p>Specify location of x-ray electron density map URL where data files are available for download. Default value: <i>http://www.ebi.ac.uk/pdbe/coordinates/files/</i>.</p>
+</dd>
+<dt id="EDMapLocationSuffixes-CompositeMap-None"><b>--EDMapLocationSuffixes</b> <i>CompositeMap,None,...</i></dt>
+<dd>
+<p>Specify file root suffixes for generating file names for x-ray electron density map files on a remote server. It is a pariwise comma delimited list of <b>EDMapTypes</b> and remote file suffixes. Default value: <i>CompositeMap, None, DifferenceMap, _diff, ReflectionMap, _map</i>.</p>
+<p>The default names of the x-ray ED map files available on the server are shown below:</p>
+<div class="OptionsBox">    CompositeMap (2Fobs - Fcalc): &lt;LowercasePDBID&gt;.ccp4
+<br/>    DifferenceMap (Fobs - Fcalc): &lt;LowercasePDBID&gt;_diff.ccp4
+<br/>    ReflectionMap: &lt;LowercasePDBID&gt;_map.mtz</div>
+</dd>
+<dt id="EDMapTypes-CompositeMap-DifferenceMap-ReflectionMap-All"><b>--EDMapTypes</b> <i>CompositeMap,DifferenceMap,ReflectionMap,All</i></dt>
+<dd>
+<p>Specify types of x-ray Electron Density (ED) map file(s) to download. It is either a comma delimited list of valid file types or All available file types. Possible values: <i>CompositeMap, DifferenceMap, ReflectionMap, All</i>. Default value: <i>CompositeMap,DifferenceMap</i>.</p>
+<p>The CompositeMap (2Fobs - Fcalc) and DifferenceMap (Fobs - Fcalc) correspond to ED map data in CCP4 format. The ReflectionMap corresponds to ED map data in MTZ format.</p>
+</dd>
+<dt id="h---help"><b>-h, --help</b></dt>
+<dd>
+<p>Print this help message.</p>
+</dd>
+<dt id="indelim-comma-semicolon"><b>--indelim</b> <i>comma | semicolon</i></dt>
+<dd>
+<p>Input delimiter for CSV <i>TextFile</i> containing PDB IDs. Possible values: <i>comma or semicolon</i>. Default value: <i>comma</i>. For TSV files, this option is ignored and <i>tab</i> is used as a delimiter.</p>
+</dd>
+<dt id="m---mode-IDsOnCmdLine-IDsInFile"><b>-m, --mode</b> &lt;IDsOnCmdLine | IDsInFile&gt;</dt>
+<dd>
+<p>Indicate how PDB IDs are specified: PDB IDs are either present as space delimited command line parameters or in a specific column in a CSV/TSV text file. Possible values: <i>IDsOnCmdLine or IDsInFile</i>. Default: <i>IDsOnCmdLine</i>.</p>
+</dd>
+<dt id="p---PDBIDsCol-number-string"><b>-p, --PDBIDsCol </b> <i>number | string</i></dt>
+<dd>
+<p>Column used to identify PDB ID(s) in a text file. Default value: First column containing text string <b>PDB_ID</b> or &lt;PDBID&gt;.</p>
+<p>For <i>colnum</i> value of <b>-c, --colmode</b> option, input value is a column number. Example: <i>1</i>.</p>
+<p>For <i>collabel</i> value of <b>-c, --colmode</b> option, input value is a column label. Example: <i>PDB_ID</i>.</p>
+<p>This option is ignored during <i>IDsOnCmdLine</i> value of <b>m, --mode</b> option.</p>
+</dd>
+<dt id="PDBFormat-PDB-CIF-or-Auto"><b>--PDBFormat</b> <i>PDB, CIF or Auto</i></dt>
+<dd>
+<p>Specify file format for downloading PDB files. Possible values: <i>PDB, CIF, auto</i>. Default value: <i>Auto</i>. The <b>PDBID</b>.pdb and <b>PDBID</b>.cif files are downloaded for <i>PDB</i> and <i>CIF</i> option values. The availability of PDB fies in both <i>PDB</i> and <i>CIF</i> format is checked for <i>Auto</i> option by attempting to download <b>PDB</b>.pdb file followed by <b>PDBID</b>.cif file.</p>
+<p>The <i>PDB</i> format files are usually not available for structures determined using cryo-EM methodology.</p>
+</dd>
+<dt id="w---WorkingDir-dirname"><b>-w, --WorkingDir</b> <i>dirname</i></dt>
+<dd>
+<p>Location of working directory. Default: current directory.</p>
+</dd>
+</dl>
+<h1 id="EXAMPLES">EXAMPLES</h2>
+<p>To retrieve a PDB file for PDB ID 2HYY and generate a local 2HYY.pdb file, type:</p>
+<div class="ExampleBox">    % DownloadPDBFiles.pl 2HYY</div>
+<p>To retrieve a PDB file for PDB ID 2HYY along with electron density files and generate a local 2HYY.pdb and electron density map files 2HYY.ccp4 and 2HYY_diff.ccp4 corresponding to composit (2Fo - Fc) and difference maps (Fo - Fc), type:</p>
+<div class="ExampleBox">    % DownloadPDBFiles.pl --densityMap yes 2HYY</div>
+<p>To retrieve PDB file for 5K12 in CIF format along with cryo-EM density file and generate a local 5K12.cif and density map file emd_8194.map.gz, type:</p>
+<div class="ExampleBox">    % DownloadPDBFiles.pl --densityMap yes --pdbFormat CIF 5K12</div>
+<p>To retrieve PDB files for multiple PDB IDs 2HYY and 1KV2 and generate corresponding local PDB files, type:</p>
+<div class="ExampleBox">    % DownloadPDBFiles.pl 2HYY 1KV2</div>
+<p>To retrieve PDB files for multiple PDB IDs 2HYY and 1KV2 and generate corresponding local PDB files along with appropriate x-ray electron density and cryo-EM density files, type:</p>
+<div class="ExampleBox">    % DownloadPDBFiles.pl --densityMap yes 2HYY 5K12</div>
+<p>To download PDB files for PDB IDs present in column name PDB_ID or PDBID in SamplePDBIDs.csv file and generate correponding PDB files, type</p>
+<div class="ExampleBox">    % DownloadPDBFiles.pl -m IDsInFile SamplePDBIDs.csv</div>
+<p>To download PDB files for PDB IDs present in a specific column name in SamplePDBIDs.csv file and generate correponding PDB files, type</p>
+<div class="ExampleBox">    % DownloadPDBFiles.pl -m IDsInFile -c collabel -p PDB_ID SamplePDBIDs.csv</div>
+<h1 id="AUTHOR">AUTHOR</h2>
+<p><a href="mailto:msud@san.rr.com">Manish Sud</a></p>
+<h1 id="SEE-ALSO">SEE ALSO</h2>
+<p><a href="./ExtractFromPDBFiles.html">ExtractFromPDBFiles.pl</a>, <a href="./InfoPDBFiles.html">InfoPDBFiles.pl</a>, <a href="./ModifyPDBFiles.html">ModifyPDBFiles.pl</a></p>
+<h1 id="COPYRIGHT">COPYRIGHT</h2>
+<p>Copyright (C) 2020 Manish Sud. All rights reserved.</p>
+<p>This file is part of MayaChemTools.</p>
+<p>MayaChemTools is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.</p>
+<p>&nbsp</p><p>&nbsp</p><div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./DBTablesToTextFiles.html" title="DBTablesToTextFiles.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./EStateIndiciesFingerprints.html" title="EStateIndiciesFingerprints.html">Next</a></td><td width="34%" align="middle"><strong>August 27, 2020</strong></td><td width="33%" align="right"><strong>DownloadPDBFiles.pl</strong></td></tr>
+</table>
+</div>
+<br />
+<center>
+<img src="../../images/h2o2.png">
+</center>
+</body>
+</html>

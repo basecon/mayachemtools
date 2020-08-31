@@ -1,0 +1,396 @@
+<html>
+<head>
+<title>MayaChemTools:Documentation:PyMOLVisualizeMacromolecules.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../css/MayaChemTools.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./PyMOLVisualizeInterfaces.html" title="PyMOLVisualizeInterfaces.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./PyMOLVisualizeSurfaceAndBuriedResidues.html" title="PyMOLVisualizeSurfaceAndBuriedResidues.html">Next</a></td><td width="34%" align="middle"><strong>PyMOLVisualizeMacromolecules.py</strong></td><td width="33%" align="right"><a href="././code/PyMOLVisualizeMacromolecules.html" title="View source code">Code</a>&nbsp;|&nbsp;<a href="./../pdf/PyMOLVisualizeMacromolecules.pdf" title="PDF US Letter Size">PDF</a>&nbsp;|&nbsp;<a href="./../pdfa4/PyMOLVisualizeMacromolecules.pdf" title="PDF A4 Size">PDFA4</a></td></tr>
+</table>
+</div>
+<h1 id="NAME">NAME</h2>
+<p>PyMOLVisualizeMacromolecules.py - Visualize macromolecules</p>
+<h1 id="SYNOPSIS">SYNOPSIS</h2>
+<p>PyMOLVisualizeMacromolecules.py [<b>--align</b> &lt;yes or no&gt;] [<b>--alignMethod</b> &lt;align, cealign, super&gt;] [<b>--alignMode</b> &lt;FirstChain or Complex&gt;] [<b>--alignRefFile</b> &lt;filename&gt;] [<b>--allowEmptyObjects</b> &lt;yes or no&gt;] [<b>--chainIDs</b> &lt;First, All or ID1,ID2...&gt;] [<b>--ligandIDs</b> &lt;Largest, All or ID1,ID2...&gt;] [<b>--labelFontID</b> &lt;number&gt;] [<b>--PMLOut</b> &lt;yes or no&gt;] [<b>--pocketContactsInorganicColor</b> &lt;text&gt;] [<b>--pocketContactsLigandColor</b> &lt;text&gt;] [<b>--pocketContactsLigandHydrophobicColor</b> &lt;text&gt;] [<b>--pocketContactsSolventColor</b> &lt;text&gt;] [<b>--pocketContactsCutoff</b> &lt;number&gt;] [<b>--pocketDistanceCutoff</b> &lt;number&gt;] [<b>--pocketLabelColor</b> &lt;text&gt;] [<b>--pocketResidueTypes</b> &lt;yes or no&gt;] [<b>--pocketSurface</b> &lt;yes or no&gt;] [<b>--pocketSurfaceElectrostatics</b> &lt;yes or no&gt;] [<b>--residueTypes</b> &lt;Type,Color,ResNames,...&gt;] [<b>--residueTypesChain</b> &lt;yes or no&gt;] [<b>--selectionsChain</b> &lt;ObjectName,SelectionSpec,...&gt;] [<b>--selectionsChainSurface</b> &lt;yes or no&gt;] [<b>--selectionsChainStyle</b> &lt;DisplayStyle&gt;] [<b>--surfaceChain</b> &lt;yes or no&gt;] [<b>--surfaceChainElectrostatics</b> &lt;yes or no&gt;] [<b>--surfaceChainComplex</b> &lt;yes or no&gt;] [<b>--surfaceComplex</b> &lt;yes or no&gt;] [<b>--surfaceColor</b> &lt;ColorName&gt;] [<b>--surfaceColorPalette</b> &lt;RedToWhite or WhiteToGreen&gt;] [<b>--surfaceAtomTypesColors</b> &lt;ColorType,ColorSpec,...&gt;] [<b>--surfaceTransparency</b> &lt;number&gt;] [<b>--overwrite</b>] [<b>-w</b> &lt;dir&gt;] <b>-i</b> &lt;infile1,infile2,infile3...&gt; <b>-o</b> &lt;outfile&gt;</p>
+<p>PyMOLVisualizeMacromolecules.py <b>-h</b> | <b>--help</b> | <b>-e</b> | <b>--examples</b></p>
+<h1 id="DESCRIPTION">DESCRIPTION</h2>
+<p>Generate PyMOL visualization files for viewing surfaces, chains, ligands, ligand binding pockets, and interactions between ligands and binding pockets in macromolecules including proteins and nucleic acids.</p>
+<p>The supported input file format are: PDB (.pdb), CIF (.cif)</p>
+<p>The supported output file formats are: PyMOL script file (.pml), PyMOL session file (.pse)</p>
+<p>A variety of PyMOL groups and objects may be created for visualization of macromolecules. These groups and objects correspond to complexes, surfaces, chains, ligands, inorganics, ligand binding pockets, pocket, polar interactions, and pocket hydrophobic surfaces. A complete hierarchy of all possible PyMOL groups and objects is shown below:</p>
+<div class="OptionsBox">    &lt;PDBFileRoot&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        .Complex
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .Complex
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        .Chain&lt;ID&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .Complex
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Complex
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .Chain
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Chain
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Selections
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .&lt;Name1&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Selection
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Hydrophobicity
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Hydrophobicity_Charge
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .&lt;Name2&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        ... ... ..
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Residues
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Aromatic
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Residues
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Hydrophobic
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Residues
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Polar
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Residues
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Positively_Charged
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Residues
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Negatively_Charged
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Residues
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Other
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Residues
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Hydrophobicity
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Hydrophobicity_Charge
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Vacuum_Electrostatics
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Contact_Potentials
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Map
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Legend
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Volume
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .Solvent
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .Inorganic
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .Ligand&lt;ID&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Ligand
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Ligand
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .BallAndStick
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Pocket
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Pocket
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Polar_Contacts
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Hydrophobic_Contacts
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Residues
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Aromatic
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Residues
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Hydrophobic
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Residues
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Polar
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Residues
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Positively_Charged
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Residues
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Negatively_Charged
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Residues
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Other
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Residues
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Surfaces
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Hydrophobicity
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Hydrophobicity_Charge
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Vacuum_Electrostatics
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                                .Contact_Potentials
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                                .Map
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                                .Legend
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                        .Cavity
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Surface
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Hydrophobicity
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Hydrophobicity_Charge
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                            .Vacuum_Electrostatics
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                                .Contact_Potentials
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                                .Map
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                                .Legend
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Pocket_Solvent
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Pocket_Solvent
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Polar_Contacts
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Pocket_Inorganic
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Pocket_Inorganic
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    .Polar_Contacts
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .Ligand&lt;ID&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Ligand
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    ... ... ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Pocket
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    ... ... ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Pocket_Solvent
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    ... ... ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                .Pocket_Inorganic
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                    ... ... ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        .Chain&lt;ID&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            ... ... ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .Ligand&lt;ID&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                ... ... ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .Ligand&lt;ID&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                ... ... ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        .Chain&lt;ID&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            ... ... ...
+<br/>    &lt;PDBFileRoot&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        .Complex
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            ... ... ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        .Chain&lt;ID&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            ... ... ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .Ligand&lt;ID&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                ... ... ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            .Ligand&lt;ID&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                ... ... ...
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        .Chain&lt;ID&gt;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            ... ... ...</div>
+<p>The hydrophobic and electrostatic surfaces are not created for complete complex and chain complex in input file(s) by default. A word to the wise: The creation of surface objects may slow down loading of PML file and generation of PSE file, based on the size of input complexes. The generation of PSE file may also fail.</p>
+<h1 id="OPTIONS">OPTIONS</h2>
+<dl>
+<dt id="a---align-yes-or-no-default:-no"><b>-a, --align</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Align input files to a reference file before visualization.</p>
+</dd>
+<dt id="alignMethod-align-cealign-super-default:-super"><b>--alignMethod</b> &lt;align, cealign, super&gt; [default: super]</dt>
+<dd>
+<p>Alignment methodology to use for aligning input files to a reference file.</p>
+</dd>
+<dt id="alignMode-FirstChain-or-Complex-default:-FirstChain"><b>--alignMode</b> &lt;FirstChain or Complex&gt; [default: FirstChain]</dt>
+<dd>
+<p>Portion of input and reference files to use for spatial alignment of input files against reference file. Possible values: FirstChain or Complex.</p>
+<p>The FirstChain mode allows alignment of the first chain in each input file to the first chain in the reference file along with moving the rest of the complex to coordinate space of the reference file. The complete complex in each input file is aligned to the complete complex in reference file for the Complex mode.</p>
+</dd>
+<dt id="alignRefFile-filename-default:-FirstInputFile"><b>--alignRefFile</b> &lt;filename&gt; [default: FirstInputFile]</dt>
+<dd>
+<p>Reference input file name. The default is to use the first input file name specified using &#39;-i, --infiles&#39; option.</p>
+</dd>
+<dt id="allowEmptyObjects-yes-or-no-default:-no"><b>--allowEmptyObjects</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Allow creation of empty PyMOL objects corresponding to solvent and inorganic atom selections across chains and ligands in input file(s). By default, the empty objects are marked for deletion.</p>
+</dd>
+<dt id="c---chainIDs-First-All-or-ID1-ID2...-default:-First"><b>-c, --chainIDs</b> &lt;First, All or ID1,ID2...&gt; [default: First]</dt>
+<dd>
+<p>List of chain IDs to use for visualizing macromolecules. Possible values: First, All, or a comma delimited list of chain IDs. The default is to use the chain ID for the first chain in each input file.</p>
+</dd>
+<dt id="e---examples"><b>-e, --examples</b></dt>
+<dd>
+<p>Print examples.</p>
+</dd>
+<dt id="h---help"><b>-h, --help</b></dt>
+<dd>
+<p>Print this help message.</p>
+</dd>
+<dt id="i---infiles-infile1-infile2-infile3"><b>-i, --infiles</b> &lt;infile1,infile2,infile3...&gt;</dt>
+<dd>
+<p>Input file names.</p>
+</dd>
+<dt id="l---ligandIDs-Largest-All-or-ID1-ID2...-default:-Largest"><b>-l, --ligandIDs</b> &lt;Largest, All or ID1,ID2...&gt; [default: Largest]</dt>
+<dd>
+<p>List of ligand IDs present in chains for visualizing macromolecules to highlight ligand interactions. Possible values: Largest, All, or a comma delimited list of ligand IDs. The default is to use the largest ligand present in all or specified chains in each input file.</p>
+<p>Ligands are identified using organic selection operator available in PyMOL. It&#39;ll also identify buffer molecules as ligands. The largest ligand contains the highest number of heavy atoms.</p>
+</dd>
+<dt id="labelFontID-number-default:-7"><b>--labelFontID</b> &lt;number&gt; [default: 7]</dt>
+<dd>
+<p>Font ID for drawing labels. Default: 7 (Sans Bold). Valid values: 5 to 16. The specified value must be a valid PyMOL font ID. No validation is performed. The complete lists of valid font IDs is available at: pymolwiki.org/index.php/Label_font_id. Examples: 5 - Sans; 7 - Sans Bold; 9 - Serif; 10 - Serif Bold.</p>
+</dd>
+<dt id="o---outfile-outfile"><b>-o, --outfile</b> &lt;outfile&gt;</dt>
+<dd>
+<p>Output file name.</p>
+</dd>
+<dt id="p---PMLOut-yes-or-no-default:-yes"><b>-p, --PMLOut</b> &lt;yes or no&gt; [default: yes]</dt>
+<dd>
+<p>Save PML file during generation of PSE file.</p>
+</dd>
+<dt id="pocketContactsInorganicColor-text-default:-deepsalmon"><b>--pocketContactsInorganicColor</b> &lt;text&gt; [default: deepsalmon]</dt>
+<dd>
+<p>Color for drawing polar contacts between inorganic and pocket residues. The specified value must be valid color. No validation is performed.</p>
+</dd>
+<dt id="pocketContactsLigandColor-text-default:-orange"><b>--pocketContactsLigandColor</b> &lt;text&gt; [default: orange]</dt>
+<dd>
+<p>Color for drawing polar contacts between ligand and pocket residues. The specified value must be valid color. No validation is performed.</p>
+</dd>
+<dt id="pocketContactsLigandHydrophobicColor-text-default:-purpleblue"><b>--pocketContactsLigandHydrophobicColor</b> &lt;text&gt; [default: purpleblue]</dt>
+<dd>
+<p>Color for drawing hydrophobic contacts between ligand and pocket residues. The specified value must be valid color. No validation is performed. The hydrophobic contacts are shown between pairs of carbon atoms not connected to hydrogen bond donor or acceptors atoms as identified by PyMOL.</p>
+</dd>
+<dt id="pocketContactsSolventColor-text-default:-marine"><b>--pocketContactsSolventColor</b> &lt;text&gt; [default: marine]</dt>
+<dd>
+<p>Color for drawing polar contacts between solvent and pocket residues.. The specified value must be valid color. No validation is performed.</p>
+</dd>
+<dt id="pocketContactsCutoff-number-default:-4.0"><b>--pocketContactsCutoff</b> &lt;number&gt; [default: 4.0]</dt>
+<dd>
+<p>Distance in Angstroms for identifying polar and hyrdophobic contacts between atoms in pocket residues and ligands.</p>
+</dd>
+<dt id="pocketDistanceCutoff-number-default:-5.0"><b>--pocketDistanceCutoff</b> &lt;number&gt; [default: 5.0]</dt>
+<dd>
+<p>Distance in Angstroms for identifying pocket residues around ligands.</p>
+</dd>
+<dt id="pocketLabelColor-text-default:-magenta"><b>--pocketLabelColor</b> &lt;text&gt; [default: magenta]</dt>
+<dd>
+<p>Color for drawing residue or atom level labels for a pocket. The specified value must be valid color. No validation is performed.</p>
+</dd>
+<dt id="pocketResidueTypes-yes-or-no-default:-auto"><b>--pocketResidueTypes</b> &lt;yes or no&gt; [default: auto]</dt>
+<dd>
+<p>Pocket residue types. The residue groups are generated using residue types, colors, and names specified by &#39;--residueTypes&#39; option. It is only valid for amino acids. By default, the residue type groups are automatically created for pockets containing amino acids and skipped for chains only containing nucleic acids.</p>
+</dd>
+<dt id="pocketSurface-yes-or-no-default:-auto"><b>--pocketSurface</b> &lt;yes or no&gt; [default: auto]</dt>
+<dd>
+<p>Surfaces around pocket residues colored by hydrophobicity alone and both hydrophobicity and charge. The hydrophobicity surface is colored at residue level using Eisenberg hydrophobicity scale for residues and color gradient specified by &#39;--surfaceColorPalette&#39; option. The hydrophobicity and charge surface is colored [ Ref 140 ] at atom level using colors specified for groups of atoms by &#39;--surfaceAtomTypesColors&#39; option. This scheme allows simultaneous mapping of hyrophobicity and charge values on the surfaces.</p>
+<p>The cavity surfaces around ligands are also generated. These surfaces are colored by hydrophobicity along and both hydrophobicity and charge.</p>
+<p>This option is only valid for amino acids. By default, both surfaces are automatically created for pockets containing amino acids and skipped for pockets containing only nucleic acids.</p>
+<p>In addition, generic pockect and cavity surfaces colored by &#39;--surfaceColor&#39; are always created for pocket residues containing amino acids and nucleic acids.</p>
+</dd>
+<dt id="pocketSurfaceElectrostatics-yes-or-no-default:-no"><b>--pocketSurfaceElectrostatics</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Vacuum electrostatics contact potential surface around pocket residues. A word to the wise from PyMOL documentation: The computed protein contact potentials are only qualitatively useful, due to short cutoffs, truncation, and lack of solvent &quot;screening&quot;.</p>
+<p>The cavity surface around ligands is also generated. This surface is colored by vacuum electrostatics contact potential.</p>
+<p>This option is only valid for amino acids. By default, the electrostatics surface is automatically created for chains containing amino acids and skipped for chains containing only nucleic acids.</p>
+</dd>
+<dt id="r---residueTypes-Type-Color-ResNames-...-default:-auto"><b>-r, --residueTypes</b> &lt;Type,Color,ResNames,...&gt; [default: auto]</dt>
+<dd>
+<p>Residue types, colors, and names to generate for residue groups during &#39;--pocketResidueTypes&#39; and &#39;--residueTypesChain&#39; option. It is only valid for amino acids.</p>
+<p>It is a triplet of comma delimited list of amino acid residues type, residues color, and a space delimited list three letter residue names.</p>
+<p>The default values for residue type, color, and name triplets are shown below:</p>
+<div class="OptionsBox">    Aromatic,brightorange,HIS PHE TRP TYR,
+<br/>    Hydrophobic,orange,ALA GLY VAL LEU ILE PRO MET,
+<br/>    Polar,palegreen,ASN GLN SER THR CYS,
+<br/>    Positively_Charged,marine,ARG LYS,
+<br/>    Negatively_Charged,red,ASP GLU
+<br/>    </div>
+<p>The color name must be a valid PyMOL name. No validation is performed. An amino acid name may appear across multiple residue types. All other residues are grouped under &#39;Other&#39;.</p>
+</dd>
+<dt id="residueTypesChain-yes-or-no-default:-auto"><b>--residueTypesChain</b> &lt;yes or no&gt; [default: auto]</dt>
+<dd>
+<p>Chain residue types. The residue groups are generated using residue types, colors, and names specified by &#39;--residueTypes&#39; option. It is only valid for amino acids. By default, the residue type groups are automatically created for chains containing amino acids and skipped for chains only containing nucleic acids.</p>
+</dd>
+<dt id="selectionsChain-ObjectName-SelectionSpec-...-default:-None"><b>--selectionsChain</b> &lt;ObjectName,SelectionSpec,...&gt; [default: None]</dt>
+<dd>
+<p>Custom selections for chains. It is a pairwise list of comma delimited values corresponding to PyMOL object names and selection specifications. The selection specification must be a valid PyMOL specification. No validation is performed.</p>
+<p>The PyMOL objects are created for each chain corresponding to the specified selections. The display style for PyMOL objects is set using value of &#39;--selectionsChainStyle&#39; option.</p>
+<p>The specified selection specification is automatically appended to appropriate chain specification before creating PyMOL objects.</p>
+<p>For example, the following specification for &#39;--selectionsChain&#39; option will generate PyMOL objects for chains containing Cysteines and Serines:</p>
+<div class="OptionsBox">    Cysteines,resn CYS,Serines,resn SER
+<br/>    </div>
+</dd>
+<dt id="selectionsChainSurface-yes-or-no-default:-auto"><b>--selectionsChainSurface</b> &lt;yes or no&gt; [default: auto]</dt>
+<dd>
+<p>Surfaces around individual chain selections colored by hydrophobicity alone and both hydrophobicity and charge. This option is similar to &#39;--surafceChain&#39; options for creating surfaces for chain. Additional details are available in the documentation section for &#39;--surfaceChain&#39; options.</p>
+</dd>
+<dt id="selectionsChainStyle-DisplayStyle-default:-sticks"><b>--selectionsChainStyle</b> &lt;DisplayStyle&gt; [default: sticks]</dt>
+<dd>
+<p>Display style for PyMOL objects created for &#39;--selectionsChain&#39; option. It must be a valid PyMOL display style. No validation is performed.</p>
+</dd>
+<dt id="surfaceChain-yes-or-no-default:-auto"><b>--surfaceChain</b> &lt;yes or no&gt; [default: auto]</dt>
+<dd>
+<p>Surfaces around individual chain colored by hydrophobicity alone and both hydrophobicity and charge. The hydrophobicity surface is colored at residue level using Eisenberg hydrophobicity scale for residues and color gradient specified by &#39;--surfaceColorPalette&#39; option. The hydrophobicity and charge surface is colored [ Ref 140 ] at atom level using colors specified for groups of atoms by &#39;--surfaceAtomTypesColors&#39; option. This scheme allows simultaneous mapping of hyrophobicity and charge values on the surfaces.</p>
+<p>This option is only valid for amino acids. By default, both surfaces are automatically created for chains containing amino acids and skipped for chains containing only nucleic acids.</p>
+<p>In addition, generic surfaces colored by &#39;--surfaceColor&#39; are always created for chain residues containing amino acids and nucleic acids.</p>
+</dd>
+<dt id="surfaceChainElectrostatics-yes-or-no-default:-no"><b>--surfaceChainElectrostatics</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Vacuum electrostatics contact potential surface and volume around individual chain. A word to the wise from PyMOL documentation: The computed protein contact potentials are only qualitatively useful, due to short cutoffs, truncation, and lack of solvent &quot;screening&quot;.</p>
+<p>This option is only valid for amino acids. By default, the electrostatics surface and volume are automatically created for chains containing amino acids and skipped for chains containing only nucleic acids.</p>
+</dd>
+<dt id="surfaceChainComplex-yes-or-no-default:-no"><b>--surfaceChainComplex</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Hydrophobic surface around chain complex. The surface is colored by hydrophobicity. It is only valid for amino acids.</p>
+</dd>
+<dt id="surfaceComplex-yes-or-no-default:-no"><b>--surfaceComplex</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Hydrophobic surface around complete complex. The surface is colored by hydrophobicity. It is only valid for amino acids.</p>
+</dd>
+<dt id="surfaceAtomTypesColors-ColorType-ColorSpec-...-default:-auto"><b>--surfaceAtomTypesColors</b> &lt;ColorType,ColorSpec,...&gt; [default: auto]</dt>
+<dd>
+<p>Atom colors for generating surfaces colored by hyrophobicity and charge around chains and pockets in proteins. It&#39;s a pairwise comma delimited list of atom color type and color specification for goups of atoms.</p>
+<p>The default values for color types [ Ref 140 ] along wth color specifications are shown below:</p>
+<div class="OptionsBox">    HydrophobicAtomsColor, yellow,
+<br/>    NegativelyChargedAtomsColor, red,
+<br/>    PositivelyChargedAtomsColor, blue,
+<br/>    OtherAtomsColor, gray90
+<br/>    </div>
+<p>The color names must be valid PyMOL names.</p>
+<p>The color values may also be specified as space delimited RGB triplets:</p>
+<div class="OptionsBox">    HydrophobicAtomsColor, 0.95 0.78 0.0,
+<br/>    NegativelyChargedAtomsColor, 1.0 0.4 0.4,
+<br/>    PositivelyChargedAtomsColor, 0.2 0.5 0.8,
+<br/>    OtherAtomsColor, 0.95 0.95 0.95
+<br/>    </div>
+</dd>
+<dt id="surfaceColor-ColorName-default:-lightblue"><b>--surfaceColor</b> &lt;ColorName&gt; [default: lightblue]</dt>
+<dd>
+<p>Color name for surfaces around chains and pockets. This color is not used for surfaces colored by hydrophobicity and charge. The color name must be a valid PyMOL name.</p>
+</dd>
+<dt id="surfaceColorPalette-RedToWhite-or-WhiteToGreen-default:-RedToWhite"><b>--surfaceColorPalette</b> &lt;RedToWhite or WhiteToGreen&gt; [default: RedToWhite]</dt>
+<dd>
+<p>Color palette for hydrophobic surfaces around chains and pockets in proteins. Possible values: RedToWhite or WhiteToGreen from most hydrophobic amino acid to least hydrophobic. The colors values for amino acids are taken from color_h script available as part of the Script Library at PyMOL Wiki.</p>
+</dd>
+<dt id="surfaceTransparency-number-default:-0.25"><b>--surfaceTransparency</b> &lt;number&gt; [default: 0.25]</dt>
+<dd>
+<p>Surface transparency for molecular surfaces.</p>
+</dd>
+<dt id="overwrite"><b>--overwrite</b></dt>
+<dd>
+<p>Overwrite existing files.</p>
+</dd>
+<dt id="w---workingdir-dir"><b>-w, --workingdir</b> &lt;dir&gt;</dt>
+<dd>
+<p>Location of working directory which defaults to the current directory.</p>
+</dd>
+</dl>
+<h1 id="EXAMPLES">EXAMPLES</h2>
+<p>To visualize the first chain, the largest ligand in the first chain, and ligand binding pockets to highlight ligand interaction with pocket resiudes, solvents and inorganics, in a PDB file, and generate a PML file, type:</p>
+<div class="ExampleBox">    % PyMOLVisualizeMacromolecules.py -i Sample4.pdb -o Sample4.pml</div>
+<p>To visualize the first chain along with all cysteines and serines, the largest ligand in the first chain, and ligand binding pockets to highlight ligand interaction with pocket resiudes, solvents and inorganics, in a PDB file, and generate a PML file, type:</p>
+<div class="ExampleBox">    % PyMOLVisualizeMacromolecules.py -i Sample4.pdb -o Sample4.pml
+      --selectionsChain &quot;Cysteines,resn cys,Serines,resn ser&quot;</div>
+<p>To visualize all chains, all ligands in all chains, and all ligand binding pockets to highlight ligand interaction with pocket resiudes, solvents and inorganics, in a PDB file, and generate a PML file, type:</p>
+<div class="ExampleBox">    % PyMOLVisualizeMacromolecules.py -c All -l All -i Sample4.pdb -o
+      Sample4.pml</div>
+<p>To visualize all chains, ligands, and ligand binding pockets along with displaying all hydrophibic surfaces and chain electrostatic surface, in a PDB file, and generate a PML file, type:</p>
+<div class="ExampleBox">    % PyMOLVisualizeMacromolecules.py -c All -l All
+      --surfaceChainElectrostatics yes --surfaceChainComplex yes
+      --surfaceComplex yes -i Sample4.pdb -o Sample4.pml</div>
+<p>To visualize chain E, ligand ADP in chain E, and ligand binding pockets to highlight ligand interaction with pocket resiudes, solvents and inorganics, in a PDB file, and generate a PML file, type:</p>
+<div class="ExampleBox">    % PyMOLVisualizeMacromolecules.py -c E -l ADP -i Sample3.pdb
+      -o Sample3.pml</div>
+<p>To visualize chain E, ligand ADP in chain E, and ligand binding pockets to highlight ligand interaction with pocket resiudes, solvents and inorganics, in a PDB file, and generate a PSE file, type:</p>
+<div class="ExampleBox">    % PyMOLVisualizeMacromolecules.py -c E -l ADP -i Sample3.pdb
+      -o Sample3.pse</div>
+<p>To visualize the first chain, the largest ligand in the first chain, and ligand binding pockets to highlight ligand interaction with pocket resiudes, solvents and inorganics, in PDB files, along with aligning first chain in each input file to the first chain in first input file, and generate a PML file, type:</p>
+<div class="ExampleBox">    % PyMOLVisualizeMacromolecules.py --align yes -i
+      &quot;Sample5.pdb,Sample6.pdb,Sample7.pdb&quot; -o SampleOut.pml</div>
+<p>To visualize all chains, all ligands in all chains, and all ligand binding pockets to highlight ligand interaction with pocket resiudes, solvents and inorganics, in PDB files, along with aligning first chain in each input file to the first chain in first input file, and generate a PML file, type:</p>
+<div class="ExampleBox">    % PyMOLVisualizeMacromolecules.py --align yes  -c All -l All -i
+      &quot;Sample5.pdb,Sample6.pdb,Sample7.pdb&quot; -o SampleOut.pml</div>
+<p>To visualize all chains, all ligands in all chains, and all ligand binding pockets to highlight ligand interaction with pocket resiudes, solvents and inorganics, in PDB files, along with aligning first chain in each input file to the first chain in a specified PDB file using a specified alignment method, and generate a PML file, type:</p>
+<div class="ExampleBox">    % PyMOLVisualizeMacromolecules.py --align yes  --alignMode FirstChain
+      --alignRefFile Sample5.pdb --alignMethod super   -c All  -l All -i
+      &quot;Sample5.pdb,Sample6.pdb,Sample7.pdb&quot; -o SampleOut.pml</div>
+<h1 id="AUTHOR">AUTHOR</h2>
+<p><a href="mailto:msud@san.rr.com">Manish Sud</a></p>
+<h1 id="SEE-ALSO">SEE ALSO</h2>
+<p><a href="./DownloadPDBFiles.html">DownloadPDBFiles.pl</a>, <a href="./PyMOLVisualizeCavities.html">PyMOLVisualizeCavities.py</a>, <a href="./PyMOLVisualizeCryoEMDensity.html">PyMOLVisualizeCryoEMDensity.py</a>, <a href="./PyMOLVisualizeElectronDensity.html">PyMOLVisualizeElectronDensity.py</a>, <a href="./PyMOLVisualizeInterfaces.html">PyMOLVisualizeInterfaces.py</a>, <a href="./PyMOLVisualizeSurfaceAndBuriedResidues.html">PyMOLVisualizeSurfaceAndBuriedResidues.py</a></p>
+<h1 id="COPYRIGHT">COPYRIGHT</h2>
+<p>Copyright (C) 2020 Manish Sud. All rights reserved.</p>
+<p>The functionality available in this script is implemented using PyMOL, a molecular visualization system on an open source foundation originally developed by Warren DeLano.</p>
+<p>This file is part of MayaChemTools.</p>
+<p>MayaChemTools is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.</p>
+<p>&nbsp</p><p>&nbsp</p><div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./PyMOLVisualizeInterfaces.html" title="PyMOLVisualizeInterfaces.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./PyMOLVisualizeSurfaceAndBuriedResidues.html" title="PyMOLVisualizeSurfaceAndBuriedResidues.html">Next</a></td><td width="34%" align="middle"><strong>August 27, 2020</strong></td><td width="33%" align="right"><strong>PyMOLVisualizeMacromolecules.py</strong></td></tr>
+</table>
+</div>
+<br />
+<center>
+<img src="../../images/h2o2.png">
+</center>
+</body>
+</html>

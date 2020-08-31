@@ -1,0 +1,791 @@
+<html>
+<head>
+<title>MayaChemTools:Code:RDKitPerformMinimization.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../../css/MayaChemToolsPythonCode.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<pre>
+   1 <span class="ch">#!/bin/env python</span>
+   2 <span class="c1">#</span>
+   3 <span class="c1"># File: RDKitPerformMinimization.py</span>
+   4 <span class="c1"># Author: Manish Sud &lt;msud@san.rr.com&gt;</span>
+   5 <span class="c1">#</span>
+   6 <span class="c1"># Copyright (C) 2020 Manish Sud. All rights reserved.</span>
+   7 <span class="c1">#</span>
+   8 <span class="c1"># The functionality available in this script is implemented using RDKit, an</span>
+   9 <span class="c1"># open source toolkit for cheminformatics developed by Greg Landrum.</span>
+  10 <span class="c1">#</span>
+  11 <span class="c1"># This file is part of MayaChemTools.</span>
+  12 <span class="c1">#</span>
+  13 <span class="c1"># MayaChemTools is free software; you can redistribute it and/or modify it under</span>
+  14 <span class="c1"># the terms of the GNU Lesser General Public License as published by the Free</span>
+  15 <span class="c1"># Software Foundation; either version 3 of the License, or (at your option) any</span>
+  16 <span class="c1"># later version.</span>
+  17 <span class="c1">#</span>
+  18 <span class="c1"># MayaChemTools is distributed in the hope that it will be useful, but without</span>
+  19 <span class="c1"># any warranty; without even the implied warranty of merchantability of fitness</span>
+  20 <span class="c1"># for a particular purpose.  See the GNU Lesser General Public License for more</span>
+  21 <span class="c1"># details.</span>
+  22 <span class="c1">#</span>
+  23 <span class="c1"># You should have received a copy of the GNU Lesser General Public License</span>
+  24 <span class="c1"># along with MayaChemTools; if not, see &lt;http://www.gnu.org/licenses/&gt; or</span>
+  25 <span class="c1"># write to the Free Software Foundation Inc., 59 Temple Place, Suite 330,</span>
+  26 <span class="c1"># Boston, MA, 02111-1307, USA.</span>
+  27 <span class="c1">#</span>
+  28 
+  29 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+  30 
+  31 <span class="c1"># Add local python path to the global path and import standard library modules...</span>
+  32 <span class="kn">import</span> <span class="nn">os</span>
+  33 <span class="kn">import</span> <span class="nn">sys</span><span class="p">;</span>  <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="s2">&quot;..&quot;</span><span class="p">,</span> <span class="s2">&quot;lib&quot;</span><span class="p">,</span> <span class="s2">&quot;Python&quot;</span><span class="p">))</span>
+  34 <span class="kn">import</span> <span class="nn">time</span>
+  35 <span class="kn">import</span> <span class="nn">re</span>
+  36 <span class="kn">import</span> <span class="nn">multiprocessing</span> <span class="kn">as</span> <span class="nn">mp</span>
+  37 
+  38 <span class="c1"># RDKit imports...</span>
+  39 <span class="k">try</span><span class="p">:</span>
+  40     <span class="kn">from</span> <span class="nn">rdkit</span> <span class="kn">import</span> <span class="n">rdBase</span>
+  41     <span class="kn">from</span> <span class="nn">rdkit</span> <span class="kn">import</span> <span class="n">Chem</span>
+  42     <span class="kn">from</span> <span class="nn">rdkit.Chem</span> <span class="kn">import</span> <span class="n">AllChem</span>
+  43 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+  44     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Failed to import RDKit module/package: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ErrMsg</span><span class="p">)</span>
+  45     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Check/update your RDKit environment and try again.</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+  46     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+  47 
+  48 <span class="c1"># MayaChemTools imports...</span>
+  49 <span class="k">try</span><span class="p">:</span>
+  50     <span class="kn">from</span> <span class="nn">docopt</span> <span class="kn">import</span> <span class="n">docopt</span>
+  51     <span class="kn">import</span> <span class="nn">MiscUtil</span>
+  52     <span class="kn">import</span> <span class="nn">RDKitUtil</span>
+  53 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+  54     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Failed to import MayaChemTools module/package: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ErrMsg</span><span class="p">)</span>
+  55     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Check/update your MayaChemTools environment and try again.</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+  56     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+  57 
+  58 <span class="n">ScriptName</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+  59 <span class="n">Options</span> <span class="o">=</span> <span class="p">{}</span>
+  60 <span class="n">OptionsInfo</span> <span class="o">=</span> <span class="p">{}</span>
+  61 
+  62 <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+  63     <span class="sd">&quot;&quot;&quot;Start execution of the script&quot;&quot;&quot;</span>
+  64     
+  65     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2"> (RDK v</span><span class="si">%s</span><span class="s2">; </span><span class="si">%s</span><span class="s2">): Starting...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ScriptName</span><span class="p">,</span> <span class="n">rdBase</span><span class="o">.</span><span class="n">rdkitVersion</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()))</span>
+  66     
+  67     <span class="p">(</span><span class="n">WallClockTime</span><span class="p">,</span> <span class="n">ProcessorTime</span><span class="p">)</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetWallClockAndProcessorTime</span><span class="p">()</span>
+  68     
+  69     <span class="c1"># Retrieve command line arguments and options...</span>
+  70     <span class="n">RetrieveOptions</span><span class="p">()</span>
+  71     
+  72     <span class="c1"># Process and validate command line arguments and options...</span>
+  73     <span class="n">ProcessOptions</span><span class="p">()</span>
+  74     
+  75     <span class="c1"># Perform actions required by the script...</span>
+  76     <span class="n">PerformMinimization</span><span class="p">()</span>
+  77     
+  78     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2">: Done...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ScriptName</span><span class="p">)</span>
+  79     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Total time: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetFormattedElapsedTime</span><span class="p">(</span><span class="n">WallClockTime</span><span class="p">,</span> <span class="n">ProcessorTime</span><span class="p">))</span>
+  80 
+  81 <span class="k">def</span> <span class="nf">PerformMinimization</span><span class="p">():</span>
+  82     <span class="sd">&quot;&quot;&quot;Perform minimization.&quot;&quot;&quot;</span>
+  83     
+  84     <span class="c1"># Setup a molecule reader...</span>
+  85     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Processing file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">])</span>
+  86     <span class="n">Mols</span>  <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">ReadMolecules</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">],</span> <span class="o">**</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileParams&quot;</span><span class="p">])</span>
+  87     
+  88     <span class="c1"># Set up a molecule writer...</span>
+  89     <span class="n">Writer</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MoleculesWriter</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">],</span> <span class="o">**</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">])</span>
+  90     <span class="k">if</span> <span class="n">Writer</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+  91         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Failed to setup a writer for output fie </span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">])</span>
+  92     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Generating file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">])</span>
+  93 
+  94     <span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">MinimizationFailedCount</span><span class="p">,</span> <span class="n">WriteFailedCount</span> <span class="o">=</span> <span class="n">ProcessMolecules</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">)</span>
+  95 
+  96     <span class="k">if</span> <span class="n">Writer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+  97         <span class="n">Writer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+  98     
+  99     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Total number of molecules: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolCount</span><span class="p">)</span>
+ 100     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of valid molecules: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ValidMolCount</span><span class="p">)</span>
+ 101     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of molecules failed during conformation generation or minimization: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MinimizationFailedCount</span><span class="p">)</span>
+ 102     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of molecules failed during writing: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">WriteFailedCount</span><span class="p">)</span>
+ 103     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of ignored molecules: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MolCount</span> <span class="o">-</span> <span class="n">ValidMolCount</span> <span class="o">+</span> <span class="n">MinimizationFailedCount</span> <span class="o">+</span> <span class="n">WriteFailedCount</span><span class="p">))</span>
+ 104 
+ 105 <span class="k">def</span> <span class="nf">ProcessMolecules</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">):</span>
+ 106     <span class="sd">&quot;&quot;&quot;Process and minimize molecules. &quot;&quot;&quot;</span>
+ 107     
+ 108     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MPMode&quot;</span><span class="p">]:</span>
+ 109         <span class="k">return</span> <span class="n">ProcessMoleculesUsingMultipleProcesses</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">)</span>
+ 110     <span class="k">else</span><span class="p">:</span>
+ 111         <span class="k">return</span> <span class="n">ProcessMoleculesUsingSingleProcess</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">)</span>
+ 112 
+ 113 <span class="k">def</span> <span class="nf">ProcessMoleculesUsingSingleProcess</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">):</span>
+ 114     <span class="sd">&quot;&quot;&quot;Process and minimize molecules using a single process.&quot;&quot;&quot;</span>
+ 115     
+ 116     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SkipConformerGeneration&quot;</span><span class="p">]:</span>
+ 117         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Performing minimization without generation of conformers...&quot;</span><span class="p">)</span>
+ 118     <span class="k">else</span><span class="p">:</span>
+ 119         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Performing minimization with generation of conformers...&quot;</span><span class="p">)</span>
+ 120     
+ 121     <span class="p">(</span><span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">MinimizationFailedCount</span><span class="p">,</span> <span class="n">WriteFailedCount</span><span class="p">)</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">4</span>
+ 122     <span class="k">for</span> <span class="n">Mol</span> <span class="ow">in</span> <span class="n">Mols</span><span class="p">:</span>
+ 123         <span class="n">MolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 124         
+ 125         <span class="k">if</span> <span class="n">Mol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 126             <span class="k">continue</span>
+ 127         
+ 128         <span class="k">if</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">IsMolEmpty</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+ 129             <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+ 130                 <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">)</span>
+ 131                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Ignoring empty molecule: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolName</span><span class="p">)</span>
+ 132             <span class="k">continue</span>
+ 133         <span class="n">ValidMolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 134 
+ 135         <span class="n">Mol</span><span class="p">,</span> <span class="n">CalcStatus</span><span class="p">,</span> <span class="n">ConfID</span><span class="p">,</span> <span class="n">Energy</span> <span class="o">=</span> <span class="n">MinimizeMoleculeOrConformers</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">)</span>
+ 136         
+ 137         <span class="k">if</span> <span class="ow">not</span> <span class="n">CalcStatus</span><span class="p">:</span>
+ 138             <span class="n">MinimizationFailedCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 139             <span class="k">continue</span>
+ 140         
+ 141         <span class="n">WriteStatus</span> <span class="o">=</span> <span class="n">WriteMolecule</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">,</span> <span class="n">ConfID</span><span class="p">,</span> <span class="n">Energy</span><span class="p">)</span>
+ 142         <span class="k">if</span> <span class="ow">not</span> <span class="n">WriteStatus</span><span class="p">:</span>
+ 143             <span class="n">WriteFailedCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 144     
+ 145     <span class="k">return</span> <span class="p">(</span><span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">MinimizationFailedCount</span><span class="p">,</span> <span class="n">WriteFailedCount</span><span class="p">)</span>
+ 146 
+ 147 <span class="k">def</span> <span class="nf">ProcessMoleculesUsingMultipleProcesses</span><span class="p">(</span><span class="n">Mols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">):</span>
+ 148     <span class="sd">&quot;&quot;&quot;Process and minimize molecules using multiprocessing.&quot;&quot;&quot;</span>
+ 149     
+ 150     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SkipConformerGeneration&quot;</span><span class="p">]:</span>
+ 151         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Performing minimization without generation of conformers using multiprocessing...&quot;</span><span class="p">)</span>
+ 152     <span class="k">else</span><span class="p">:</span>
+ 153         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Performing minimization with generation of conformers using multiprocessing...&quot;</span><span class="p">)</span>
+ 154         
+ 155     <span class="n">MPParams</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MPParams&quot;</span><span class="p">]</span>
+ 156     
+ 157     <span class="c1"># Setup data for initializing a worker process...</span>
+ 158     <span class="n">InitializeWorkerProcessArgs</span> <span class="o">=</span> <span class="p">(</span><span class="n">MiscUtil</span><span class="o">.</span><span class="n">ObjectToBase64EncodedString</span><span class="p">(</span><span class="n">Options</span><span class="p">),</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ObjectToBase64EncodedString</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">))</span>
+ 159     
+ 160     <span class="c1"># Setup a encoded mols data iterable for a worker process...</span>
+ 161     <span class="n">WorkerProcessDataIterable</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GenerateBase64EncodedMolStrings</span><span class="p">(</span><span class="n">Mols</span><span class="p">)</span>
+ 162 
+ 163     <span class="c1"># Setup process pool along with data initialization for each process...</span>
+ 164     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Configuring multiprocessing using </span><span class="si">%s</span><span class="s2"> method...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="s2">&quot;mp.Pool.imap()&quot;</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^Lazy$&quot;</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="s2">&quot;mp.Pool.map()&quot;</span><span class="p">))</span>
+ 165     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;NumProcesses: </span><span class="si">%s</span><span class="s2">; InputDataMode: </span><span class="si">%s</span><span class="s2">; ChunkSize: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;NumProcesses&quot;</span><span class="p">],</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">],</span> <span class="p">(</span><span class="s2">&quot;automatic&quot;</span> <span class="k">if</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;ChunkSize&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">None</span> <span class="k">else</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;ChunkSize&quot;</span><span class="p">])))</span>
+ 166     
+ 167     <span class="n">ProcessPool</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;NumProcesses&quot;</span><span class="p">],</span> <span class="n">InitializeWorkerProcess</span><span class="p">,</span> <span class="n">InitializeWorkerProcessArgs</span><span class="p">)</span>
+ 168     
+ 169     <span class="c1"># Start processing...</span>
+ 170     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^Lazy$&quot;</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 171         <span class="n">Results</span> <span class="o">=</span> <span class="n">ProcessPool</span><span class="o">.</span><span class="n">imap</span><span class="p">(</span><span class="n">WorkerProcess</span><span class="p">,</span> <span class="n">WorkerProcessDataIterable</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;ChunkSize&quot;</span><span class="p">])</span>
+ 172     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^InMemory$&quot;</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 173         <span class="n">Results</span> <span class="o">=</span> <span class="n">ProcessPool</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="n">WorkerProcess</span><span class="p">,</span> <span class="n">WorkerProcessDataIterable</span><span class="p">,</span> <span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;ChunkSize&quot;</span><span class="p">])</span>
+ 174     <span class="k">else</span><span class="p">:</span>
+ 175         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The value, </span><span class="si">%s</span><span class="s2">, specified for </span><span class="se">\&quot;</span><span class="s2">--inputDataMode</span><span class="se">\&quot;</span><span class="s2"> is not supported.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MPParams</span><span class="p">[</span><span class="s2">&quot;InputDataMode&quot;</span><span class="p">]))</span>
+ 176     
+ 177     <span class="p">(</span><span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">MinimizationFailedCount</span><span class="p">,</span> <span class="n">WriteFailedCount</span><span class="p">)</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">4</span>
+ 178     <span class="k">for</span> <span class="n">Result</span> <span class="ow">in</span> <span class="n">Results</span><span class="p">:</span>
+ 179         <span class="n">MolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 180         <span class="n">MolIndex</span><span class="p">,</span> <span class="n">EncodedMol</span><span class="p">,</span> <span class="n">CalcStatus</span><span class="p">,</span> <span class="n">ConfID</span><span class="p">,</span> <span class="n">Energy</span> <span class="o">=</span> <span class="n">Result</span>
+ 181         
+ 182         <span class="k">if</span> <span class="n">EncodedMol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 183             <span class="k">continue</span>
+ 184         <span class="n">ValidMolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 185 
+ 186         <span class="k">if</span> <span class="ow">not</span> <span class="n">CalcStatus</span><span class="p">:</span>
+ 187             <span class="n">MinimizationFailedCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 188             <span class="k">continue</span>
+ 189             
+ 190         <span class="n">Mol</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MolFromBase64EncodedMolString</span><span class="p">(</span><span class="n">EncodedMol</span><span class="p">)</span>
+ 191         <span class="n">WriteStatus</span> <span class="o">=</span> <span class="n">WriteMolecule</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">,</span> <span class="n">ConfID</span><span class="p">,</span> <span class="n">Energy</span><span class="p">)</span>
+ 192         <span class="k">if</span> <span class="ow">not</span> <span class="n">WriteStatus</span><span class="p">:</span>
+ 193             <span class="n">WriteFailedCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 194     
+ 195     <span class="k">return</span> <span class="p">(</span><span class="n">MolCount</span><span class="p">,</span> <span class="n">ValidMolCount</span><span class="p">,</span> <span class="n">MinimizationFailedCount</span><span class="p">,</span> <span class="n">WriteFailedCount</span><span class="p">)</span>
+ 196     
+ 197 <span class="k">def</span> <span class="nf">InitializeWorkerProcess</span><span class="p">(</span><span class="o">*</span><span class="n">EncodedArgs</span><span class="p">):</span>
+ 198     <span class="sd">&quot;&quot;&quot;Initialize data for a worker process.&quot;&quot;&quot;</span>
+ 199     
+ 200     <span class="k">global</span> <span class="n">Options</span><span class="p">,</span> <span class="n">OptionsInfo</span>
+ 201 
+ 202     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Starting process (PID: </span><span class="si">%s</span><span class="s2">)...&quot;</span> <span class="o">%</span> <span class="n">os</span><span class="o">.</span><span class="n">getpid</span><span class="p">())</span>
+ 203     
+ 204     <span class="c1"># Decode Options and OptionInfo...</span>
+ 205     <span class="n">Options</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ObjectFromBase64EncodedString</span><span class="p">(</span><span class="n">EncodedArgs</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+ 206     <span class="n">OptionsInfo</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ObjectFromBase64EncodedString</span><span class="p">(</span><span class="n">EncodedArgs</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+ 207     
+ 208 <span class="k">def</span> <span class="nf">WorkerProcess</span><span class="p">(</span><span class="n">EncodedMolInfo</span><span class="p">):</span>
+ 209     <span class="sd">&quot;&quot;&quot;Process data for a worker process.&quot;&quot;&quot;</span>
+ 210 
+ 211     <span class="n">MolIndex</span><span class="p">,</span> <span class="n">EncodedMol</span> <span class="o">=</span> <span class="n">EncodedMolInfo</span>
+ 212     
+ 213     <span class="n">CalcStatus</span> <span class="o">=</span> <span class="bp">False</span>
+ 214     <span class="n">ConfID</span> <span class="o">=</span> <span class="bp">None</span>
+ 215     <span class="n">Energy</span> <span class="o">=</span> <span class="bp">None</span>
+ 216     
+ 217     <span class="k">if</span> <span class="n">EncodedMol</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 218         <span class="k">return</span> <span class="p">[</span><span class="n">MolIndex</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="n">CalcStatus</span><span class="p">,</span> <span class="n">ConfID</span><span class="p">,</span> <span class="n">Energy</span><span class="p">]</span>
+ 219 
+ 220     <span class="n">Mol</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MolFromBase64EncodedMolString</span><span class="p">(</span><span class="n">EncodedMol</span><span class="p">)</span>
+ 221     <span class="k">if</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">IsMolEmpty</span><span class="p">(</span><span class="n">Mol</span><span class="p">):</span>
+ 222         <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+ 223             <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="p">(</span><span class="n">MolIndex</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+ 224             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Ignoring empty molecule: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolName</span><span class="p">)</span>
+ 225         <span class="k">return</span> <span class="p">[</span><span class="n">MolIndex</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="n">CalcStatus</span><span class="p">,</span> <span class="n">ConfID</span><span class="p">,</span> <span class="n">Energy</span><span class="p">]</span>
+ 226     
+ 227     <span class="n">Mol</span><span class="p">,</span> <span class="n">CalcStatus</span><span class="p">,</span> <span class="n">ConfID</span><span class="p">,</span> <span class="n">Energy</span> <span class="o">=</span> <span class="n">MinimizeMoleculeOrConformers</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="p">(</span><span class="n">MolIndex</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+ 228 
+ 229     <span class="k">return</span> <span class="p">[</span><span class="n">MolIndex</span><span class="p">,</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MolToBase64EncodedMolString</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">PropertyPickleFlags</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">PropertyPickleOptions</span><span class="o">.</span><span class="n">MolProps</span> <span class="o">|</span> <span class="n">Chem</span><span class="o">.</span><span class="n">PropertyPickleOptions</span><span class="o">.</span><span class="n">PrivateProps</span><span class="p">),</span> <span class="n">CalcStatus</span><span class="p">,</span> <span class="n">ConfID</span><span class="p">,</span> <span class="n">Energy</span><span class="p">]</span>
+ 230 
+ 231 <span class="k">def</span> <span class="nf">MinimizeMoleculeOrConformers</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+ 232     <span class="sd">&quot;&quot;&quot;Minimize molecule or conformers.&quot;&quot;&quot;</span>
+ 233 
+ 234     <span class="n">ConfID</span> <span class="o">=</span> <span class="bp">None</span>
+ 235     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SkipConformerGeneration&quot;</span><span class="p">]:</span>
+ 236         <span class="n">Mol</span><span class="p">,</span> <span class="n">CalcStatus</span><span class="p">,</span> <span class="n">Energy</span> <span class="o">=</span> <span class="n">MinimizeMolecule</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">)</span>
+ 237     <span class="k">else</span><span class="p">:</span>
+ 238         <span class="n">Mol</span><span class="p">,</span> <span class="n">CalcStatus</span><span class="p">,</span> <span class="n">ConfID</span><span class="p">,</span> <span class="n">Energy</span> <span class="o">=</span> <span class="n">MinimizeConformers</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">)</span>
+ 239 
+ 240     <span class="k">return</span> <span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">CalcStatus</span><span class="p">,</span> <span class="n">ConfID</span><span class="p">,</span> <span class="n">Energy</span><span class="p">)</span>
+ 241     
+ 242 <span class="k">def</span> <span class="nf">MinimizeMolecule</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+ 243     <span class="s2">&quot;Minimize molecule.&quot;</span>
+ 244     
+ 245     <span class="k">if</span>  <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;AddHydrogens&quot;</span><span class="p">]:</span>
+ 246         <span class="n">Mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">AddHs</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">addCoords</span> <span class="o">=</span> <span class="bp">True</span><span class="p">)</span>
+ 247 
+ 248     <span class="n">Status</span> <span class="o">=</span> <span class="mi">0</span>
+ 249     <span class="k">try</span><span class="p">:</span>
+ 250         <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseUFF&quot;</span><span class="p">]:</span>
+ 251             <span class="n">Status</span> <span class="o">=</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">UFFOptimizeMolecule</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">maxIters</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MaxIters&quot;</span><span class="p">])</span>
+ 252         <span class="k">elif</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseMMFF&quot;</span><span class="p">]:</span>
+ 253             <span class="n">Status</span> <span class="o">=</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">MMFFOptimizeMolecule</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span>  <span class="n">maxIters</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MaxIters&quot;</span><span class="p">],</span> <span class="n">mmffVariant</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MMFFVariant&quot;</span><span class="p">])</span>
+ 254         <span class="k">else</span><span class="p">:</span>
+ 255             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Minimization couldn&#39;t be performed: Specified forcefield, </span><span class="si">%s</span><span class="s2">, is not supported&quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ForceField&quot;</span><span class="p">])</span>
+ 256     <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">RuntimeError</span><span class="p">,</span> <span class="n">Chem</span><span class="o">.</span><span class="n">rdchem</span><span class="o">.</span><span class="n">KekulizeException</span><span class="p">)</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+ 257         <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+ 258             <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">)</span>
+ 259             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Minimization couldn&#39;t be performed for molecule </span><span class="si">%s</span><span class="s2">:</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MolName</span><span class="p">,</span> <span class="n">ErrMsg</span><span class="p">))</span>
+ 260         <span class="k">return</span> <span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+ 261     
+ 262     <span class="k">if</span> <span class="n">Status</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+ 263         <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+ 264             <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">)</span>
+ 265             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Minimization failed to converge for molecule </span><span class="si">%s</span><span class="s2"> in </span><span class="si">%d</span><span class="s2"> steps. Try using higher value for </span><span class="se">\&quot;</span><span class="s2">--maxIters</span><span class="se">\&quot;</span><span class="s2"> option...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MolName</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MaxIters&quot;</span><span class="p">]))</span>
+ 266 
+ 267     <span class="n">Energy</span> <span class="o">=</span> <span class="bp">None</span>
+ 268     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;EnergyOut&quot;</span><span class="p">]:</span>
+ 269         <span class="n">EnergyStatus</span><span class="p">,</span> <span class="n">Energy</span> <span class="o">=</span> <span class="n">GetEnergy</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+ 270         <span class="k">if</span> <span class="n">EnergyStatus</span><span class="p">:</span>
+ 271             <span class="n">Energy</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%.2f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">Energy</span>
+ 272         <span class="k">else</span><span class="p">:</span>
+ 273             <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+ 274                 <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">)</span>
+ 275                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Failed to retrieve calculated energy for molecule </span><span class="si">%s</span><span class="s2">. Try again after removing any salts or cleaing up the molecule...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MolName</span><span class="p">))</span>
+ 276     
+ 277     <span class="k">if</span>  <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RemoveHydrogens&quot;</span><span class="p">]:</span>
+ 278         <span class="n">Mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">RemoveHs</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+ 279     
+ 280     <span class="k">return</span> <span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="bp">True</span><span class="p">,</span> <span class="n">Energy</span><span class="p">)</span>
+ 281 
+ 282 <span class="k">def</span> <span class="nf">MinimizeConformers</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+ 283     <span class="s2">&quot;Generate and minimize conformers for a molecule to get the lowest energy conformer.&quot;</span>
+ 284     
+ 285     <span class="k">if</span>  <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;AddHydrogens&quot;</span><span class="p">]:</span>
+ 286         <span class="n">Mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">AddHs</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+ 287 
+ 288     <span class="n">ConfIDs</span> <span class="o">=</span> <span class="n">EmbedMolecule</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">)</span>
+ 289     <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">ConfIDs</span><span class="p">):</span>
+ 290         <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+ 291             <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">)</span>
+ 292             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Minimization couldn&#39;t be performed for molecule </span><span class="si">%s</span><span class="s2">: Embedding failed...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MolName</span><span class="p">)</span>
+ 293         <span class="k">return</span> <span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+ 294 
+ 295     <span class="n">CalcEnergyMap</span> <span class="o">=</span> <span class="p">{}</span>
+ 296     <span class="k">for</span> <span class="n">ConfID</span> <span class="ow">in</span> <span class="n">ConfIDs</span><span class="p">:</span>
+ 297         <span class="k">try</span><span class="p">:</span>
+ 298             <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseUFF&quot;</span><span class="p">]:</span>
+ 299                 <span class="n">Status</span> <span class="o">=</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">UFFOptimizeMolecule</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">confId</span> <span class="o">=</span> <span class="n">ConfID</span><span class="p">,</span> <span class="n">maxIters</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MaxIters&quot;</span><span class="p">])</span>
+ 300             <span class="k">elif</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseMMFF&quot;</span><span class="p">]:</span>
+ 301                 <span class="n">Status</span> <span class="o">=</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">MMFFOptimizeMolecule</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">confId</span> <span class="o">=</span> <span class="n">ConfID</span><span class="p">,</span> <span class="n">maxIters</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MaxIters&quot;</span><span class="p">],</span> <span class="n">mmffVariant</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MMFFVariant&quot;</span><span class="p">])</span>
+ 302             <span class="k">else</span><span class="p">:</span>
+ 303                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Minimization couldn&#39;t be performed: Specified forcefield, </span><span class="si">%s</span><span class="s2">, is not supported&quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ForceField&quot;</span><span class="p">])</span>
+ 304         <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">RuntimeError</span><span class="p">,</span> <span class="n">Chem</span><span class="o">.</span><span class="n">rdchem</span><span class="o">.</span><span class="n">KekulizeException</span><span class="p">)</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+ 305             <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+ 306                 <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">)</span>
+ 307                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Minimization couldn&#39;t be performed for molecule </span><span class="si">%s</span><span class="s2">:</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MolName</span><span class="p">,</span> <span class="n">ErrMsg</span><span class="p">))</span>
+ 308             <span class="k">return</span> <span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+ 309         
+ 310         <span class="n">EnergyStatus</span><span class="p">,</span> <span class="n">Energy</span> <span class="o">=</span> <span class="n">GetEnergy</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">ConfID</span><span class="p">)</span>
+ 311         <span class="k">if</span> <span class="ow">not</span> <span class="n">EnergyStatus</span><span class="p">:</span>
+ 312             <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+ 313                 <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">)</span>
+ 314                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Failed to retrieve calculated energy for conformation number </span><span class="si">%d</span><span class="s2"> of molecule </span><span class="si">%s</span><span class="s2">. Try again after removing any salts or cleaing up the molecule...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ConfID</span><span class="p">,</span> <span class="n">MolName</span><span class="p">))</span>
+ 315             <span class="k">return</span> <span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="bp">False</span><span class="p">,</span> <span class="bp">None</span><span class="p">,</span> <span class="bp">None</span><span class="p">)</span>
+ 316         
+ 317         <span class="k">if</span> <span class="n">Status</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+ 318             <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+ 319                 <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">)</span>
+ 320                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Minimization failed to converge for conformation number </span><span class="si">%d</span><span class="s2"> of molecule </span><span class="si">%s</span><span class="s2"> in </span><span class="si">%d</span><span class="s2"> steps. Try using higher value for </span><span class="se">\&quot;</span><span class="s2">--maxIters</span><span class="se">\&quot;</span><span class="s2"> option...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ConfID</span><span class="p">,</span> <span class="n">MolName</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MaxIters&quot;</span><span class="p">]))</span>
+ 321             
+ 322         <span class="n">CalcEnergyMap</span><span class="p">[</span><span class="n">ConfID</span><span class="p">]</span> <span class="o">=</span> <span class="n">Energy</span>
+ 323 
+ 324     <span class="n">SortedConfIDs</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">ConfIDs</span><span class="p">,</span> <span class="n">key</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">ConfID</span><span class="p">:</span> <span class="n">CalcEnergyMap</span><span class="p">[</span><span class="n">ConfID</span><span class="p">])</span>
+ 325     <span class="n">MinEnergyConfID</span> <span class="o">=</span> <span class="n">SortedConfIDs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+ 326         
+ 327     <span class="k">if</span>  <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RemoveHydrogens&quot;</span><span class="p">]:</span>
+ 328         <span class="n">Mol</span> <span class="o">=</span> <span class="n">Chem</span><span class="o">.</span><span class="n">RemoveHs</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+ 329 
+ 330     <span class="n">Energy</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%.2f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">CalcEnergyMap</span><span class="p">[</span><span class="n">MinEnergyConfID</span><span class="p">]</span>  <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;EnergyOut&quot;</span><span class="p">]</span> <span class="k">else</span> <span class="bp">None</span>
+ 331     
+ 332     <span class="k">return</span> <span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="bp">True</span><span class="p">,</span> <span class="n">MinEnergyConfID</span><span class="p">,</span> <span class="n">Energy</span><span class="p">)</span>
+ 333     
+ 334 <span class="k">def</span> <span class="nf">GetEnergy</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">ConfID</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+ 335     <span class="s2">&quot;Calculate energy.&quot;</span>
+ 336 
+ 337     <span class="n">Status</span> <span class="o">=</span> <span class="bp">True</span>
+ 338     <span class="n">Energy</span> <span class="o">=</span> <span class="bp">None</span>
+ 339 
+ 340     <span class="k">if</span> <span class="n">ConfID</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 341         <span class="n">ConfID</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+ 342     
+ 343     <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseUFF&quot;</span><span class="p">]:</span>
+ 344         <span class="n">UFFMoleculeForcefield</span> <span class="o">=</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">UFFGetMoleculeForceField</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">confId</span> <span class="o">=</span> <span class="n">ConfID</span><span class="p">)</span>
+ 345         <span class="k">if</span> <span class="n">UFFMoleculeForcefield</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 346             <span class="n">Status</span> <span class="o">=</span> <span class="bp">False</span>
+ 347         <span class="k">else</span><span class="p">:</span>
+ 348             <span class="n">Energy</span> <span class="o">=</span> <span class="n">UFFMoleculeForcefield</span><span class="o">.</span><span class="n">CalcEnergy</span><span class="p">()</span>
+ 349     <span class="k">elif</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseMMFF&quot;</span><span class="p">]:</span>
+ 350         <span class="n">MMFFMoleculeProperties</span> <span class="o">=</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">MMFFGetMoleculeProperties</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">mmffVariant</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MMFFVariant&quot;</span><span class="p">])</span>
+ 351         <span class="n">MMFFMoleculeForcefield</span> <span class="o">=</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">MMFFGetMoleculeForceField</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MMFFMoleculeProperties</span><span class="p">,</span> <span class="n">confId</span> <span class="o">=</span> <span class="n">ConfID</span><span class="p">)</span>
+ 352         <span class="k">if</span> <span class="n">MMFFMoleculeForcefield</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 353             <span class="n">Status</span> <span class="o">=</span> <span class="bp">False</span>
+ 354         <span class="k">else</span><span class="p">:</span>
+ 355             <span class="n">Energy</span> <span class="o">=</span> <span class="n">MMFFMoleculeForcefield</span><span class="o">.</span><span class="n">CalcEnergy</span><span class="p">()</span>
+ 356     <span class="k">else</span><span class="p">:</span>
+ 357         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Couldn&#39;t retrieve conformer energy: Specified forcefield, </span><span class="si">%s</span><span class="s2">, is not supported&quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ForceField&quot;</span><span class="p">])</span>
+ 358     
+ 359     <span class="k">return</span> <span class="p">(</span><span class="n">Status</span><span class="p">,</span> <span class="n">Energy</span><span class="p">)</span>
+ 360     
+ 361 <span class="k">def</span> <span class="nf">EmbedMolecule</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+ 362     <span class="s2">&quot;Embed conformations&quot;</span>
+ 363 
+ 364     <span class="n">ConfIDs</span> <span class="o">=</span> <span class="p">[]</span>
+ 365     
+ 366     <span class="n">MaxConfs</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MaxConfs&quot;</span><span class="p">]</span>
+ 367     <span class="n">RandomSeed</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RandomSeed&quot;</span><span class="p">]</span>
+ 368     <span class="n">EnforceChirality</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;EnforceChirality&quot;</span><span class="p">]</span>
+ 369     <span class="n">UseExpTorsionAnglePrefs</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseExpTorsionAnglePrefs&quot;</span><span class="p">]</span>
+ 370     <span class="n">UseBasicKnowledge</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseBasicKnowledge&quot;</span><span class="p">]</span>
+ 371 
+ 372     <span class="k">try</span><span class="p">:</span>
+ 373         <span class="n">ConfIDs</span> <span class="o">=</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">EmbedMultipleConfs</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">numConfs</span> <span class="o">=</span> <span class="n">MaxConfs</span><span class="p">,</span> <span class="n">randomSeed</span> <span class="o">=</span> <span class="n">RandomSeed</span><span class="p">,</span> <span class="n">enforceChirality</span> <span class="o">=</span> <span class="n">EnforceChirality</span><span class="p">,</span> <span class="n">useExpTorsionAnglePrefs</span> <span class="o">=</span> <span class="n">UseExpTorsionAnglePrefs</span><span class="p">,</span> <span class="n">useBasicKnowledge</span> <span class="o">=</span> <span class="n">UseBasicKnowledge</span><span class="p">)</span>
+ 374     <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+ 375         <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+ 376             <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">)</span>
+ 377             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Embedding failed  for molecule </span><span class="si">%s</span><span class="s2">:</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MolName</span><span class="p">,</span> <span class="n">ErrMsg</span><span class="p">))</span>
+ 378         <span class="n">ConfIDs</span> <span class="o">=</span> <span class="p">[]</span>
+ 379     
+ 380     <span class="k">return</span> <span class="n">ConfIDs</span>
+ 381 
+ 382 <span class="k">def</span> <span class="nf">WriteMolecule</span><span class="p">(</span><span class="n">Writer</span><span class="p">,</span> <span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">ConfID</span> <span class="o">=</span> <span class="bp">None</span><span class="p">,</span> <span class="n">Energy</span> <span class="o">=</span> <span class="bp">None</span><span class="p">):</span>
+ 383     <span class="sd">&quot;&quot;&quot;Write molecule. &quot;&quot;&quot;</span>
+ 384 
+ 385     <span class="k">if</span> <span class="n">Energy</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+ 386         <span class="n">Mol</span><span class="o">.</span><span class="n">SetProp</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;EnergyLabel&quot;</span><span class="p">],</span> <span class="n">Energy</span><span class="p">)</span>
+ 387 
+ 388     <span class="k">try</span><span class="p">:</span>
+ 389         <span class="k">if</span> <span class="n">ConfID</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 390             <span class="n">Writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">Mol</span><span class="p">)</span>
+ 391         <span class="k">else</span><span class="p">:</span>
+ 392             <span class="n">Writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">confId</span> <span class="o">=</span> <span class="n">ConfID</span><span class="p">)</span>
+ 393     <span class="k">except</span> <span class="p">(</span><span class="ne">ValueError</span><span class="p">,</span> <span class="ne">RuntimeError</span><span class="p">)</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+ 394         <span class="k">if</span> <span class="ow">not</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]:</span>
+ 395             <span class="n">MolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">Mol</span><span class="p">,</span> <span class="n">MolNum</span><span class="p">)</span>
+ 396             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Failed to write molecule </span><span class="si">%s</span><span class="s2">:</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MolName</span><span class="p">,</span> <span class="n">ErrMsg</span><span class="p">))</span>
+ 397         <span class="k">return</span> <span class="bp">False</span>
+ 398 
+ 399     <span class="k">return</span> <span class="bp">True</span>
+ 400     
+ 401 <span class="k">def</span> <span class="nf">ProcessOptions</span><span class="p">():</span>
+ 402     <span class="sd">&quot;&quot;&quot;Process and validate command line arguments and options&quot;&quot;&quot;</span>
+ 403     
+ 404     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Processing options...&quot;</span><span class="p">)</span>
+ 405     
+ 406     <span class="c1"># Validate options...</span>
+ 407     <span class="n">ValidateOptions</span><span class="p">()</span>
+ 408     
+ 409     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">]</span>
+ 410     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileParams&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ProcessOptionInfileParameters</span><span class="p">(</span><span class="s2">&quot;--infileParams&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infileParams&quot;</span><span class="p">],</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">])</span>
+ 411     
+ 412     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">]</span>
+ 413     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ProcessOptionOutfileParameters</span><span class="p">(</span><span class="s2">&quot;--outfileParams&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfileParams&quot;</span><span class="p">])</span>
+ 414     
+ 415     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Overwrite&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--overwrite&quot;</span><span class="p">]</span>
+ 416 
+ 417     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;AddHydrogens&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^yes$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--addHydrogens&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+ 418     
+ 419     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^ETDG$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--conformerGenerator&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 420         <span class="n">ConformerGenerator</span> <span class="o">=</span> <span class="s2">&quot;ETDG&quot;</span>
+ 421         <span class="n">UseExpTorsionAnglePrefs</span> <span class="o">=</span> <span class="bp">True</span>
+ 422         <span class="n">UseBasicKnowledge</span> <span class="o">=</span> <span class="bp">False</span>
+ 423         <span class="n">SkipConformerGeneration</span> <span class="o">=</span> <span class="bp">False</span>
+ 424     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^KDG$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--conformerGenerator&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 425         <span class="n">ConformerGenerator</span> <span class="o">=</span> <span class="s2">&quot;KDG&quot;</span>
+ 426         <span class="n">UseExpTorsionAnglePrefs</span> <span class="o">=</span> <span class="bp">False</span>
+ 427         <span class="n">UseBasicKnowledge</span> <span class="o">=</span> <span class="bp">True</span>
+ 428         <span class="n">SkipConformerGeneration</span> <span class="o">=</span> <span class="bp">False</span>
+ 429     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^ETKDG$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--conformerGenerator&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 430         <span class="n">ConformerGenerator</span> <span class="o">=</span> <span class="s2">&quot;ETKDG&quot;</span>
+ 431         <span class="n">UseExpTorsionAnglePrefs</span> <span class="o">=</span> <span class="bp">True</span>
+ 432         <span class="n">UseBasicKnowledge</span> <span class="o">=</span> <span class="bp">True</span>
+ 433         <span class="n">SkipConformerGeneration</span> <span class="o">=</span> <span class="bp">False</span>
+ 434     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^SDG$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--conformerGenerator&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 435         <span class="n">ConformerGenerator</span> <span class="o">=</span> <span class="s2">&quot;SDG&quot;</span>
+ 436         <span class="n">UseExpTorsionAnglePrefs</span> <span class="o">=</span> <span class="bp">False</span>
+ 437         <span class="n">UseBasicKnowledge</span> <span class="o">=</span> <span class="bp">False</span>
+ 438         <span class="n">SkipConformerGeneration</span> <span class="o">=</span> <span class="bp">False</span>
+ 439     <span class="k">else</span><span class="p">:</span>
+ 440         <span class="n">ConformerGenerator</span> <span class="o">=</span> <span class="s2">&quot;None&quot;</span>
+ 441         <span class="n">UseExpTorsionAnglePrefs</span> <span class="o">=</span> <span class="bp">False</span>
+ 442         <span class="n">UseBasicKnowledge</span> <span class="o">=</span> <span class="bp">False</span>
+ 443         <span class="n">SkipConformerGeneration</span> <span class="o">=</span> <span class="bp">True</span>
+ 444     
+ 445     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SkipConformerGeneration&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">SkipConformerGeneration</span>
+ 446     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ConformerGenerator&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ConformerGenerator</span>
+ 447     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseExpTorsionAnglePrefs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">UseExpTorsionAnglePrefs</span>
+ 448     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseBasicKnowledge&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">UseBasicKnowledge</span>
+ 449 
+ 450     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^UFF$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--forceField&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 451         <span class="n">ForceField</span> <span class="o">=</span> <span class="s2">&quot;UFF&quot;</span>
+ 452         <span class="n">UseUFF</span> <span class="o">=</span> <span class="bp">True</span>
+ 453         <span class="n">UseMMFF</span> <span class="o">=</span> <span class="bp">False</span>
+ 454     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^MMFF$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--forceField&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 455         <span class="n">ForceField</span> <span class="o">=</span> <span class="s2">&quot;MMFF&quot;</span>
+ 456         <span class="n">UseUFF</span> <span class="o">=</span> <span class="bp">False</span>
+ 457         <span class="n">UseMMFF</span> <span class="o">=</span> <span class="bp">True</span>
+ 458     <span class="k">else</span><span class="p">:</span>
+ 459         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The value, </span><span class="si">%s</span><span class="s2">, specified for </span><span class="se">\&quot;</span><span class="s2">--forceField</span><span class="se">\&quot;</span><span class="s2"> is not supported.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--forceField&quot;</span><span class="p">],))</span>
+ 460     
+ 461     <span class="n">MMFFVariant</span> <span class="o">=</span> <span class="s2">&quot;MMFF94&quot;</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^MMFF94$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--forceFieldMMFFVariant&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="s2">&quot;MMFF94s&quot;</span>
+ 462     
+ 463     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ForceField&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ForceField</span>
+ 464     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MMFFVariant&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MMFFVariant</span>
+ 465     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseMMFF&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">UseMMFF</span>
+ 466     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseUFF&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">UseUFF</span>
+ 467         
+ 468     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;EnergyOut&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^yes$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--energyOut&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+ 469     <span class="k">if</span> <span class="n">UseMMFF</span><span class="p">:</span>
+ 470         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;EnergyLabel&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">_Energy&quot;</span> <span class="o">%</span> <span class="n">MMFFVariant</span>
+ 471     <span class="k">else</span><span class="p">:</span>
+ 472         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;EnergyLabel&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2">_Energy&quot;</span> <span class="o">%</span> <span class="n">ForceField</span>
+ 473     
+ 474     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;EnforceChirality&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^yes$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--enforceChirality&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+ 475     
+ 476     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MaxIters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--maxIters&quot;</span><span class="p">])</span>
+ 477     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MaxConfs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--maxConfs&quot;</span><span class="p">])</span>
+ 478     
+ 479     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MPMode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^yes$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mp&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+ 480     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MPParams&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ProcessOptionMultiprocessingParameters</span><span class="p">(</span><span class="s2">&quot;--mpParams&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mpParams&quot;</span><span class="p">])</span>
+ 481     
+ 482     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;QuietMode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^yes$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--quiet&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+ 483     
+ 484     <span class="n">RandomSeed</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+ 485     <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^auto$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--randomSeed&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 486         <span class="n">RandomSeed</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--randomSeed&quot;</span><span class="p">])</span>
+ 487     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RandomSeed&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">RandomSeed</span>
+ 488     
+ 489     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RemoveHydrogens&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^yes$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--removeHydrogens&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span> <span class="k">else</span> <span class="bp">False</span>
+ 490 
+ 491 <span class="k">def</span> <span class="nf">RetrieveOptions</span><span class="p">():</span>
+ 492     <span class="sd">&quot;&quot;&quot;Retrieve command line arguments and options&quot;&quot;&quot;</span>
+ 493     
+ 494     <span class="c1"># Get options...</span>
+ 495     <span class="k">global</span> <span class="n">Options</span>
+ 496     <span class="n">Options</span> <span class="o">=</span> <span class="n">docopt</span><span class="p">(</span><span class="n">_docoptUsage_</span><span class="p">)</span>
+ 497     
+ 498     <span class="c1"># Set current working directory to the specified directory...</span>
+ 499     <span class="n">WorkingDir</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--workingdir&quot;</span><span class="p">]</span>
+ 500     <span class="k">if</span> <span class="n">WorkingDir</span><span class="p">:</span>
+ 501         <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">WorkingDir</span><span class="p">)</span>
+ 502     
+ 503     <span class="c1"># Handle examples option...</span>
+ 504     <span class="k">if</span> <span class="s2">&quot;--examples&quot;</span> <span class="ow">in</span> <span class="n">Options</span> <span class="ow">and</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--examples&quot;</span><span class="p">]:</span>
+ 505         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetExamplesTextFromDocOptText</span><span class="p">(</span><span class="n">_docoptUsage_</span><span class="p">))</span>
+ 506         <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+ 507 
+ 508 <span class="k">def</span> <span class="nf">ValidateOptions</span><span class="p">():</span>
+ 509     <span class="sd">&quot;&quot;&quot;Validate option values&quot;&quot;&quot;</span>
+ 510     
+ 511     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;-a, --addHydrogens&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--addHydrogens&quot;</span><span class="p">],</span> <span class="s2">&quot;yes no&quot;</span><span class="p">)</span>
+ 512     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;-c, --conformerGenerator&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--conformerGenerator&quot;</span><span class="p">],</span> <span class="s2">&quot;SDG ETDG KDG ETKDG None&quot;</span><span class="p">)</span>
+ 513     
+ 514     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;-f, --forceField&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--forceField&quot;</span><span class="p">],</span> <span class="s2">&quot;UFF MMFF&quot;</span><span class="p">)</span>
+ 515     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot; --forceFieldMMFFVariant&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--forceFieldMMFFVariant&quot;</span><span class="p">],</span> <span class="s2">&quot;MMFF94 MMFF94s&quot;</span><span class="p">)</span>
+ 516     
+ 517     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;--energyOut&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--energyOut&quot;</span><span class="p">],</span> <span class="s2">&quot;yes no&quot;</span><span class="p">)</span>
+ 518     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;--enforceChirality &quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--enforceChirality&quot;</span><span class="p">],</span> <span class="s2">&quot;yes no&quot;</span><span class="p">)</span>
+ 519     
+ 520     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFilePath</span><span class="p">(</span><span class="s2">&quot;-i, --infile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">])</span>
+ 521     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFileExt</span><span class="p">(</span><span class="s2">&quot;-i, --infile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">],</span> <span class="s2">&quot;sdf sd mol smi txt csv tsv&quot;</span><span class="p">)</span>
+ 522     
+ 523     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFileExt</span><span class="p">(</span><span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">],</span> <span class="s2">&quot;sdf sd&quot;</span><span class="p">)</span>
+ 524     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionsOutputFileOverwrite</span><span class="p">(</span><span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">],</span> <span class="s2">&quot;--overwrite&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--overwrite&quot;</span><span class="p">])</span>
+ 525     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionsDistinctFileNames</span><span class="p">(</span><span class="s2">&quot;-i, --infile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">],</span> <span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">])</span>
+ 526         
+ 527     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionIntegerValue</span><span class="p">(</span><span class="s2">&quot;--maxConfs&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--maxConfs&quot;</span><span class="p">],</span> <span class="p">{</span><span class="s2">&quot;&gt;&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span>
+ 528     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionIntegerValue</span><span class="p">(</span><span class="s2">&quot;--maxIters&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--maxIters&quot;</span><span class="p">],</span> <span class="p">{</span><span class="s2">&quot;&gt;&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span>
+ 529     
+ 530     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;--mp&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mp&quot;</span><span class="p">],</span> <span class="s2">&quot;yes no&quot;</span><span class="p">)</span>
+ 531     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;-q, --quiet&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--quiet&quot;</span><span class="p">],</span> <span class="s2">&quot;yes no&quot;</span><span class="p">)</span>
+ 532     
+ 533     <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^auto$&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--randomSeed&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 534         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionIntegerValue</span><span class="p">(</span><span class="s2">&quot;--randomSeed&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--randomSeed&quot;</span><span class="p">],</span> <span class="p">{})</span>
+ 535     
+ 536     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;-r, --removeHydrogens&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--removeHydrogens&quot;</span><span class="p">],</span> <span class="s2">&quot;yes no&quot;</span><span class="p">)</span>
+ 537 
+ 538 <span class="c1"># Setup a usage string for docopt...</span>
+ 539 <span class="n">_docoptUsage_</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+ 540 <span class="s2">RDKitPerformMinimization.py - Perform structure minimization</span>
+ 541 
+ 542 <span class="s2">Usage:</span>
+ 543 <span class="s2">    RDKitPerformMinimization.py [--addHydrogens &lt;yes or no&gt;] [--conformerGenerator &lt;SDG, ETDG, KDG, ETKDG, None&gt;]</span>
+ 544 <span class="s2">                                [--forceField &lt;UFF, or MMFF&gt;] [--forceFieldMMFFVariant &lt;MMFF94 or MMFF94s&gt;]</span>
+ 545 <span class="s2">                                [--energyOut  &lt;yes or no&gt;] [--enforceChirality &lt;yes or no&gt;] [--infileParams &lt;Name,Value,...&gt;]</span>
+ 546 <span class="s2">                                [--maxConfs &lt;number&gt;] [--maxIters &lt;number&gt;] [--mp &lt;yes or no&gt;] [--mpParams &lt;Name.Value,...&gt;]</span>
+ 547 <span class="s2">                                [ --outfileParams &lt;Name,Value,...&gt; ] [--overwrite] [--quiet &lt;yes or no&gt;] [ --removeHydrogens &lt;yes or no&gt;]</span>
+ 548 <span class="s2">                                [--randomSeed &lt;number&gt;] [-w &lt;dir&gt;] -i &lt;infile&gt; -o &lt;outfile&gt; </span>
+ 549 <span class="s2">    RDKitPerformMinimization.py -h | --help | -e | --examples</span>
+ 550 
+ 551 <span class="s2">Description:</span>
+ 552 <span class="s2">    Generate 3D structures for molecules using a combination of distance geometry</span>
+ 553 <span class="s2">    and forcefield minimization or minimize existing 3D structures using a specified</span>
+ 554 <span class="s2">    forcefield.</span>
+ 555 
+ 556 <span class="s2">    The supported input file formats are: Mol (.mol), SD (.sdf, .sd), SMILES (.smi)</span>
+ 557 <span class="s2">    .csv, .tsv .txt)</span>
+ 558 
+ 559 <span class="s2">    The supported output file formats are: SD (.sdf, .sd)</span>
+ 560 
+ 561 <span class="s2">Options:</span>
+ 562 <span class="s2">    -a, --addHydrogens &lt;yes or no&gt;  [default: yes]</span>
+ 563 <span class="s2">        Add hydrogens before minimization.</span>
+ 564 <span class="s2">    -c, --conformerGenerator &lt;SDG, ETDG, KDG, ETKDG, None&gt;  [default: ETKDG]</span>
+ 565 <span class="s2">        Conformation generation methodology for generating initial 3D coordinates.</span>
+ 566 <span class="s2">        Possible values: Standard Distance Geometry, (SDG), Experimental Torsion-angle</span>
+ 567 <span class="s2">        preference with Distance Geometry (ETDG), basic Knowledge-terms with Distance</span>
+ 568 <span class="s2">        Geometry (KDG),  and Experimental Torsion-angle preference along with basic</span>
+ 569 <span class="s2">        Knowledge-terms with Distance Geometry (ETKDG) [Ref 129] .</span>
+ 570 <span class="s2">        </span>
+ 571 <span class="s2">        The conformation generation step may be skipped by specifying &#39;None&#39; value to</span>
+ 572 <span class="s2">        perform only forcefield minimization of molecules with 3D structures in input</span>
+ 573 <span class="s2">        file.  This doesn&#39;t work for molecules in SMILES file or molecules in SD/MOL files</span>
+ 574 <span class="s2">        containing 2D structures.</span>
+ 575 <span class="s2">    -f, --forceField &lt;UFF, MMFF&gt;  [default: MMFF]</span>
+ 576 <span class="s2">        Forcefield method to use for energy minimization. Possible values: Universal Force</span>
+ 577 <span class="s2">        Field (UFF) [ Ref 81 ] or Merck Molecular Mechanics Force Field [ Ref 83-87 ] .</span>
+ 578 <span class="s2">    --forceFieldMMFFVariant &lt;MMFF94 or MMFF94s&gt;  [default: MMFF94]</span>
+ 579 <span class="s2">        Variant of MMFF forcefield to use for energy minimization.</span>
+ 580 <span class="s2">    --energyOut &lt;yes or no&gt;  [default: No]</span>
+ 581 <span class="s2">        Write out energy values.</span>
+ 582 <span class="s2">    --enforceChirality &lt;yes or no&gt;  [default: Yes]</span>
+ 583 <span class="s2">        Enforce chirality for defined chiral centers.</span>
+ 584 <span class="s2">    -e, --examples</span>
+ 585 <span class="s2">        Print examples.</span>
+ 586 <span class="s2">    -h, --help</span>
+ 587 <span class="s2">        Print this help message.</span>
+ 588 <span class="s2">    -i, --infile &lt;infile&gt;</span>
+ 589 <span class="s2">        Input file name.</span>
+ 590 <span class="s2">    --infileParams &lt;Name,Value,...&gt;  [default: auto]</span>
+ 591 <span class="s2">        A comma delimited list of parameter name and value pairs for reading</span>
+ 592 <span class="s2">        molecules from files. The supported parameter names for different file</span>
+ 593 <span class="s2">        formats, along with their default values, are shown below:</span>
+ 594 <span class="s2">            </span>
+ 595 <span class="s2">            SD, MOL: removeHydrogens,yes,sanitize,yes,strictParsing,yes</span>
+ 596 <span class="s2">            SMILES: smilesColumn,1,smilesNameColumn,2,smilesDelimiter,space,</span>
+ 597 <span class="s2">                smilesTitleLine,auto,sanitize,yes</span>
+ 598 <span class="s2">            </span>
+ 599 <span class="s2">        Possible values for smilesDelimiter: space, comma or tab.</span>
+ 600 <span class="s2">    --maxConfs &lt;number&gt;  [default: 250]</span>
+ 601 <span class="s2">        Maximum number of conformations to generate for each molecule by conformation</span>
+ 602 <span class="s2">        generation methodology for initial 3D coordinates. The conformations are minimized</span>
+ 603 <span class="s2">        using the specified forcefield and the lowest energy conformation is written to the</span>
+ 604 <span class="s2">        output file. This option is ignored during &#39;None&#39; value of &#39;-c --conformerGenerator&#39;</span>
+ 605 <span class="s2">        option.</span>
+ 606 <span class="s2">    --maxIters &lt;number&gt;  [default: 500]</span>
+ 607 <span class="s2">        Maximum number of iterations to perform for each molecule during forcefield</span>
+ 608 <span class="s2">        minimization.</span>
+ 609 <span class="s2">    --mp &lt;yes or no&gt;  [default: no]</span>
+ 610 <span class="s2">        Use multiprocessing.</span>
+ 611 <span class="s2">         </span>
+ 612 <span class="s2">        By default, input data is retrieved in a lazy manner via mp.Pool.imap()</span>
+ 613 <span class="s2">        function employing lazy RDKit data iterable. This allows processing of</span>
+ 614 <span class="s2">        arbitrary large data sets without any additional requirements memory.</span>
+ 615 <span class="s2">        </span>
+ 616 <span class="s2">        All input data may be optionally loaded into memory by mp.Pool.map()</span>
+ 617 <span class="s2">        before starting worker processes in a process pool by setting the value</span>
+ 618 <span class="s2">        of &#39;inputDataMode&#39; to &#39;InMemory&#39; in &#39;--mpParams&#39; option.</span>
+ 619 <span class="s2">        </span>
+ 620 <span class="s2">        A word to the wise: The default &#39;chunkSize&#39; value of 1 during &#39;Lazy&#39; input</span>
+ 621 <span class="s2">        data mode may adversely impact the performance. The &#39;--mpParams&#39; section</span>
+ 622 <span class="s2">        provides additional information to tune the value of &#39;chunkSize&#39;.</span>
+ 623 <span class="s2">    --mpParams &lt;Name,Value,...&gt;  [default: auto]</span>
+ 624 <span class="s2">        A comma delimited list of parameter name and value pairs for to</span>
+ 625 <span class="s2">        configure multiprocessing.</span>
+ 626 <span class="s2">        </span>
+ 627 <span class="s2">        The supported parameter names along with their default and possible</span>
+ 628 <span class="s2">        values are shown below:</span>
+ 629 <span class="s2">        </span>
+ 630 <span class="s2">            chunkSize, auto</span>
+ 631 <span class="s2">            inputDataMode, Lazy   [ Possible values: InMemory or Lazy ]</span>
+ 632 <span class="s2">            numProcesses, auto   [ Default: mp.cpu_count() ]</span>
+ 633 <span class="s2">        </span>
+ 634 <span class="s2">        These parameters are used by the following functions to configure and</span>
+ 635 <span class="s2">        control the behavior of multiprocessing: mp.Pool(), mp.Pool.map(), and</span>
+ 636 <span class="s2">        mp.Pool.imap().</span>
+ 637 <span class="s2">        </span>
+ 638 <span class="s2">        The chunkSize determines chunks of input data passed to each worker</span>
+ 639 <span class="s2">        process in a process pool by mp.Pool.map() and mp.Pool.imap() functions.</span>
+ 640 <span class="s2">        The default value of chunkSize is dependent on the value of &#39;inputDataMode&#39;.</span>
+ 641 <span class="s2">        </span>
+ 642 <span class="s2">        The mp.Pool.map() function, invoked during &#39;InMemory&#39; input data mode,</span>
+ 643 <span class="s2">        automatically converts RDKit data iterable into a list, loads all data into</span>
+ 644 <span class="s2">        memory, and calculates the default chunkSize using the following method</span>
+ 645 <span class="s2">        as shown in its code:</span>
+ 646 <span class="s2">        </span>
+ 647 <span class="s2">            chunkSize, extra = divmod(len(dataIterable), len(numProcesses) * 4)</span>
+ 648 <span class="s2">            if extra: chunkSize += 1</span>
+ 649 <span class="s2">        </span>
+ 650 <span class="s2">        For example, the default chunkSize will be 7 for a pool of 4 worker processes</span>
+ 651 <span class="s2">        and 100 data items.</span>
+ 652 <span class="s2">        </span>
+ 653 <span class="s2">        The mp.Pool.imap() function, invoked during &#39;Lazy&#39; input data mode, employs</span>
+ 654 <span class="s2">        &#39;lazy&#39; RDKit data iterable to retrieve data as needed, without loading all the</span>
+ 655 <span class="s2">        data into memory. Consequently, the size of input data is not known a priori.</span>
+ 656 <span class="s2">        It&#39;s not possible to estimate an optimal value for the chunkSize. The default </span>
+ 657 <span class="s2">        chunkSize is set to 1.</span>
+ 658 <span class="s2">        </span>
+ 659 <span class="s2">        The default value for the chunkSize during &#39;Lazy&#39; data mode may adversely</span>
+ 660 <span class="s2">        impact the performance due to the overhead associated with exchanging</span>
+ 661 <span class="s2">        small chunks of data. It is generally a good idea to explicitly set chunkSize to</span>
+ 662 <span class="s2">        a larger value during &#39;Lazy&#39; input data mode, based on the size of your input</span>
+ 663 <span class="s2">        data and number of processes in the process pool.</span>
+ 664 <span class="s2">        </span>
+ 665 <span class="s2">        The mp.Pool.map() function waits for all worker processes to process all</span>
+ 666 <span class="s2">        the data and return the results. The mp.Pool.imap() function, however,</span>
+ 667 <span class="s2">        returns the the results obtained from worker processes as soon as the</span>
+ 668 <span class="s2">        results become available for specified chunks of data.</span>
+ 669 <span class="s2">        </span>
+ 670 <span class="s2">        The order of data in the results returned by both mp.Pool.map() and </span>
+ 671 <span class="s2">        mp.Pool.imap() functions always corresponds to the input data.</span>
+ 672 <span class="s2">    -o, --outfile &lt;outfile&gt;</span>
+ 673 <span class="s2">        Output file name.</span>
+ 674 <span class="s2">    --outfileParams &lt;Name,Value,...&gt;  [default: auto]</span>
+ 675 <span class="s2">        A comma delimited list of parameter name and value pairs for writing</span>
+ 676 <span class="s2">        molecules to files. The supported parameter names for different file</span>
+ 677 <span class="s2">        formats, along with their default values, are shown below:</span>
+ 678 <span class="s2">            </span>
+ 679 <span class="s2">            SD: kekulize,no</span>
+ 680 <span class="s2">            </span>
+ 681 <span class="s2">    --overwrite</span>
+ 682 <span class="s2">        Overwrite existing files.</span>
+ 683 <span class="s2">    -q, --quiet &lt;yes or no&gt;  [default: no]</span>
+ 684 <span class="s2">        Use quiet mode. The warning and information messages will not be printed.</span>
+ 685 <span class="s2">    -r, --removeHydrogens &lt;yes or no&gt;  [default: Yes]</span>
+ 686 <span class="s2">        Remove hydrogens after minimization.</span>
+ 687 <span class="s2">    --randomSeed &lt;number&gt;  [default: auto]</span>
+ 688 <span class="s2">        Seed for the random number generator for reproducing 3D coordinates.</span>
+ 689 <span class="s2">        Default is to use a random seed.</span>
+ 690 <span class="s2">    -w, --workingdir &lt;dir&gt;</span>
+ 691 <span class="s2">        Location of working directory which defaults to the current directory.</span>
+ 692 
+ 693 <span class="s2">Examples:</span>
+ 694 <span class="s2">    To generate up to 250 conformations using ETKDG methodology followed by MMFF</span>
+ 695 <span class="s2">    forcefield minimization for a maximum of 500 iterations for molecules in a SMILES file</span>
+ 696 <span class="s2">    and write out a SD file containing minimum energy structure corresponding to each</span>
+ 697 <span class="s2">    molecule, type:</span>
+ 698 
+ 699 <span class="s2">        % RDKitPerformMinimization.py  -i Sample.smi -o SampleOut.sdf</span>
+ 700 
+ 701 <span class="s2">    To rerun the first example in a quiet mode and write out a SD file, type:</span>
+ 702 
+ 703 <span class="s2">        % RDKitPerformMinimization.py  -q yes -i Sample.smi -o SampleOut.sdf</span>
+ 704 
+ 705 <span class="s2">    To run the first example in multiprocessing mode on all available CPUs</span>
+ 706 <span class="s2">    without loading all data into memory and write out a SD file, type:</span>
+ 707 
+ 708 <span class="s2">        % RDKitPerformMinimization.py --mp yes -i Sample.smi -o SampleOut.sdf</span>
+ 709 
+ 710 <span class="s2">    To run the first example in multiprocessing mode on all available CPUs</span>
+ 711 <span class="s2">    by loading all data into memory and write out a SD file, type:</span>
+ 712 
+ 713 <span class="s2">        % RDKitPerformMinimization.py --mp yes --mpParams &quot;inputDataMode,</span>
+ 714 <span class="s2">          InMemory&quot; -i Sample.smi -o SampleOut.sdf</span>
+ 715 
+ 716 <span class="s2">    To run the first example in multiprocessing mode on specific number of</span>
+ 717 <span class="s2">    CPUs and chunk size without loading all data into memory and write out a SD file,</span>
+ 718 <span class="s2">    type:</span>
+ 719 
+ 720 <span class="s2">        % RDKitPerformMinimization.py --mp yes --mpParams &quot;inputDataMode,Lazy,</span>
+ 721 <span class="s2">          numProcesses,4,chunkSize,8&quot; -i Sample.smi -o SampleOut.sdf</span>
+ 722 
+ 723 <span class="s2">    To generate up to 150 conformations using ETKDG methodology followed by MMFF</span>
+ 724 <span class="s2">    forcefield minimization for a maximum of 250 iterations along with a specified random</span>
+ 725 <span class="s2">    seed  for molecules in a SMILES file and write out a SD file containing minimum energy</span>
+ 726 <span class="s2">    structures corresponding to each molecule, type</span>
+ 727 
+ 728 <span class="s2">        % RDKitPerformMinimization.py  --maxConfs 150  --randomSeed 201780117 </span>
+ 729 <span class="s2">          --maxIters 250  -i Sample.smi -o SampleOut.sdf</span>
+ 730 
+ 731 <span class="s2">    To minimize structures in a 3D SD file using UFF forcefield for a maximum of 150</span>
+ 732 <span class="s2">    iterations without generating any conformations and write out a SD file containing</span>
+ 733 <span class="s2">    minimum energy structures corresponding to each molecule, type</span>
+ 734 
+ 735 <span class="s2">        % RDKitPerformMinimization.py  -c None -f UFF --maxIters 150</span>
+ 736 <span class="s2">          -i Sample3D.sdf -o SampleOut.sdf</span>
+ 737 
+ 738 <span class="s2">    To generate up to 50 conformations using SDG methodology followed</span>
+ 739 <span class="s2">    by UFF forcefield minimization for a maximum of 50 iterations for </span>
+ 740 <span class="s2">    molecules in a CSV SMILES file, SMILES strings in column 1, name in</span>
+ 741 <span class="s2">    column 2, and write out a SD file, type:</span>
+ 742 
+ 743 <span class="s2">        % RDKitPerformMinimization.py  --maxConfs 50  --maxIters 50 -c SDG</span>
+ 744 <span class="s2">          -f UFF --infileParams &quot;smilesDelimiter,comma,smilesTitleLine,yes,</span>
+ 745 <span class="s2">          smilesColumn,1,smilesNameColumn,2&quot;  -i SampleSMILES.csv</span>
+ 746 <span class="s2">          -o SampleOut.sdf</span>
+ 747 
+ 748 <span class="s2">Author:</span>
+ 749 <span class="s2">    Manish Sud(msud@san.rr.com)</span>
+ 750 
+ 751 <span class="s2">See also:</span>
+ 752 <span class="s2">    RDKitCalculateRMSD.py, RDKitCalculateMolecularDescriptors.py, RDKitCompareMoleculeShapes.py,</span>
+ 753 <span class="s2">    RDKitConvertFileFormat.py, RDKitGenerateConformers.py, RDKitPerformConstrainedMinimization.py</span>
+ 754 
+ 755 <span class="s2">Copyright:</span>
+ 756 <span class="s2">    Copyright (C) 2020 Manish Sud. All rights reserved.</span>
+ 757 
+ 758 <span class="s2">    The functionality available in this script is implemented using RDKit, an</span>
+ 759 <span class="s2">    open source toolkit for cheminformatics developed by Greg Landrum.</span>
+ 760 
+ 761 <span class="s2">    This file is part of MayaChemTools.</span>
+ 762 
+ 763 <span class="s2">    MayaChemTools is free software; you can redistribute it and/or modify it under</span>
+ 764 <span class="s2">    the terms of the GNU Lesser General Public License as published by the Free</span>
+ 765 <span class="s2">    Software Foundation; either version 3 of the License, or (at your option) any</span>
+ 766 <span class="s2">    later version.</span>
+ 767 
+ 768 <span class="s2">&quot;&quot;&quot;</span>
+ 769 
+ 770 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+ 771     <span class="n">main</span><span class="p">()</span>
+</pre>
+<br />
+<center>
+<img src="../../../images/h2o2.png">
+</center>
+</body>
+</html>

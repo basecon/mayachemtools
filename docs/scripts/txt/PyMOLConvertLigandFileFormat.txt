@@ -1,0 +1,65 @@
+NAME
+    PyMOLConvertLigandFileFormat.py.py - Convert between ligand file formats
+
+SYNOPSIS
+    PyMOLConvertLigandFileFormat.py.py [--overwrite] [-w <dir>] -i <infile>
+    -o <outfile>
+
+    PyMOLConvertLigandFileFormat.py.py -h | --help | -e | --examples
+
+DESCRIPTION
+    Convert between ligand file formats.
+
+    The supported input and output file formats are: MDLMOL (.mol), MOL2
+    (.mol2), and PDB (.pdb).
+
+OPTIONS
+    -e, --examples
+        Print examples.
+
+    -h, --help
+        Print this help message.
+
+    -i, --infile <infile>
+        Input file name.
+
+    -o, --outfile <outfile>
+        Output file name.
+
+    --overwrite
+        Overwrite existing files.
+
+    -w, --workingdir <dir>
+        Location of working directory which defaults to the current
+        directory.
+
+EXAMPLES
+    To convert MDLMOL file format to MOL2 file format, type:
+
+        % PyMOLConvertLigandFileFormat.py -i caffeine.mol -o caffeine.mol2
+
+    To convert MDLMOL file format to PDB file format, type:
+
+        % PyMOLConvertLigandFileFormat.py -i caffeine.mol -o caffeine.pdb
+
+AUTHOR
+    Manish Sud(msud@san.rr.com)
+
+SEE ALSO
+    PyMOLConvertPMLToPSE.py, PyMOLSplitChainsAndLigands.py,
+    PyMOLVisualizeMacromolecules.py
+
+COPYRIGHT
+    Copyright (C) 2020 Manish Sud. All rights reserved.
+
+    The functionality available in this script is implemented using PyMOL, a
+    molecular visualization system on an open source foundation originally
+    developed by Warren DeLano.
+
+    This file is part of MayaChemTools.
+
+    MayaChemTools is free software; you can redistribute it and/or modify it
+    under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or (at
+    your option) any later version.
+

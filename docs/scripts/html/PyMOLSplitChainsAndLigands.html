@@ -1,0 +1,108 @@
+<html>
+<head>
+<title>MayaChemTools:Documentation:PyMOLSplitChainsAndLigands.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../css/MayaChemTools.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./PyMOLMutateNucleicAcids.html" title="PyMOLMutateNucleicAcids.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./PyMOLVisualizeCavities.html" title="PyMOLVisualizeCavities.html">Next</a></td><td width="34%" align="middle"><strong>PyMOLSplitChainsAndLigands.py</strong></td><td width="33%" align="right"><a href="././code/PyMOLSplitChainsAndLigands.html" title="View source code">Code</a>&nbsp;|&nbsp;<a href="./../pdf/PyMOLSplitChainsAndLigands.pdf" title="PDF US Letter Size">PDF</a>&nbsp;|&nbsp;<a href="./../pdfa4/PyMOLSplitChainsAndLigands.pdf" title="PDF A4 Size">PDFA4</a></td></tr>
+</table>
+</div>
+<h1 id="NAME">NAME</h2>
+<p>PyMOLSplitChainsAndLigands.py - Split macromolecule into chains and ligands</p>
+<h1 id="SYNOPSIS">SYNOPSIS</h2>
+<p>PyMOLSplitChainsAndLigands.py [<b>--chainIDs</b> &lt;First, All or ID1,ID2...&gt;] [<b>--ligandIDs</b> &lt;Largest, All or ID1,ID2...&gt;] [<b>--ligandFileFormat</b> &lt;PDB, SDF, MDLMOL&gt;] [<b>--mode</b> &lt;Chains or ChainsLigands&gt;] [<b>--keepInorganics</b> &lt;yes or no&gt;] [<b>--keepSolvents</b> &lt;yes or no&gt;] [<b>--overwrite</b>] [<b>-w</b> &lt;dir&gt;] <b>-i</b> &lt;infile&gt;</p>
+<p>PyMOLSplitChainsAndLigands.py <b>-h</b> | <b>--help</b> | <b>-e</b> | <b>--examples</b></p>
+<h1 id="DESCRIPTION">DESCRIPTION</h2>
+<p>Spit a macromolecule into chains and ligands, and write them out to different files. The solvents and inorganic molecules may be optionally removed from chains. You may also skip the generation of ligand files and write out a chain along with associated ligands into the same chain file.</p>
+<p>The supported input file format is: PDB (.pdb), CIF (.cif)</p>
+<p>The supported output file formats are: Chains - PDB (.pdb); Ligands: PDB (.pdb), SD file (.sdf, .sd), MDL MOL (.mol)</p>
+<p>The names of the output files are automatically generated from the name of input file as shown below:</p>
+<div class="OptionsBox">    Chains: &lt;InfileRoot&gt;_&lt;ChainID&gt;.pdb
+<br/>    Ligands: &lt;InfileRoot&gt;_&lt;ChainID&gt;.{pdb,sdf,sd,mol}</div>
+<h1 id="OPTIONS">OPTIONS</h2>
+<dl>
+<dt id="c---chainIDs-First-All-or-ID1-ID2...-default:-All"><b>-c, --chainIDs</b> &lt;First, All or ID1,ID2...&gt; [default: All]</dt>
+<dd>
+<p>List of chain IDs for splitting input file. Possible values: First, All, or a comma delimited list of chain IDs. The default is to use all chain IDs in input file.</p>
+</dd>
+<dt id="e---examples"><b>-e, --examples</b></dt>
+<dd>
+<p>Print examples.</p>
+</dd>
+<dt id="h---help"><b>-h, --help</b></dt>
+<dd>
+<p>Print this help message.</p>
+</dd>
+<dt id="i---infile-infile"><b>-i, --infile</b> &lt;infile&gt;</dt>
+<dd>
+<p>Input file name.</p>
+</dd>
+<dt id="l---ligandIDs-Largest-All-or-ID1-ID2...-default:-Largest"><b>-l, --ligandIDs</b> &lt;Largest, All or ID1,ID2...&gt; [default: Largest]</dt>
+<dd>
+<p>List of ligand IDs present in chains for splitting input file. Possible values: Largest, All, or a comma delimited list of ligand IDs. The default is to use the largest ligand present in all or specified chains in input file. This option is ignored during &#39;Chains&#39; value of &#39;--mode&#39; option.</p>
+<p>Ligands are identified using organic selection operator available in PyMOL. It&#39;ll also identify buffer molecules as ligands. The largest ligand contains the highest number of heavy atoms.</p>
+</dd>
+<dt id="ligandFileFormat-PDB-SDF-MDLMOL-default:-SDF"><b>--ligandFileFormat</b> &lt;PDB, SDF, MDLMOL&gt; [default: SDF]</dt>
+<dd>
+<p>Ligand file format.</p>
+</dd>
+<dt id="m---mode-Chains-or-ChainsLigands-default:-ChainsLigands"><b>-m, --mode</b> &lt;Chains or ChainsLigands&gt; [default: ChainsLigands]</dt>
+<dd>
+<p>Split input file into chains or chains and ligands. The ligands are kept together chains in the output files for &#39;Chains&#39; mode. Separate files are generated for ligands during &#39;ChainsAndLigands&#39; mode.</p>
+</dd>
+<dt id="keepInorganics-yes-or-no-default:-yes"><b>--keepInorganics</b> &lt;yes or no&gt; [default: yes]</dt>
+<dd>
+<p>Keep inorganic molecules during splitting of input file and write them to output files. The inorganic molecules are identified using inorganic selection operator available in PyMOL.</p>
+</dd>
+<dt id="keepSolvents-yes-or-no-default:-yes"><b>--keepSolvents</b> &lt;yes or no&gt; [default: yes]</dt>
+<dd>
+<p>Keep solvent molecules during splitting of input file and write them to output files. The solvent molecules are identified using solvent selection operator available in PyMOL.</p>
+</dd>
+<dt id="overwrite"><b>--overwrite</b></dt>
+<dd>
+<p>Overwrite existing files.</p>
+</dd>
+<dt id="w---workingdir-dir"><b>-w, --workingdir</b> &lt;dir&gt;</dt>
+<dd>
+<p>Location of working directory which defaults to the current directory.</p>
+</dd>
+</dl>
+<h1 id="EXAMPLES">EXAMPLES</h2>
+<p>To split a macromolecule into the first chain and the largest ligand in the first chain along with solvent and inorganic molecules, and write chain PDB and ligand SDF files, type:</p>
+<div class="ExampleBox">    % PyMOLSplitChainsAndLigands.py -i Sample3.pdb</div>
+<p>To split a macromolecule into all chains and all ligands across all chains along with solvent and inorganic molecules, and write out corresponding chain and ligand files, type:</p>
+<div class="ExampleBox">    % PyMOLSplitChainsAndLigands.py -i Sample3.pdb -c All -l All</div>
+<p>To split a macromolecule into all chains along with any associated ligands without any solvent and inorganic molecules, and write corresponding PDB files for chains and skipping generation of any ligand files, type:</p>
+<div class="ExampleBox">    % PyMOLSplitChainsAndLigands.py -c all -m Chains --keepSolvents no
+      --keepInorganics no -i Sample3.pdb</div>
+<p>To split a macromolecule into a specific chain and a specific ligand in the chain along with solvent and inorganic molecules, and write chain PDB and ligand MDLMOL files, type:</p>
+<div class="ExampleBox">    % PyMOLSplitChainsAndLigands.py -c E -l ADP --ligandFileFormat MDLMOL
+      -i Sample3.pdb </div>
+<h1 id="AUTHOR">AUTHOR</h2>
+<p><a href="mailto:msud@san.rr.com">Manish Sud</a></p>
+<h1 id="SEE-ALSO">SEE ALSO</h2>
+<p><a href="./PyMOLAlignChains.html">PyMOLAlignChains.py</a>, <a href="./PyMOLVisualizeMacromolecules.html">PyMOLVisualizeMacromolecules.py</a></p>
+<h1 id="COPYRIGHT">COPYRIGHT</h2>
+<p>Copyright (C) 2020 Manish Sud. All rights reserved.</p>
+<p>The functionality available in this script is implemented using PyMOL, a molecular visualization system on an open source foundation originally developed by Warren DeLano.</p>
+<p>This file is part of MayaChemTools.</p>
+<p>MayaChemTools is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.</p>
+<p>&nbsp</p><p>&nbsp</p><div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./PyMOLMutateNucleicAcids.html" title="PyMOLMutateNucleicAcids.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./PyMOLVisualizeCavities.html" title="PyMOLVisualizeCavities.html">Next</a></td><td width="34%" align="middle"><strong>August 27, 2020</strong></td><td width="33%" align="right"><strong>PyMOLSplitChainsAndLigands.py</strong></td></tr>
+</table>
+</div>
+<br />
+<center>
+<img src="../../images/h2o2.png">
+</center>
+</body>
+</html>

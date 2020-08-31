@@ -1,0 +1,422 @@
+<html>
+<head>
+<title>MayaChemTools:Code:RDKitAlignMolecules.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../../css/MayaChemToolsPythonCode.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<pre>
+   1 <span class="ch">#!/bin/env python</span>
+   2 <span class="c1">#</span>
+   3 <span class="c1"># File: RDKitAlignMolecules.py</span>
+   4 <span class="c1"># Author: Manish Sud &lt;msud@san.rr.com&gt;</span>
+   5 <span class="c1">#</span>
+   6 <span class="c1"># Copyright (C) 2020 Manish Sud. All rights reserved.</span>
+   7 <span class="c1">#</span>
+   8 <span class="c1"># The functionality available in this script is implemented using RDKit, an</span>
+   9 <span class="c1"># open source toolkit for cheminformatics developed by Greg Landrum.</span>
+  10 <span class="c1">#</span>
+  11 <span class="c1"># This file is part of MayaChemTools.</span>
+  12 <span class="c1">#</span>
+  13 <span class="c1"># MayaChemTools is free software; you can redistribute it and/or modify it under</span>
+  14 <span class="c1"># the terms of the GNU Lesser General Public License as published by the Free</span>
+  15 <span class="c1"># Software Foundation; either version 3 of the License, or (at your option) any</span>
+  16 <span class="c1"># later version.</span>
+  17 <span class="c1">#</span>
+  18 <span class="c1"># MayaChemTools is distributed in the hope that it will be useful, but without</span>
+  19 <span class="c1"># any warranty; without even the implied warranty of merchantability of fitness</span>
+  20 <span class="c1"># for a particular purpose.  See the GNU Lesser General Public License for more</span>
+  21 <span class="c1"># details.</span>
+  22 <span class="c1">#</span>
+  23 <span class="c1"># You should have received a copy of the GNU Lesser General Public License</span>
+  24 <span class="c1"># along with MayaChemTools; if not, see &lt;http://www.gnu.org/licenses/&gt; or</span>
+  25 <span class="c1"># write to the Free Software Foundation Inc., 59 Temple Place, Suite 330,</span>
+  26 <span class="c1"># Boston, MA, 02111-1307, USA.</span>
+  27 <span class="c1">#</span>
+  28 
+  29 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+  30 
+  31 <span class="c1"># Add local python path to the global path and import standard library modules...</span>
+  32 <span class="kn">import</span> <span class="nn">os</span>
+  33 <span class="kn">import</span> <span class="nn">sys</span><span class="p">;</span>  <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="s2">&quot;..&quot;</span><span class="p">,</span> <span class="s2">&quot;lib&quot;</span><span class="p">,</span> <span class="s2">&quot;Python&quot;</span><span class="p">))</span>
+  34 <span class="kn">import</span> <span class="nn">time</span>
+  35 <span class="kn">import</span> <span class="nn">re</span>
+  36 
+  37 <span class="c1"># RDKit imports...</span>
+  38 <span class="k">try</span><span class="p">:</span>
+  39     <span class="kn">from</span> <span class="nn">rdkit</span> <span class="kn">import</span> <span class="n">rdBase</span>
+  40     <span class="kn">from</span> <span class="nn">rdkit</span> <span class="kn">import</span> <span class="n">Chem</span>
+  41     <span class="kn">from</span> <span class="nn">rdkit.Chem</span> <span class="kn">import</span> <span class="n">AllChem</span><span class="p">,</span> <span class="n">rdMolAlign</span>
+  42 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+  43     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Failed to import RDKit module/package: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ErrMsg</span><span class="p">)</span>
+  44     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Check/update your RDKit environment and try again.</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+  45     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+  46 
+  47 <span class="c1"># MayaChemTools imports...</span>
+  48 <span class="k">try</span><span class="p">:</span>
+  49     <span class="kn">from</span> <span class="nn">docopt</span> <span class="kn">import</span> <span class="n">docopt</span>
+  50     <span class="kn">import</span> <span class="nn">MiscUtil</span>
+  51     <span class="kn">import</span> <span class="nn">RDKitUtil</span>
+  52 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+  53     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Failed to import MayaChemTools module/package: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ErrMsg</span><span class="p">)</span>
+  54     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Check/update your MayaChemTools environment and try again.</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+  55     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+  56 
+  57 <span class="n">ScriptName</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+  58 <span class="n">Options</span> <span class="o">=</span> <span class="p">{}</span>
+  59 <span class="n">OptionsInfo</span> <span class="o">=</span> <span class="p">{}</span>
+  60 
+  61 <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+  62     <span class="sd">&quot;&quot;&quot;Start execution of the script&quot;&quot;&quot;</span>
+  63     
+  64     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2"> (RDK v</span><span class="si">%s</span><span class="s2">; </span><span class="si">%s</span><span class="s2">): Starting...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ScriptName</span><span class="p">,</span> <span class="n">rdBase</span><span class="o">.</span><span class="n">rdkitVersion</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()))</span>
+  65     
+  66     <span class="p">(</span><span class="n">WallClockTime</span><span class="p">,</span> <span class="n">ProcessorTime</span><span class="p">)</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetWallClockAndProcessorTime</span><span class="p">()</span>
+  67     
+  68     <span class="c1"># Retrieve command line arguments and options...</span>
+  69     <span class="n">RetrieveOptions</span><span class="p">()</span>
+  70     
+  71     <span class="c1"># Process and validate command line arguments and options...</span>
+  72     <span class="n">ProcessOptions</span><span class="p">()</span>
+  73     
+  74     <span class="c1"># Perform actions required by the script...</span>
+  75     <span class="n">AlignMolecules</span><span class="p">()</span>
+  76     
+  77     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2">: Done...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ScriptName</span><span class="p">)</span>
+  78     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Total time: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetFormattedElapsedTime</span><span class="p">(</span><span class="n">WallClockTime</span><span class="p">,</span> <span class="n">ProcessorTime</span><span class="p">))</span>
+  79 
+  80 <span class="k">def</span> <span class="nf">AlignMolecules</span><span class="p">():</span>
+  81     <span class="sd">&quot;&quot;&quot;Align molecules.&quot;&quot;&quot;</span>
+  82     
+  83     <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^(OneToOne|FirstToAll)$&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Mode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+  84         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Alignment couldn&#39;t be performed: Specified mode, </span><span class="si">%s</span><span class="s2">, is not supported&quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Mode&quot;</span><span class="p">])</span>
+  85         
+  86     <span class="n">RefFile</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RefFile&quot;</span><span class="p">]</span>
+  87     <span class="n">ProbeFile</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ProbeFile&quot;</span><span class="p">]</span>
+  88     
+  89     <span class="n">Outfile</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">]</span>
+  90 
+  91     <span class="c1"># Read reference and probe molecules...</span>
+  92     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileParams&quot;</span><span class="p">][</span><span class="s2">&quot;AllowEmptyMols&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">False</span>
+  93     
+  94     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Processing file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">RefFile</span><span class="p">))</span>
+  95     <span class="n">ValidRefMols</span><span class="p">,</span> <span class="n">RefMolCount</span><span class="p">,</span> <span class="n">ValidRefMolCount</span>  <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">ReadAndValidateMolecules</span><span class="p">(</span><span class="n">RefFile</span><span class="p">,</span> <span class="o">**</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileParams&quot;</span><span class="p">])</span>
+  96     
+  97     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Processing file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ProbeFile</span><span class="p">))</span>
+  98     <span class="n">ValidProbeMols</span><span class="p">,</span> <span class="n">ProbeMolCount</span><span class="p">,</span> <span class="n">ValidProbeMolCount</span>  <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">ReadAndValidateMolecules</span><span class="p">(</span><span class="n">ProbeFile</span><span class="p">,</span> <span class="o">**</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileParams&quot;</span><span class="p">])</span>
+  99 
+ 100     <span class="c1"># Set up a molecule writer...</span>
+ 101     <span class="n">Writer</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">MoleculesWriter</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">],</span> <span class="o">**</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">])</span>
+ 102     <span class="k">if</span> <span class="n">Writer</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 103         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Failed to setup a writer for output fie </span><span class="si">%s</span><span class="s2"> &quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">])</span>
+ 104     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Generating file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">])</span>
+ 105 
+ 106     <span class="n">AlignmentFailedCount</span> <span class="o">=</span> <span class="mi">0</span>
+ 107     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^OneToOne$&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Mode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 108         <span class="n">AlignmentFailedCount</span> <span class="o">=</span> <span class="n">PerformOneToOneAlignment</span><span class="p">(</span><span class="n">ValidRefMols</span><span class="p">,</span> <span class="n">ValidProbeMols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">)</span>
+ 109     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^FirstToAll$&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Mode&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 110          <span class="n">AlignmentFailedCount</span> <span class="o">=</span> <span class="n">PerformFirstToAllAlignment</span><span class="p">(</span><span class="n">ValidRefMols</span><span class="p">,</span> <span class="n">ValidProbeMols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">)</span>
+ 111     <span class="k">else</span><span class="p">:</span>
+ 112         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Alignment couldn&#39;t be performed: Specified mode, </span><span class="si">%s</span><span class="s2">, is not supported&quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Mode&quot;</span><span class="p">])</span>
+ 113 
+ 114     <span class="k">if</span> <span class="n">Writer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span><span class="p">:</span>
+ 115         <span class="n">Writer</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+ 116     
+ 117     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Total number of molecules: Reference - </span><span class="si">%d</span><span class="s2">; Probe - </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">RefMolCount</span><span class="p">,</span> <span class="n">ProbeMolCount</span><span class="p">))</span>
+ 118     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of valid molecules: Reference - </span><span class="si">%d</span><span class="s2">; Probe - </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ValidRefMolCount</span><span class="p">,</span> <span class="n">ValidProbeMolCount</span><span class="p">))</span>
+ 119     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of probe molecules failed during alignment: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">AlignmentFailedCount</span><span class="p">)</span>
+ 120     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of ignored molecules:  Reference - </span><span class="si">%d</span><span class="s2">; Probe - </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">((</span><span class="n">RefMolCount</span> <span class="o">-</span> <span class="n">ValidRefMolCount</span><span class="p">),</span> <span class="p">(</span><span class="n">ProbeMolCount</span> <span class="o">-</span> <span class="n">ValidProbeMolCount</span> <span class="o">+</span> <span class="n">AlignmentFailedCount</span><span class="p">)))</span>
+ 121     
+ 122 <span class="k">def</span> <span class="nf">PerformOneToOneAlignment</span><span class="p">(</span><span class="n">ValidRefMols</span><span class="p">,</span> <span class="n">ValidProbeMols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">):</span>
+ 123     <span class="sd">&quot;&quot;&quot;Perform pairwise alignment&quot;&quot;&quot;</span>
+ 124     
+ 125     <span class="n">ValidRefMolCount</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ValidRefMols</span><span class="p">)</span>
+ 126     <span class="n">ValidProbeMolCount</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ValidProbeMols</span><span class="p">)</span>
+ 127     
+ 128     <span class="n">MolCount</span> <span class="o">=</span> <span class="n">ValidRefMolCount</span>
+ 129     <span class="k">if</span> <span class="n">ValidRefMolCount</span> <span class="o">&gt;</span> <span class="n">ValidProbeMolCount</span><span class="p">:</span>
+ 130         <span class="n">MolCount</span> <span class="o">=</span> <span class="n">ValidProbeMolCount</span>
+ 131     
+ 132     <span class="k">if</span> <span class="n">ValidRefMolCount</span> <span class="o">!=</span> <span class="n">ValidProbeMolCount</span><span class="p">:</span>
+ 133         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Number of valid reference molecules, </span><span class="si">%d</span><span class="s2">,  is not equal to number of valid probe molecules, </span><span class="si">%d</span><span class="s2"> .</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ValidRefMolCount</span><span class="p">,</span> <span class="n">ValidProbeMolCount</span><span class="p">))</span>
+ 134         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Pairwise alignment will be performed only for first </span><span class="si">%s</span><span class="s2"> molecules.</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MolCount</span><span class="p">))</span>
+ 135 
+ 136     <span class="c1"># Process molecules...</span>
+ 137     <span class="n">AlignmentFailedCount</span> <span class="o">=</span> <span class="mi">0</span>
+ 138     <span class="k">for</span> <span class="n">MolIndex</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">MolCount</span><span class="p">):</span>
+ 139         <span class="n">RefMol</span> <span class="o">=</span> <span class="n">ValidRefMols</span><span class="p">[</span><span class="n">MolIndex</span><span class="p">]</span>
+ 140         <span class="n">ProbeMol</span> <span class="o">=</span> <span class="n">ValidProbeMols</span><span class="p">[</span><span class="n">MolIndex</span><span class="p">]</span>
+ 141 
+ 142         <span class="n">RefMolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">RefMol</span><span class="p">,</span> <span class="p">(</span><span class="n">MolIndex</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+ 143         <span class="n">ProbeMolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">ProbeMol</span><span class="p">,</span> <span class="p">(</span><span class="n">MolIndex</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+ 144 
+ 145         <span class="n">Status</span> <span class="o">=</span> <span class="n">PerformAlignmentAndWrieOutput</span><span class="p">(</span><span class="n">RefMol</span><span class="p">,</span> <span class="n">ProbeMol</span><span class="p">,</span> <span class="n">RefMolName</span><span class="p">,</span> <span class="n">ProbeMolName</span><span class="p">,</span> <span class="n">Writer</span><span class="p">)</span>
+ 146         <span class="k">if</span> <span class="ow">not</span> <span class="n">Status</span><span class="p">:</span>
+ 147             <span class="n">AlignmentFailedCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 148     
+ 149     <span class="k">return</span> <span class="n">AlignmentFailedCount</span>
+ 150 
+ 151 <span class="k">def</span> <span class="nf">PerformFirstToAllAlignment</span><span class="p">(</span><span class="n">ValidRefMols</span><span class="p">,</span> <span class="n">ValidProbeMols</span><span class="p">,</span> <span class="n">Writer</span><span class="p">):</span>
+ 152     <span class="sd">&quot;&quot;&quot;Perform alignment between first reference molecues and all probe molecules. &quot;&quot;&quot;</span>
+ 153     
+ 154     <span class="c1"># Process molecules...</span>
+ 155     <span class="n">RefMol</span> <span class="o">=</span> <span class="n">ValidRefMols</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+ 156     <span class="n">RefMolCount</span> <span class="o">=</span> <span class="mi">1</span>
+ 157     <span class="n">RefMolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">RefMol</span><span class="p">,</span> <span class="n">RefMolCount</span><span class="p">)</span>
+ 158 
+ 159     <span class="n">ProbeMolCount</span> <span class="o">=</span> <span class="mi">0</span>
+ 160     <span class="n">AlignmentFailedCount</span> <span class="o">=</span> <span class="mi">0</span>
+ 161     <span class="k">for</span> <span class="n">ProbeMol</span> <span class="ow">in</span> <span class="n">ValidProbeMols</span><span class="p">:</span>
+ 162         <span class="n">ProbeMolCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 163         <span class="n">ProbeMolName</span> <span class="o">=</span> <span class="n">RDKitUtil</span><span class="o">.</span><span class="n">GetMolName</span><span class="p">(</span><span class="n">ProbeMol</span><span class="p">,</span> <span class="n">ProbeMolCount</span><span class="p">)</span>
+ 164             
+ 165         <span class="n">Status</span> <span class="o">=</span> <span class="n">PerformAlignmentAndWrieOutput</span><span class="p">(</span><span class="n">RefMol</span><span class="p">,</span> <span class="n">ProbeMol</span><span class="p">,</span> <span class="n">RefMolName</span><span class="p">,</span> <span class="n">ProbeMolName</span><span class="p">,</span> <span class="n">Writer</span><span class="p">)</span>
+ 166         <span class="k">if</span> <span class="ow">not</span> <span class="n">Status</span><span class="p">:</span>
+ 167             <span class="n">AlignmentFailedCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 168 
+ 169     <span class="k">return</span> <span class="n">AlignmentFailedCount</span>
+ 170 
+ 171 <span class="k">def</span> <span class="nf">PerformAlignmentAndWrieOutput</span><span class="p">(</span><span class="n">RefMol</span><span class="p">,</span> <span class="n">ProbeMol</span><span class="p">,</span> <span class="n">RefMolName</span><span class="p">,</span> <span class="n">ProbeMolName</span><span class="p">,</span> <span class="n">Writer</span><span class="p">):</span>
+ 172     <span class="sd">&quot;&quot;&quot;Perform alignment and write to output file.&quot;&quot;&quot;</span>
+ 173 
+ 174     <span class="n">Status</span> <span class="o">=</span> <span class="bp">True</span>
+ 175     <span class="k">try</span><span class="p">:</span>
+ 176         <span class="k">if</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseRMSD&quot;</span><span class="p">]:</span>
+ 177             <span class="n">RMSD</span> <span class="o">=</span> <span class="n">rdMolAlign</span><span class="o">.</span><span class="n">AlignMol</span><span class="p">(</span><span class="n">ProbeMol</span><span class="p">,</span> <span class="n">RefMol</span><span class="p">,</span> <span class="n">maxIters</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MaxIters&quot;</span><span class="p">])</span>
+ 178         <span class="k">elif</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseBestRMSD&quot;</span><span class="p">]:</span>
+ 179             <span class="n">RMSD</span> <span class="o">=</span> <span class="n">AllChem</span><span class="o">.</span><span class="n">GetBestRMS</span><span class="p">(</span><span class="n">RefMol</span><span class="p">,</span> <span class="n">ProbeMol</span><span class="p">)</span>
+ 180         <span class="k">elif</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseOpen3A&quot;</span><span class="p">]:</span>
+ 181             <span class="n">O3A</span> <span class="o">=</span> <span class="n">rdMolAlign</span><span class="o">.</span><span class="n">GetO3A</span><span class="p">(</span><span class="n">ProbeMol</span><span class="p">,</span> <span class="n">RefMol</span><span class="p">)</span>
+ 182             <span class="n">Score</span> <span class="o">=</span> <span class="n">O3A</span><span class="o">.</span><span class="n">Align</span><span class="p">()</span>
+ 183         <span class="k">elif</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseCrippenOpen3A&quot;</span><span class="p">]:</span>
+ 184             <span class="n">CrippenO3A</span> <span class="o">=</span> <span class="n">rdMolAlign</span><span class="o">.</span><span class="n">GetCrippenO3A</span><span class="p">(</span><span class="n">ProbeMol</span><span class="p">,</span> <span class="n">RefMol</span><span class="p">)</span>
+ 185             <span class="n">Score</span> <span class="o">=</span> <span class="n">CrippenO3A</span><span class="o">.</span><span class="n">Align</span><span class="p">()</span>
+ 186         <span class="k">else</span><span class="p">:</span>
+ 187             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;Alignment couldn&#39;t be performed: Specified alignment value, </span><span class="si">%s</span><span class="s2">, is not supported&quot;</span> <span class="o">%</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Alignment&quot;</span><span class="p">])</span>
+ 188     <span class="k">except</span> <span class="p">(</span><span class="ne">RuntimeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">):</span>
+ 189         <span class="n">Status</span> <span class="o">=</span> <span class="bp">False</span>
+ 190         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;Alignment failed between reference molecule, </span><span class="si">%s</span><span class="s2">, and probe molecule, </span><span class="si">%s</span><span class="s2">.</span><span class="se">\n</span><span class="s2">Writing unaligned probe molecule...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">RefMolName</span><span class="p">,</span> <span class="n">ProbeMolName</span><span class="p">))</span>
+ 191 
+ 192     <span class="c1"># Write out aligned probe molecule...</span>
+ 193     <span class="n">Writer</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">ProbeMol</span><span class="p">)</span>
+ 194     
+ 195     <span class="k">return</span> <span class="n">Status</span>
+ 196 
+ 197 <span class="k">def</span> <span class="nf">ProcessOptions</span><span class="p">():</span>
+ 198     <span class="sd">&quot;&quot;&quot;Process and validate command line arguments and options&quot;&quot;&quot;</span>
+ 199     
+ 200     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Processing options...&quot;</span><span class="p">)</span>
+ 201     
+ 202     <span class="c1"># Validate options...</span>
+ 203     <span class="n">ValidateOptions</span><span class="p">()</span>
+ 204     
+ 205     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Alignment&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--alignment&quot;</span><span class="p">]</span>
+ 206     
+ 207     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseRMSD&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">False</span>
+ 208     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseBestRMSD&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">False</span>
+ 209     
+ 210     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseOpen3A&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">False</span>
+ 211     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseCrippenOpen3A&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">False</span>
+ 212 
+ 213     <span class="c1"># Process alignment</span>
+ 214     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^RMSD$&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Alignment&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 215         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseRMSD&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span>
+ 216     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^BestRMSD$&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Alignment&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 217         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseBestRMSD&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span>
+ 218     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^Open3A$&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Alignment&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 219         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseOpen3A&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span>
+ 220     <span class="k">elif</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^CrippenOpen3A$&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Alignment&quot;</span><span class="p">],</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 221         <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;UseCrippenOpen3A&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">True</span>
+ 222     
+ 223     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;MaxIters&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--maxIters&quot;</span><span class="p">])</span>
+ 224     
+ 225     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Mode&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mode&quot;</span><span class="p">]</span>
+ 226     
+ 227     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;RefFile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--reffile&quot;</span><span class="p">]</span>
+ 228     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ProbeFile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--probefile&quot;</span><span class="p">]</span>
+ 229 
+ 230     <span class="c1"># No need for any RDKit specific --outfileParams....</span>
+ 231     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileParams&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ProcessOptionInfileParameters</span><span class="p">(</span><span class="s2">&quot;--infileParams&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infileParams&quot;</span><span class="p">])</span>
+ 232     
+ 233     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">]</span>
+ 234     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;OutfileParams&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ProcessOptionOutfileParameters</span><span class="p">(</span><span class="s2">&quot;--outfileParams&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfileParams&quot;</span><span class="p">])</span>
+ 235     
+ 236     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Overwrite&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--overwrite&quot;</span><span class="p">]</span>
+ 237     
+ 238 <span class="k">def</span> <span class="nf">RetrieveOptions</span><span class="p">():</span>
+ 239     <span class="sd">&quot;&quot;&quot;Retrieve command line arguments and options&quot;&quot;&quot;</span>
+ 240     
+ 241     <span class="c1"># Get options...</span>
+ 242     <span class="k">global</span> <span class="n">Options</span>
+ 243     <span class="n">Options</span> <span class="o">=</span> <span class="n">docopt</span><span class="p">(</span><span class="n">_docoptUsage_</span><span class="p">)</span>
+ 244 
+ 245     <span class="c1"># Set current working directory to the specified directory...</span>
+ 246     <span class="n">WorkingDir</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--workingdir&quot;</span><span class="p">]</span>
+ 247     <span class="k">if</span> <span class="n">WorkingDir</span><span class="p">:</span>
+ 248         <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">WorkingDir</span><span class="p">)</span>
+ 249     
+ 250     <span class="c1"># Handle examples option...</span>
+ 251     <span class="k">if</span> <span class="s2">&quot;--examples&quot;</span> <span class="ow">in</span> <span class="n">Options</span> <span class="ow">and</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--examples&quot;</span><span class="p">]:</span>
+ 252         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetExamplesTextFromDocOptText</span><span class="p">(</span><span class="n">_docoptUsage_</span><span class="p">))</span>
+ 253         <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+ 254 
+ 255 <span class="k">def</span> <span class="nf">ValidateOptions</span><span class="p">():</span>
+ 256     <span class="sd">&quot;&quot;&quot;Validate option values&quot;&quot;&quot;</span>
+ 257     
+ 258     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;--alignment&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--alignment&quot;</span><span class="p">],</span> <span class="s2">&quot;Open3A CrippenOpen3A RMSD BestRMSD&quot;</span><span class="p">)</span>
+ 259     
+ 260     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionIntegerValue</span><span class="p">(</span><span class="s2">&quot;--maxIters&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--maxIters&quot;</span><span class="p">],</span> <span class="p">{</span><span class="s2">&quot;&gt;&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">})</span>
+ 261     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionTextValue</span><span class="p">(</span><span class="s2">&quot;--mode&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mode&quot;</span><span class="p">],</span> <span class="s2">&quot;OneToOne  FirstToAll&quot;</span><span class="p">)</span>
+ 262     
+ 263     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFilePath</span><span class="p">(</span><span class="s2">&quot;-r, --reffile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--reffile&quot;</span><span class="p">])</span>
+ 264     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFileExt</span><span class="p">(</span><span class="s2">&quot;-r, --reffile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--reffile&quot;</span><span class="p">],</span> <span class="s2">&quot;sdf sd mol&quot;</span><span class="p">)</span>
+ 265     
+ 266     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFilePath</span><span class="p">(</span><span class="s2">&quot;-p, --probefile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--probefile&quot;</span><span class="p">])</span>
+ 267     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFileExt</span><span class="p">(</span><span class="s2">&quot;-p, --probefile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--probefile&quot;</span><span class="p">],</span> <span class="s2">&quot;sdf sd mol&quot;</span><span class="p">)</span>
+ 268         
+ 269     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFileExt</span><span class="p">(</span><span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">],</span> <span class="s2">&quot;sd sdf&quot;</span><span class="p">)</span>
+ 270     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionsOutputFileOverwrite</span><span class="p">(</span><span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">],</span> <span class="s2">&quot;--overwrite&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--overwrite&quot;</span><span class="p">])</span>
+ 271     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionsDistinctFileNames</span><span class="p">(</span><span class="s2">&quot;-r, --reffile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--reffile&quot;</span><span class="p">],</span> <span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">])</span>
+ 272     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionsDistinctFileNames</span><span class="p">(</span><span class="s2">&quot;-p, --probefile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--probefile&quot;</span><span class="p">],</span> <span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">])</span>
+ 273     
+ 274     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionsDistinctFileNames</span><span class="p">(</span><span class="s2">&quot;-r, --reffile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--reffile&quot;</span><span class="p">],</span> <span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">])</span>
+ 275     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionsDistinctFileNames</span><span class="p">(</span><span class="s2">&quot;-p, --probefile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--probefile&quot;</span><span class="p">],</span> <span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">])</span>
+ 276     
+ 277 <span class="c1"># Setup a usage string for docopt...</span>
+ 278 <span class="n">_docoptUsage_</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+ 279 <span class="s2">RDKitAlignMolecules.py - Align molecules by RMSD or shape</span>
+ 280 
+ 281 <span class="s2">Usage:</span>
+ 282 <span class="s2">    RDKitAlignMolecules.py [--alignment &lt;Open3A, CrippenOpen3A, RMSD, BestRMSD&gt;]</span>
+ 283 <span class="s2">                           [--infileParams &lt;Name,Value,...&gt;] [--maxIters &lt;number&gt;]</span>
+ 284 <span class="s2">                           [--mode &lt;OneToOne, FirstToAll&gt;] [ --outfileParams &lt;Name,Value,...&gt; ] </span>
+ 285 <span class="s2">                           [--overwrite] [-w &lt;dir&gt;] -r &lt;reffile&gt; -p &lt;probefile&gt; -o &lt;outfile&gt; </span>
+ 286 <span class="s2">    RDKitAlignMolecules.py -h | --help | -e | --examples</span>
+ 287 
+ 288 <span class="s2">Description:</span>
+ 289 <span class="s2">    Perform alignment between a set of similar molecules in reference and probe</span>
+ 290 <span class="s2">    input files. The molecules are aligned either by Root Mean Square Distance (RMSD)</span>
+ 291 <span class="s2">    between molecules or overlying their shapes (Open3A or CrippenOpen3A).</span>
+ 292 <span class="s2">    The RDKit function fails to calculate RMSD values for dissimilar molecules. Consequently,</span>
+ 293 <span class="s2">    unaligned probe molecules are written to the output file for dissimilar molecule pairs.</span>
+ 294 
+ 295 <span class="s2">    The supported input file formats are: Mol (.mol), SD (.sdf, .sd)</span>
+ 296 
+ 297 <span class="s2">    The supported output file formats are:  SD (.sdf, .sd)</span>
+ 298 
+ 299 <span class="s2">Options:</span>
+ 300 <span class="s2">    -a, --alignment &lt;Open3A, CrippenOpen3A, RMSD, BestRMSD&gt;  [default: Open3A]</span>
+ 301 <span class="s2">        Alignment methodology to use for aligning molecules. Possible values: Open3A,</span>
+ 302 <span class="s2">        CrippenOpen3A, RMSD, BestRMSD.</span>
+ 303 <span class="s2">        </span>
+ 304 <span class="s2">        The Open3A and CrippenOpen3A allow alignment of molecules using their shapes</span>
+ 305 <span class="s2">        Open 3DAlign (Open3A) [ Ref 132 ] overlays molecules based on MMFF atom types</span>
+ 306 <span class="s2">        and charges. Crippen Open 3DAlign (CrippenOpen3A) uses Crippen logP contributions</span>
+ 307 <span class="s2">        to overlay molecules.</span>
+ 308 <span class="s2">        </span>
+ 309 <span class="s2">        During BestRMSMode mode, the RDKit &#39;function AllChem.GetBestRMS&#39; is used to</span>
+ 310 <span class="s2">        align and calculate RMSD. This function calculates optimal RMSD for aligning two</span>
+ 311 <span class="s2">        molecules, taking symmetry into account. Otherwise, the RMSD value is calculated</span>
+ 312 <span class="s2">        using &#39;AllChem.AlignMol function&#39; without changing the atom order. A word to the</span>
+ 313 <span class="s2">        wise from RDKit documentation: The AllChem.GetBestRMS function will attempt to</span>
+ 314 <span class="s2">        align all permutations of matching atom orders in both molecules, for some molecules</span>
+ 315 <span class="s2">        it will lead to &#39;combinatorial explosion&#39;.</span>
+ 316 <span class="s2">    --infileParams &lt;Name,Value,...&gt;  [default: auto]</span>
+ 317 <span class="s2">        A comma delimited list of parameter name and value pairs for reading</span>
+ 318 <span class="s2">        molecules from files. The supported parameter names for different file</span>
+ 319 <span class="s2">        formats, along with their default values, are shown below:</span>
+ 320 <span class="s2">            </span>
+ 321 <span class="s2">            SD, MOL: removeHydrogens,yes,sanitize,yes,strictParsing,yes</span>
+ 322 <span class="s2">            </span>
+ 323 <span class="s2">    --maxIters &lt;number&gt;  [default: 50]</span>
+ 324 <span class="s2">        Maximum number of iterations to perform for each molecule pair during minimization</span>
+ 325 <span class="s2">        of RMSD values. This option is ignored during BestRMSD mode.</span>
+ 326 <span class="s2">    -m, --mode &lt;OneToOne, FirstToAll&gt;  [default: OneToOne]</span>
+ 327 <span class="s2">        Specify how molecules are handled in reference and probe input files during</span>
+ 328 <span class="s2">        alignment of molecules between reference and probe molecules.  Possible values:</span>
+ 329 <span class="s2">        OneToOne and  FirstToAll. For OneToOne mode, the alignment is performed</span>
+ 330 <span class="s2">        for each pair of molecules in the reference and probe file, and the aligned probe</span>
+ 331 <span class="s2">        molecule is written the output file. For FirstToAll mode, the alignment is only</span>
+ 332 <span class="s2">        performed between the first reference molecule against all probe molecules.</span>
+ 333 <span class="s2">    -e, --examples</span>
+ 334 <span class="s2">        Print examples.</span>
+ 335 <span class="s2">    -h, --help</span>
+ 336 <span class="s2">        Print this help message.</span>
+ 337 <span class="s2">    -o, --outfile &lt;outfile&gt;</span>
+ 338 <span class="s2">        Output file name for writing out aligned probe molecules values. Supported</span>
+ 339 <span class="s2">        file extensions: sdf or sd.</span>
+ 340 <span class="s2">    --outfileParams &lt;Name,Value,...&gt;  [default: auto]</span>
+ 341 <span class="s2">        A comma delimited list of parameter name and value pairs for writing</span>
+ 342 <span class="s2">        molecules to files. The supported parameter names for different file</span>
+ 343 <span class="s2">        formats, along with their default values, are shown below:</span>
+ 344 <span class="s2">            </span>
+ 345 <span class="s2">            SD: kekulize,no</span>
+ 346 <span class="s2">            </span>
+ 347 <span class="s2">    -p, --probefile &lt;probefile&gt;</span>
+ 348 <span class="s2">        Probe input file name.</span>
+ 349 <span class="s2">    -r, --reffile &lt;reffile&gt;</span>
+ 350 <span class="s2">        Reference input file name.</span>
+ 351 <span class="s2">    --overwrite</span>
+ 352 <span class="s2">        Overwrite existing files.</span>
+ 353 <span class="s2">    -w, --workingdir &lt;dir&gt;</span>
+ 354 <span class="s2">        Location of working directory which defaults to the current directory.</span>
+ 355 
+ 356 <span class="s2">Examples:</span>
+ 357 <span class="s2">    To perform shape alignment using Open3A methodology between paris of molecules in</span>
+ 358 <span class="s2">    reference and probe input 3D SD files and write out a SD file containing aligned</span>
+ 359 <span class="s2">    molecules, type:</span>
+ 360 
+ 361 <span class="s2">        % RDKitAlignMolecules.py  -r Sample3DRef.sdf -p Sample3DProb.sdf</span>
+ 362 <span class="s2">          -o SampleOut.sdf</span>
+ 363 
+ 364 <span class="s2">    To perform alignment using RMSD methodology between paris of molecules in</span>
+ 365 <span class="s2">    reference and probe input 3D SD files and write out a SD file containing aligned</span>
+ 366 <span class="s2">    molecules, type:</span>
+ 367 
+ 368 <span class="s2">        % RDKitAlignMolecules.py  -a RMSD -r Sample3DRef.sdf -p Sample3DProb.sdf</span>
+ 369 <span class="s2">          -o SampleOut.sdf</span>
+ 370 
+ 371 <span class="s2">    To perform alignment using Open3A methodology  between first reference molecule</span>
+ 372 <span class="s2">    against all probe molecules in 3D SD files without removing hydrogens , and write out</span>
+ 373 <span class="s2">    a SD file containing aligned molecules, type:</span>
+ 374 
+ 375 <span class="s2">        % RDKitAlignMolecules.py -m FirstToAll -a Open3A</span>
+ 376 <span class="s2">          --infileParams &quot;removeHydrogens,no&quot; -r Sample3DRef.sdf</span>
+ 377 <span class="s2">          -p Sample3DProb.sdf -o SampleOut.sdf</span>
+ 378 
+ 379 <span class="s2">Author:</span>
+ 380 <span class="s2">    Manish Sud(msud@san.rr.com)</span>
+ 381 
+ 382 <span class="s2">See also:</span>
+ 383 <span class="s2">    RDKitCalculateMolecularDescriptors.py, RDKitCompareMoleculeShapes.py, RDKitCalculateRMSD.py,</span>
+ 384 <span class="s2">    RDKitConvertFileFormat.py, RDKitGenerateConformers.py, RDKitPerformMinimization.py</span>
+ 385 
+ 386 <span class="s2">Copyright:</span>
+ 387 <span class="s2">    Copyright (C) 2020 Manish Sud. All rights reserved.</span>
+ 388 
+ 389 <span class="s2">    The functionality available in this script is implemented using RDKit, an</span>
+ 390 <span class="s2">    open source toolkit for cheminformatics developed by Greg Landrum.</span>
+ 391 
+ 392 <span class="s2">    This file is part of MayaChemTools.</span>
+ 393 
+ 394 <span class="s2">    MayaChemTools is free software; you can redistribute it and/or modify it under</span>
+ 395 <span class="s2">    the terms of the GNU Lesser General Public License as published by the Free</span>
+ 396 <span class="s2">    Software Foundation; either version 3 of the License, or (at your option) any</span>
+ 397 <span class="s2">    later version.</span>
+ 398 
+ 399 <span class="s2">&quot;&quot;&quot;</span>
+ 400 
+ 401 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+ 402     <span class="n">main</span><span class="p">()</span>
+</pre>
+<br />
+<center>
+<img src="../../../images/h2o2.png">
+</center>
+</body>
+</html>

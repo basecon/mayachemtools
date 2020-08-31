@@ -1,0 +1,421 @@
+<html>
+<head>
+<title>MayaChemTools:Code:PyMOLMutateNucleicAcids.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../../css/MayaChemToolsPythonCode.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<pre>
+   1 <span class="ch">#!/bin/env python</span>
+   2 <span class="c1">#</span>
+   3 <span class="c1"># File: PyMOLMutateNucleicAcids.py</span>
+   4 <span class="c1"># Author: Manish Sud &lt;msud@san.rr.com&gt;</span>
+   5 <span class="c1">#</span>
+   6 <span class="c1"># Copyright (C) 2020 Manish Sud. All rights reserved.</span>
+   7 <span class="c1">#</span>
+   8 <span class="c1"># The functionality available in this script is implemented using PyMOL, a</span>
+   9 <span class="c1"># molecular visualization system on an open source foundation originally</span>
+  10 <span class="c1"># developed by Warren DeLano.</span>
+  11 <span class="c1">#</span>
+  12 <span class="c1"># This file is part of MayaChemTools.</span>
+  13 <span class="c1">#</span>
+  14 <span class="c1"># MayaChemTools is free software; you can redistribute it and/or modify it under</span>
+  15 <span class="c1"># the terms of the GNU Lesser General Public License as published by the Free</span>
+  16 <span class="c1"># Software Foundation; either version 3 of the License, or (at your option) any</span>
+  17 <span class="c1"># later version.</span>
+  18 <span class="c1">#</span>
+  19 <span class="c1"># MayaChemTools is distributed in the hope that it will be useful, but without</span>
+  20 <span class="c1"># any warranty; without even the implied warranty of merchantability of fitness</span>
+  21 <span class="c1"># for a particular purpose.  See the GNU Lesser General Public License for more</span>
+  22 <span class="c1"># details.</span>
+  23 <span class="c1">#</span>
+  24 <span class="c1"># You should have received a copy of the GNU Lesser General Public License</span>
+  25 <span class="c1"># along with MayaChemTools; if not, see &lt;http://www.gnu.org/licenses/&gt; or</span>
+  26 <span class="c1"># write to the Free Software Foundation Inc., 59 Temple Place, Suite 330,</span>
+  27 <span class="c1"># Boston, MA, 02111-1307, USA.</span>
+  28 <span class="c1">#</span>
+  29 
+  30 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+  31 
+  32 <span class="c1"># Add local python path to the global path and import standard library modules...</span>
+  33 <span class="kn">import</span> <span class="nn">os</span>
+  34 <span class="kn">import</span> <span class="nn">sys</span><span class="p">;</span>  <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="s2">&quot;..&quot;</span><span class="p">,</span> <span class="s2">&quot;lib&quot;</span><span class="p">,</span> <span class="s2">&quot;Python&quot;</span><span class="p">))</span>
+  35 <span class="kn">import</span> <span class="nn">time</span>
+  36 <span class="kn">import</span> <span class="nn">re</span>
+  37 
+  38 <span class="c1"># PyMOL imports...</span>
+  39 <span class="k">try</span><span class="p">:</span>
+  40     <span class="kn">import</span> <span class="nn">pymol</span>
+  41     <span class="c1"># Finish launching PyMOL in  a command line mode for batch processing (-c)</span>
+  42     <span class="c1"># along with the following options:  disable loading of pymolrc and plugins (-k);</span>
+  43     <span class="c1"># suppress start up messages (-q)</span>
+  44     <span class="n">pymol</span><span class="o">.</span><span class="n">finish_launching</span><span class="p">([</span><span class="s1">&#39;pymol&#39;</span><span class="p">,</span> <span class="s1">&#39;-ckq&#39;</span><span class="p">])</span>
+  45 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+  46     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Failed to import PyMOL module/package: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ErrMsg</span><span class="p">)</span>
+  47     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Check/update your PyMOL environment and try again.</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+  48     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+  49 
+  50 <span class="c1"># MayaChemTools imports...</span>
+  51 <span class="k">try</span><span class="p">:</span>
+  52     <span class="kn">from</span> <span class="nn">docopt</span> <span class="kn">import</span> <span class="n">docopt</span>
+  53     <span class="kn">import</span> <span class="nn">MiscUtil</span>
+  54     <span class="kn">import</span> <span class="nn">PyMOLUtil</span>
+  55 <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+  56     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Failed to import MayaChemTools module/package: </span><span class="si">%s</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ErrMsg</span><span class="p">)</span>
+  57     <span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;Check/update your MayaChemTools environment and try again.</span><span class="se">\n\n</span><span class="s2">&quot;</span><span class="p">)</span>
+  58     <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+  59 
+  60 <span class="n">ScriptName</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+  61 <span class="n">Options</span> <span class="o">=</span> <span class="p">{}</span>
+  62 <span class="n">OptionsInfo</span> <span class="o">=</span> <span class="p">{}</span>
+  63 
+  64 <span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+  65     <span class="sd">&quot;&quot;&quot;Start execution of the script&quot;&quot;&quot;</span>
+  66     
+  67     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2"> (PyMOL v</span><span class="si">%s</span><span class="s2">; </span><span class="si">%s</span><span class="s2">) Starting...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ScriptName</span><span class="p">,</span> <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">get_version</span><span class="p">()[</span><span class="mi">0</span><span class="p">],</span> <span class="n">time</span><span class="o">.</span><span class="n">asctime</span><span class="p">()))</span>
+  68     
+  69     <span class="p">(</span><span class="n">WallClockTime</span><span class="p">,</span> <span class="n">ProcessorTime</span><span class="p">)</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetWallClockAndProcessorTime</span><span class="p">()</span>
+  70     
+  71     <span class="c1"># Retrieve command line arguments and options...</span>
+  72     <span class="n">RetrieveOptions</span><span class="p">()</span>
+  73     
+  74     <span class="c1"># Process and validate command line arguments and options...</span>
+  75     <span class="n">ProcessOptions</span><span class="p">()</span>
+  76 
+  77     <span class="c1"># Perform actions required by the script...</span>
+  78     <span class="n">PerformMutagenesis</span><span class="p">()</span>
+  79     
+  80     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">%s</span><span class="s2">: Done...</span><span class="se">\n</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ScriptName</span><span class="p">)</span>
+  81     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Total time: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetFormattedElapsedTime</span><span class="p">(</span><span class="n">WallClockTime</span><span class="p">,</span> <span class="n">ProcessorTime</span><span class="p">))</span>
+  82 
+  83 <span class="k">def</span> <span class="nf">PerformMutagenesis</span><span class="p">():</span>
+  84     <span class="sd">&quot;&quot;&quot;Mutate specified residues across chains and generate an output file.&quot;&quot;&quot;</span>
+  85 
+  86     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Applying mutations...&quot;</span><span class="p">)</span>
+  87 
+  88     <span class="c1"># Load macromolecule from input file...</span>
+  89     <span class="n">MolName</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileRoot&quot;</span><span class="p">]</span>
+  90     <span class="n">LoadMolecule</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">],</span> <span class="n">MolName</span><span class="p">)</span>
+  91 
+  92     <span class="c1"># Apply mutations...</span>
+  93     <span class="k">for</span> <span class="n">Mutation</span><span class="p">,</span> <span class="n">ChainID</span><span class="p">,</span> <span class="n">ResNum</span><span class="p">,</span> <span class="n">NewBaseName</span> <span class="ow">in</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SpecifiedMutationsInfo&quot;</span><span class="p">]</span> <span class="p">:</span>
+  94         <span class="n">ApplyMutation</span><span class="p">(</span><span class="n">Mutation</span><span class="p">,</span> <span class="n">MolName</span><span class="p">,</span> <span class="n">ChainID</span><span class="p">,</span> <span class="n">ResNum</span><span class="p">,</span> <span class="n">NewBaseName</span><span class="p">)</span>
+  95 
+  96     <span class="c1">#  Generate output file...</span>
+  97     <span class="n">Outfile</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">]</span>
+  98     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Generating output file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">Outfile</span><span class="p">)</span>
+  99     <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">Outfile</span><span class="p">,</span> <span class="n">MolName</span><span class="p">)</span>
+ 100     
+ 101     <span class="c1"># Delete macromolecule...</span>
+ 102     <span class="n">DeleteMolecule</span><span class="p">(</span><span class="n">MolName</span><span class="p">)</span>
+ 103 
+ 104 <span class="k">def</span> <span class="nf">ApplyMutation</span><span class="p">(</span><span class="n">Mutation</span><span class="p">,</span> <span class="n">MolName</span><span class="p">,</span> <span class="n">ChainID</span><span class="p">,</span> <span class="n">ResNum</span><span class="p">,</span> <span class="n">NewBaseName</span><span class="p">):</span>
+ 105     <span class="sd">&quot;&quot;&quot;Apply mutatation. &quot;&quot;&quot;</span>
+ 106 
+ 107     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Applying mutation </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">Mutation</span><span class="p">)</span>
+ 108     
+ 109     <span class="c1"># Setup wizard for nucleic acids mutagenesis...</span>
+ 110     <span class="k">try</span><span class="p">:</span>
+ 111         <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">wizard</span><span class="p">(</span><span class="s2">&quot;nucmutagenesis&quot;</span><span class="p">)</span>
+ 112     <span class="k">except</span> <span class="n">pymol</span><span class="o">.</span><span class="n">CmdException</span> <span class="k">as</span> <span class="n">ErrMsg</span><span class="p">:</span>
+ 113         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The nucleic acids mutageneis wizard is not available in your PyMOL environment.&quot;</span><span class="p">)</span>
+ 114     
+ 115     <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">refresh_wizard</span><span class="p">()</span>
+ 116 
+ 117     <span class="c1"># Setup residue to be mutated...</span>
+ 118     <span class="n">ResSelection</span> <span class="o">=</span> <span class="s2">&quot;/</span><span class="si">%s</span><span class="s2">//</span><span class="si">%s</span><span class="s2">/</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MolName</span><span class="p">,</span> <span class="n">ChainID</span><span class="p">,</span> <span class="n">ResNum</span><span class="p">)</span>
+ 119     <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">get_wizard</span><span class="p">()</span><span class="o">.</span><span class="n">do_select</span><span class="p">(</span><span class="n">ResSelection</span><span class="p">)</span>
+ 120 
+ 121     <span class="c1"># Setup new mutated residue...</span>
+ 122     <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">get_wizard</span><span class="p">()</span><span class="o">.</span><span class="n">set_mode</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">NewBaseName</span><span class="p">)</span>
+ 123     
+ 124     <span class="c1"># Mutate...</span>
+ 125     <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">get_wizard</span><span class="p">()</span><span class="o">.</span><span class="n">apply</span><span class="p">()</span>
+ 126     
+ 127     <span class="c1"># Quit wizard...</span>
+ 128     <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">set_wizard</span><span class="p">()</span>
+ 129     
+ 130 <span class="k">def</span> <span class="nf">RetrieveChainsIDs</span><span class="p">():</span>
+ 131     <span class="sd">&quot;&quot;&quot;Retrieve chain IDs. &quot;&quot;&quot;</span>
+ 132 
+ 133     <span class="n">MolName</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileRoot&quot;</span><span class="p">]</span>
+ 134     <span class="n">Infile</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">]</span>
+ 135     
+ 136     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Retrieving chains information for input file </span><span class="si">%s</span><span class="s2">...&quot;</span> <span class="o">%</span> <span class="n">Infile</span><span class="p">)</span>
+ 137 
+ 138     <span class="n">LoadMolecule</span><span class="p">(</span><span class="n">Infile</span><span class="p">,</span> <span class="n">MolName</span><span class="p">)</span>
+ 139 
+ 140     <span class="n">ChainIDs</span> <span class="o">=</span> <span class="n">PyMOLUtil</span><span class="o">.</span><span class="n">GetChains</span><span class="p">(</span><span class="n">MolName</span><span class="p">)</span>
+ 141     
+ 142     <span class="n">DeleteMolecule</span><span class="p">(</span><span class="n">MolName</span><span class="p">)</span>
+ 143 
+ 144     <span class="k">if</span> <span class="n">ChainIDs</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 145         <span class="n">ChainIDs</span> <span class="o">=</span> <span class="p">[]</span>
+ 146 
+ 147     <span class="c1"># Print out chain and ligand IDs...</span>
+ 148     <span class="n">ChainInfo</span> <span class="o">=</span> <span class="s2">&quot;, &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">ChainIDs</span><span class="p">)</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ChainIDs</span><span class="p">)</span> <span class="k">else</span> <span class="s2">&quot;None&quot;</span>
+ 149     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Chain IDs: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ChainInfo</span><span class="p">)</span>
+ 150                          
+ 151     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;ChainIDs&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ChainIDs</span>
+ 152     
+ 153 <span class="k">def</span> <span class="nf">ProcessSpecifiedMutations</span><span class="p">():</span>
+ 154     <span class="sd">&quot;&quot;&quot;Process specified mutations&quot;&quot;&quot;</span>
+ 155     
+ 156     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Processing specified mutations...&quot;</span><span class="p">)</span>
+ 157 
+ 158     <span class="n">CanonicalBaseNameMap</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;ADENINE&#39;</span><span class="p">:</span> <span class="s1">&#39;Adenine&#39;</span><span class="p">,</span> <span class="s1">&#39;CYTOSINE&#39;</span><span class="p">:</span> <span class="s1">&#39;Cytosine&#39;</span><span class="p">,</span> <span class="s1">&#39;GUANINE&#39;</span><span class="p">:</span> <span class="s1">&#39;Guanine&#39;</span><span class="p">,</span> <span class="s1">&#39;THYMINE&#39;</span><span class="p">:</span> <span class="s1">&#39;Thymine&#39;</span><span class="p">,</span> <span class="s1">&#39;URACIL&#39;</span><span class="p">:</span> <span class="s1">&#39;Uracil&#39;</span><span class="p">,</span> <span class="s1">&#39;ADE&#39;</span><span class="p">:</span> <span class="s1">&#39;Adenine&#39;</span><span class="p">,</span> <span class="s1">&#39;CYT&#39;</span><span class="p">:</span> <span class="s1">&#39;Cytosine&#39;</span><span class="p">,</span> <span class="s1">&#39;GUA&#39;</span><span class="p">:</span> <span class="s1">&#39;Guanine&#39;</span><span class="p">,</span> <span class="s1">&#39;THY&#39;</span><span class="p">:</span> <span class="s1">&#39;Thymine&#39;</span><span class="p">,</span> <span class="s1">&#39;URA&#39;</span><span class="p">:</span> <span class="s1">&#39;Uracil&#39;</span><span class="p">}</span>
+ 159     
+ 160     <span class="n">SpecifiedMutationsInfo</span> <span class="o">=</span> <span class="p">[]</span>
+ 161 
+ 162     <span class="n">Mutations</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Mutations&quot;</span><span class="p">])</span>
+ 163     <span class="n">MutationsWords</span> <span class="o">=</span> <span class="n">Mutations</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+ 164     <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">MutationsWords</span><span class="p">):</span>
+ 165         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The number of comma delimited mutations specified using </span><span class="se">\&quot;</span><span class="s2">-m, --mutations</span><span class="se">\&quot;</span><span class="s2"> option, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">,  must be &gt; 0.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Mutations&quot;</span><span class="p">]))</span>
+ 166 
+ 167     <span class="c1"># Load macromolecule from input file...</span>
+ 168     <span class="n">MolName</span> <span class="o">=</span> <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileRoot&quot;</span><span class="p">]</span>
+ 169     <span class="n">LoadMolecule</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">],</span> <span class="n">MolName</span><span class="p">)</span>
+ 170     
+ 171     <span class="n">FirstMutation</span> <span class="o">=</span> <span class="bp">True</span>
+ 172     <span class="n">CurrentChainID</span> <span class="o">=</span> <span class="bp">None</span>
+ 173     <span class="n">CanonicalMutationMap</span> <span class="o">=</span> <span class="p">{}</span>
+ 174     <span class="n">MutationsCount</span><span class="p">,</span> <span class="n">ValidMutationsCount</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span>
+ 175     
+ 176     <span class="k">for</span> <span class="n">Mutation</span> <span class="ow">in</span> <span class="n">MutationsWords</span><span class="p">:</span>
+ 177         <span class="n">MutationsCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 178         <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">Mutation</span><span class="p">):</span>
+ 179             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;The mutation, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-m, --mutations</span><span class="se">\&quot;</span><span class="s2"> option is empty.</span><span class="se">\n</span><span class="s2">Ignoring mutation...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">Mutation</span><span class="p">))</span>
+ 180             <span class="k">continue</span>
+ 181 
+ 182         <span class="n">CanonicalMutation</span> <span class="o">=</span> <span class="n">Mutation</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+ 183         <span class="k">if</span> <span class="n">CanonicalMutation</span> <span class="ow">in</span> <span class="n">CanonicalMutationMap</span><span class="p">:</span>
+ 184             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;The mutation, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-m, --mutations</span><span class="se">\&quot;</span><span class="s2"> option already exist.</span><span class="se">\n</span><span class="s2">Ignoring mutation...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">Mutation</span><span class="p">))</span>
+ 185             <span class="k">continue</span>
+ 186         <span class="n">CanonicalMutationMap</span><span class="p">[</span><span class="n">CanonicalMutation</span><span class="p">]</span> <span class="o">=</span> <span class="n">Mutation</span>
+ 187 
+ 188         <span class="c1"># Match with a chain ID...</span>
+ 189         <span class="n">MatchedResults</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^([a-z0-9]+):([0-9]+)([a-z]+)$&quot;</span><span class="p">,</span> <span class="n">Mutation</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span>
+ 190         <span class="k">if</span> <span class="ow">not</span> <span class="n">MatchedResults</span><span class="p">:</span>
+ 191             <span class="c1"># Match without a chain ID...</span>
+ 192             <span class="n">MatchedResults</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^([0-9]+)([a-z]+)$&quot;</span><span class="p">,</span> <span class="n">Mutation</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">)</span>
+ 193             
+ 194         <span class="k">if</span> <span class="ow">not</span> <span class="n">MatchedResults</span><span class="p">:</span>
+ 195             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;The format of mutation, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-m, --mutations</span><span class="se">\&quot;</span><span class="s2"> option is not valid. Supported format: &lt;ChainID&gt;:&lt;ResNum&gt;&lt;BaseName&gt; or &lt;ResNum&gt;&lt;BaseName&gt;</span><span class="se">\n</span><span class="s2">Ignoring mutation...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">Mutation</span><span class="p">))</span>
+ 196             <span class="k">continue</span>
+ 197 
+ 198         <span class="n">NumOfMatchedGroups</span> <span class="o">=</span>  <span class="nb">len</span><span class="p">(</span><span class="n">MatchedResults</span><span class="o">.</span><span class="n">groups</span><span class="p">())</span>
+ 199         <span class="k">if</span> <span class="n">NumOfMatchedGroups</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+ 200             <span class="n">ResNum</span><span class="p">,</span> <span class="n">NewBaseName</span> <span class="o">=</span> <span class="n">MatchedResults</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span>
+ 201         <span class="k">elif</span> <span class="n">NumOfMatchedGroups</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+ 202             <span class="n">CurrentChainID</span><span class="p">,</span> <span class="n">ResNum</span><span class="p">,</span> <span class="n">NewBaseName</span> <span class="o">=</span> <span class="n">MatchedResults</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span>
+ 203         <span class="k">else</span><span class="p">:</span>
+ 204             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;The format of mutation, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-m, --mutations</span><span class="se">\&quot;</span><span class="s2"> option is not valid. Supported format: &lt;ChainID&gt;:&lt;ResNum&gt;&lt;BaseName&gt; or &lt;ResNum&gt;&lt;BaseName&gt;</span><span class="se">\n</span><span class="s2">Ignoring mutation...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">Mutation</span><span class="p">))</span>
+ 205             <span class="k">continue</span>
+ 206         
+ 207         <span class="k">if</span> <span class="n">FirstMutation</span><span class="p">:</span>
+ 208             <span class="n">FirstMutation</span> <span class="o">=</span> <span class="bp">False</span>
+ 209             <span class="k">if</span>  <span class="n">CurrentChainID</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">:</span>
+ 210                 <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;The first mutation, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-m, --mutations</span><span class="se">\&quot;</span><span class="s2"> option must be colon delimited and contain only two values, the first value corresponding to chain ID&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">Mutation</span><span class="p">))</span>
+ 211 
+ 212         <span class="n">CanonicalBaseName</span> <span class="o">=</span> <span class="n">NewBaseName</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span>
+ 213         <span class="k">if</span> <span class="n">CanonicalBaseName</span> <span class="ow">in</span> <span class="n">CanonicalBaseNameMap</span><span class="p">:</span>
+ 214             <span class="n">NewBaseName</span> <span class="o">=</span> <span class="n">CanonicalBaseNameMap</span><span class="p">[</span><span class="n">CanonicalBaseName</span><span class="p">]</span>
+ 215         
+ 216         <span class="c1"># Is ResNum and BaseName present in input file?</span>
+ 217         <span class="n">SelectionCmd</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">%s</span><span class="s2"> and chain </span><span class="si">%s</span><span class="s2"> and resi </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MolName</span><span class="p">,</span> <span class="n">CurrentChainID</span><span class="p">,</span> <span class="n">ResNum</span><span class="p">)</span>
+ 218         <span class="n">ResiduesInfo</span> <span class="o">=</span> <span class="n">PyMOLUtil</span><span class="o">.</span><span class="n">GetSelectionResiduesInfo</span><span class="p">(</span><span class="n">SelectionCmd</span><span class="p">)</span>
+ 219         <span class="k">if</span> <span class="p">(</span><span class="n">ResiduesInfo</span> <span class="ow">is</span> <span class="bp">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">ResiduesInfo</span><span class="p">[</span><span class="s2">&quot;ResNames&quot;</span><span class="p">])):</span>
+ 220             <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintWarning</span><span class="p">(</span><span class="s2">&quot;The residue number, </span><span class="si">%s</span><span class="s2">, in mutation, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">, specified using </span><span class="se">\&quot;</span><span class="s2">-m, --mutations</span><span class="se">\&quot;</span><span class="s2"> option appears to be missing in input file.</span><span class="se">\n</span><span class="s2">Ignoring mutation...&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">ResNum</span><span class="p">,</span> <span class="n">Mutation</span><span class="p">))</span>
+ 221             <span class="k">continue</span>
+ 222 
+ 223         <span class="n">ValidMutationsCount</span> <span class="o">+=</span> <span class="mi">1</span>
+ 224         
+ 225         <span class="c1"># Track mutation information...</span>
+ 226         <span class="n">SpecifiedMutationsInfo</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">Mutation</span><span class="p">,</span> <span class="n">CurrentChainID</span><span class="p">,</span> <span class="n">ResNum</span><span class="p">,</span> <span class="n">NewBaseName</span><span class="p">])</span>
+ 227         
+ 228     <span class="c1"># Delete macromolecule...</span>
+ 229     <span class="n">DeleteMolecule</span><span class="p">(</span><span class="n">MolName</span><span class="p">)</span>
+ 230 
+ 231     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Total number of mutations: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">MutationsCount</span><span class="p">)</span>
+ 232     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of valid mutations: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ValidMutationsCount</span><span class="p">)</span>
+ 233     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Number of ignored mutations: </span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">MutationsCount</span> <span class="o">-</span> <span class="n">ValidMutationsCount</span><span class="p">))</span>
+ 234     
+ 235     <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">SpecifiedMutationsInfo</span><span class="p">):</span>
+ 236         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;No valid mutations, </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2"> specified using </span><span class="se">\&quot;</span><span class="s2">-m, --mutations</span><span class="se">\&quot;</span><span class="s2"> option.&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Mutations&quot;</span><span class="p">]))</span>
+ 237         
+ 238     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;SpecifiedMutationsInfo&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">SpecifiedMutationsInfo</span>
+ 239 
+ 240 <span class="k">def</span> <span class="nf">LoadMolecule</span><span class="p">(</span><span class="n">Infile</span><span class="p">,</span> <span class="n">MolName</span><span class="p">):</span>
+ 241     <span class="sd">&quot;&quot;&quot;Load input file. &quot;&quot;&quot;</span>
+ 242     
+ 243     <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">reinitialize</span><span class="p">()</span>
+ 244     <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">Infile</span><span class="p">,</span> <span class="n">MolName</span><span class="p">)</span>
+ 245     
+ 246 <span class="k">def</span> <span class="nf">DeleteMolecule</span><span class="p">(</span><span class="n">MolName</span><span class="p">):</span>
+ 247     <span class="sd">&quot;&quot;&quot;Delete molecule.&quot;&quot;&quot;</span>
+ 248     
+ 249     <span class="n">pymol</span><span class="o">.</span><span class="n">cmd</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">MolName</span><span class="p">)</span>
+ 250     
+ 251 <span class="k">def</span> <span class="nf">ProcessOptions</span><span class="p">():</span>
+ 252     <span class="sd">&quot;&quot;&quot;Process and validate command line arguments and options&quot;&quot;&quot;</span>
+ 253     
+ 254     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="s2">&quot;Processing options...&quot;</span><span class="p">)</span>
+ 255     
+ 256     <span class="c1"># Validate options...</span>
+ 257     <span class="n">ValidateOptions</span><span class="p">()</span>
+ 258 
+ 259     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">]</span>
+ 260     <span class="n">FileDir</span><span class="p">,</span> <span class="n">FileName</span><span class="p">,</span> <span class="n">FileExt</span> <span class="o">=</span> <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ParseFileName</span><span class="p">(</span><span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Infile&quot;</span><span class="p">])</span>
+ 261     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;InfileRoot&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">FileName</span>
+ 262 
+ 263     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Overwrite&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--overwrite&quot;</span><span class="p">]</span>
+ 264     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Outfile&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">]</span>
+ 265 
+ 266     <span class="n">RetrieveChainsIDs</span><span class="p">()</span>
+ 267     
+ 268     <span class="n">Mutations</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mutations&quot;</span><span class="p">]</span>
+ 269     <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;^None$&quot;</span><span class="p">,</span> <span class="n">Mutations</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">I</span><span class="p">):</span>
+ 270         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintError</span><span class="p">(</span><span class="s2">&quot;No mutations specified using </span><span class="se">\&quot;</span><span class="s2">-m, --mutations</span><span class="se">\&quot;</span><span class="s2"> option.&quot;</span><span class="p">)</span>
+ 271     
+ 272     <span class="n">OptionsInfo</span><span class="p">[</span><span class="s2">&quot;Mutations&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--mutations&quot;</span><span class="p">]</span>
+ 273     <span class="n">ProcessSpecifiedMutations</span><span class="p">()</span>
+ 274 
+ 275 <span class="k">def</span> <span class="nf">RetrieveOptions</span><span class="p">():</span> 
+ 276     <span class="sd">&quot;&quot;&quot;Retrieve command line arguments and options&quot;&quot;&quot;</span>
+ 277     
+ 278     <span class="c1"># Get options...</span>
+ 279     <span class="k">global</span> <span class="n">Options</span>
+ 280     <span class="n">Options</span> <span class="o">=</span> <span class="n">docopt</span><span class="p">(</span><span class="n">_docoptUsage_</span><span class="p">)</span>
+ 281 
+ 282     <span class="c1"># Set current working directory to the specified directory...</span>
+ 283     <span class="n">WorkingDir</span> <span class="o">=</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--workingdir&quot;</span><span class="p">]</span>
+ 284     <span class="k">if</span> <span class="n">WorkingDir</span><span class="p">:</span>
+ 285         <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">WorkingDir</span><span class="p">)</span>
+ 286     
+ 287     <span class="c1"># Handle examples option...</span>
+ 288     <span class="k">if</span> <span class="s2">&quot;--examples&quot;</span> <span class="ow">in</span> <span class="n">Options</span> <span class="ow">and</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--examples&quot;</span><span class="p">]:</span>
+ 289         <span class="n">MiscUtil</span><span class="o">.</span><span class="n">PrintInfo</span><span class="p">(</span><span class="n">MiscUtil</span><span class="o">.</span><span class="n">GetExamplesTextFromDocOptText</span><span class="p">(</span><span class="n">_docoptUsage_</span><span class="p">))</span>
+ 290         <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+ 291 
+ 292 <span class="k">def</span> <span class="nf">ValidateOptions</span><span class="p">():</span>
+ 293     <span class="sd">&quot;&quot;&quot;Validate option values&quot;&quot;&quot;</span>
+ 294     
+ 295     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFilePath</span><span class="p">(</span><span class="s2">&quot;-i, --infile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">])</span>
+ 296     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFileExt</span><span class="p">(</span><span class="s2">&quot;-i, --infile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">],</span> <span class="s2">&quot;pdb&quot;</span><span class="p">)</span>
+ 297     
+ 298     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionsDistinctFileNames</span><span class="p">(</span><span class="s2">&quot;-i, --infile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--infile&quot;</span><span class="p">],</span> <span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">])</span>
+ 299     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionFileExt</span><span class="p">(</span><span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">],</span> <span class="s2">&quot;pdb&quot;</span><span class="p">)</span>
+ 300     <span class="n">MiscUtil</span><span class="o">.</span><span class="n">ValidateOptionsOutputFileOverwrite</span><span class="p">(</span><span class="s2">&quot;-o, --outfile&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--outfile&quot;</span><span class="p">],</span> <span class="s2">&quot;--overwrite&quot;</span><span class="p">,</span> <span class="n">Options</span><span class="p">[</span><span class="s2">&quot;--overwrite&quot;</span><span class="p">])</span>
+ 301 
+ 302 <span class="c1"># Setup a usage string for docopt...</span>
+ 303 <span class="n">_docoptUsage_</span> <span class="o">=</span> <span class="s2">&quot;&quot;&quot;</span>
+ 304 <span class="s2">PyMOLMutateNucleicAcids.py - Mutate nucleic acids</span>
+ 305 
+ 306 <span class="s2">Usage:</span>
+ 307 <span class="s2">    PyMOLMutateNucleicAcids.py [--mutations &lt;Spec1,Spec2,...&gt;]</span>
+ 308 <span class="s2">                            [--overwrite] [-w &lt;dir&gt;] -i &lt;infile&gt; -o &lt;outfile&gt;</span>
+ 309 <span class="s2">    PyMOLMutateNucleicAcids.py -h | --help | -e | --examples</span>
+ 310 
+ 311 <span class="s2">Description:</span>
+ 312 <span class="s2">    Mutate nucleic acids in macromolecules. The mutations are performed using</span>
+ 313 <span class="s2">    nucleic acids mutagenesis wizard available in PyMOL starting V2.2.</span>
+ 314 
+ 315 <span class="s2">    The supported input and output file format is: PDB (.pdb)</span>
+ 316 <span class="s2"> </span>
+ 317 <span class="s2">Options:</span>
+ 318 <span class="s2">    -m, --mutations &lt;Spec1,Spec2,...&gt;  [default: None]</span>
+ 319 <span class="s2">        Comma delimited list of specifications for mutating nucleic acids.</span>
+ 320 <span class="s2">        </span>
+ 321 <span class="s2">        The format of mutation specification is as follows:</span>
+ 322 <span class="s2">        </span>
+ 323 <span class="s2">            &lt;ChainID&gt;:&lt;ResNum&gt;&lt;BaseName&gt;,...</span>
+ 324 <span class="s2">        </span>
+ 325 <span class="s2">        A chain ID in the first specification of a mutation is required. It may be</span>
+ 326 <span class="s2">        skipped in subsequent specifications. The most recent chain ID is used</span>
+ 327 <span class="s2">        for the missing chain ID. The residue number corresponds to the residue</span>
+ 328 <span class="s2">        to be mutated and must be present in the current chain. The base name</span>
+ 329 <span class="s2">        represents the new base.</span>
+ 330 <span class="s2">        </span>
+ 331 <span class="s2">        Examples:</span>
+ 332 <span class="s2">        </span>
+ 333 <span class="s2">            A:9Thy, A:10Thy</span>
+ 334 <span class="s2">            A:9Thy,10Thy,11Thy</span>
+ 335 <span class="s2">            A:9Thy,10Thy,B:5Ade,6Ade</span>
+ 336 <span class="s2">        </span>
+ 337 <span class="s2">        The base names must be valid for mutating nucleic acids. No validation</span>
+ 338 <span class="s2">        validation is performed before mutating residues via nucleic acids</span>
+ 339 <span class="s2">        mutagenesis wizard available in PyMOL. The current version of the</span>
+ 340 <span class="s2">        wizard supports the following base names:</span>
+ 341 <span class="s2">        </span>
+ 342 <span class="s2">            Adenine, Ade</span>
+ 343 <span class="s2">            Cytosine, Cyt</span>
+ 344 <span class="s2">            Guanine, Gua</span>
+ 345 <span class="s2">            Thymine, Thy</span>
+ 346 <span class="s2">            Uracil, Ura</span>
+ 347 <span class="s2">        </span>
+ 348 <span class="s2">    -e, --examples</span>
+ 349 <span class="s2">        Print examples.</span>
+ 350 <span class="s2">    -h, --help</span>
+ 351 <span class="s2">        Print this help message.</span>
+ 352 <span class="s2">    -i, --infile &lt;infile&gt;</span>
+ 353 <span class="s2">        Input file name.</span>
+ 354 <span class="s2">    -o, --outfile &lt;outfile&gt;</span>
+ 355 <span class="s2">        Output file name.</span>
+ 356 <span class="s2">    --overwrite</span>
+ 357 <span class="s2">        Overwrite existing files.</span>
+ 358 <span class="s2">    -w, --workingdir &lt;dir&gt;</span>
+ 359 <span class="s2">        Location of working directory which defaults to the current directory.</span>
+ 360 
+ 361 <span class="s2">Examples:</span>
+ 362 <span class="s2">    To mutate a single residue in a specific chain and write a PDB file, type:</span>
+ 363 
+ 364 <span class="s2">        % PyMOLMutateNucleicAcids.py -m &quot;A:9Thy&quot; -i Sample9.pdb</span>
+ 365 <span class="s2">          -o Sample9Out.pdb</span>
+ 366 
+ 367 <span class="s2">    To mutate multiple residues in a single chain and write a PDB file, type:</span>
+ 368 
+ 369 <span class="s2">        % PyMOLMutateNucleicAcids.py -m &quot;A:9Thy,10Thy,11Thy&quot; -i Sample9.pdb</span>
+ 370 <span class="s2">          -o Sample9Out.pdb</span>
+ 371 
+ 372 <span class="s2">    To mutate multiple residues across multiple chains and write a PDB file, type:</span>
+ 373 
+ 374 <span class="s2">        % PyMOLMutateNucleicAcids.py -m &quot;A:9Thy,10Thy,B:5Ade,6Ade&quot;</span>
+ 375 <span class="s2">          -i Sample9.pdb -o Sample9Out.pdb</span>
+ 376 
+ 377 <span class="s2">Author:</span>
+ 378 <span class="s2">    Manish Sud(msud@san.rr.com)</span>
+ 379 
+ 380 <span class="s2">See also:</span>
+ 381 <span class="s2">    DownloadPDBFiles.pl, PyMOLMutateAminoAcids.py,</span>
+ 382 <span class="s2">    PyMOLVisualizeMacromolecules.py</span>
+ 383 
+ 384 <span class="s2">Copyright:</span>
+ 385 <span class="s2">    Copyright (C) 2020 Manish Sud. All rights reserved.</span>
+ 386 
+ 387 <span class="s2">    The functionality available in this script is implemented using PyMOL, a</span>
+ 388 <span class="s2">    molecular visualization system on an open source foundation originally</span>
+ 389 <span class="s2">    developed by Warren DeLano.</span>
+ 390 
+ 391 <span class="s2">    This file is part of MayaChemTools.</span>
+ 392 
+ 393 <span class="s2">    MayaChemTools is free software; you can redistribute it and/or modify it under</span>
+ 394 <span class="s2">    the terms of the GNU Lesser General Public License as published by the Free</span>
+ 395 <span class="s2">    Software Foundation; either version 3 of the License, or (at your option) any</span>
+ 396 <span class="s2">    later version.</span>
+ 397 
+ 398 <span class="s2">&quot;&quot;&quot;</span>
+ 399 
+ 400 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+ 401     <span class="n">main</span><span class="p">()</span>
+</pre>
+<br />
+<center>
+<img src="../../../images/h2o2.png">
+</center>
+</body>
+</html>

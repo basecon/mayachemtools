@@ -1,0 +1,162 @@
+<html>
+<head>
+<title>MayaChemTools:Documentation:RDKitFilterChEMBLAlerts.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../css/MayaChemTools.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./RDKitEnumerateStereoisomers.html" title="RDKitEnumerateStereoisomers.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./RDKitFilterPAINS.html" title="RDKitFilterPAINS.html">Next</a></td><td width="34%" align="middle"><strong>RDKitFilterChEMBLAlerts.py</strong></td><td width="33%" align="right"><a href="././code/RDKitFilterChEMBLAlerts.html" title="View source code">Code</a>&nbsp;|&nbsp;<a href="./../pdf/RDKitFilterChEMBLAlerts.pdf" title="PDF US Letter Size">PDF</a>&nbsp;|&nbsp;<a href="./../pdfa4/RDKitFilterChEMBLAlerts.pdf" title="PDF A4 Size">PDFA4</a></td></tr>
+</table>
+</div>
+<h1 id="NAME">NAME</h2>
+<p>RDKitFilterChEMBLAlterts.py - Filter ChEMBL alerts</p>
+<h1 id="SYNOPSIS">SYNOPSIS</h2>
+<p>RDKitFilterChEMBLAlerts.py [<b>--alertsMode</b> &lt;All or Type,Type,...&gt;] [<b>--infileParams</b> &lt;Name,Value,...&gt;] [<b>--mode</b> &lt;filter or count&gt;] [<b>--mp</b> &lt;yes or no&gt;] [<b>--mpParams</b> &lt;Name.Value,...&gt;] [<b>--outfileFiltered</b> &lt;yes or no&gt;] [ <b>--outfileParams</b> &lt;Name,Value,...&gt;] [<b>--negate</b> &lt;yes or no&gt;] [<b>--overwrite</b>] [<b>-w</b> &lt;dir&gt;] <b>-i</b> &lt;infile&gt; <b>-o</b> &lt;outfile&gt;</p>
+<p>RDKitFilterChEMBLAlerts.py <b>-h</b> | <b>--help</b> | <b>-e</b> | <b>--examples</b></p>
+<h1 id="DESCRIPTION">DESCRIPTION</h2>
+<p>Filter molecules from an input file for ChEMBL structural alerts by performing a substructure search using SMARTS patterns specified in MAYACHEMTOOLS/ lib/data/ChEMBLFilters.csv file and write out appropriate molecules to an output file or simply count the number of filtered molecules.</p>
+<p>The supported input file formats are: SD (.sdf, .sd), SMILES (.smi, .csv, .tsv, .txt)</p>
+<p>The supported output file formats are: SD (.sdf, .sd), SMILES (.smi)</p>
+<h1 id="OPTIONS">OPTIONS</h2>
+<dl>
+<dt id="a---alertsMode-All-or-Type-Type-...-default:-All"><b>-a, --alertsMode</b> &lt;All or Type, Type,...&gt; [default: All]</dt>
+<dd>
+<p>All or a comma delimited list of ChEMBL filter types to use for filtering molecules.</p>
+<p>The supported filter family types, along with a description, are show below:</p>
+<div class="OptionsBox">    BMS: Bristol-Myers Squibb HTS Deck Filters
+<br/>    Dundee: University of Dundee NTD Screening Library Filters
+<br/>    Glaxo: Bristol-Myers Squibb HTS Deck Filters
+<br/>    Inpharmatica
+<br/>    MLSMR: NIH MLSMR Excluded Functionality Filters
+<br/>    PfizerLINT: Pfizer LINT filters
+<br/>    SureChEMBL</div>
+</dd>
+<dt id="e---examples"><b>-e, --examples</b></dt>
+<dd>
+<p>Print examples.</p>
+</dd>
+<dt id="h---help"><b>-h, --help</b></dt>
+<dd>
+<p>Print this help message.</p>
+</dd>
+<dt id="i---infile-infile"><b>-i, --infile</b> &lt;infile&gt;</dt>
+<dd>
+<p>Input file name.</p>
+</dd>
+<dt id="infileParams-Name-Value-...-default:-auto"><b>--infileParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for reading molecules from files. The supported parameter names for different file formats, along with their default values, are shown below:</p>
+<div class="OptionsBox">    SD: removeHydrogens,yes,sanitize,yes,strictParsing,yes
+<br/>    SMILES: smilesColumn,1,smilesNameColumn,2,smilesDelimiter,space,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        smilesTitleLine,auto,sanitize,yes
+<br/>    </div>
+<p>Possible values for smilesDelimiter: space, comma or tab.</p>
+</dd>
+<dt id="m---mode-filter-or-count-default:-filter"><b>-m, --mode</b> &lt;filter or count&gt; [default: filter]</dt>
+<dd>
+<p>Specify whether to filter the matched molecules and write out the rest of the molecules to an outfile or simply count the number of matched molecules marked for filtering.</p>
+</dd>
+<dt id="mp-yes-or-no-default:-no"><b>--mp</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Use multiprocessing.</p>
+<p>By default, input data is retrieved in a lazy manner via mp.Pool.imap() function employing lazy RDKit data iterable. This allows processing of arbitrary large data sets without any additional requirements memory.</p>
+<p>All input data may be optionally loaded into memory by mp.Pool.map() before starting worker processes in a process pool by setting the value of &#39;inputDataMode&#39; to &#39;InMemory&#39; in &#39;--mpParams&#39; option.</p>
+<p>A word to the wise: The default &#39;chunkSize&#39; value of 1 during &#39;Lazy&#39; input data mode may adversely impact the performance. The &#39;--mpParams&#39; section provides additional information to tune the value of &#39;chunkSize&#39;.</p>
+</dd>
+<dt id="mpParams-Name-Value-...-default:-auto"><b>--mpParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for to configure multiprocessing.</p>
+<p>The supported parameter names along with their default and possible values are shown below:</p>
+<div class="OptionsBox">    chunkSize, auto
+<br/>    inputDataMode, Lazy   [ Possible values: InMemory or Lazy ]
+<br/>    numProcesses, auto   [ Default: mp.cpu_count() ]</div>
+<p>These parameters are used by the following functions to configure and control the behavior of multiprocessing: mp.Pool(), mp.Pool.map(), and mp.Pool.imap().</p>
+<p>The chunkSize determines chunks of input data passed to each worker process in a process pool by mp.Pool.map() and mp.Pool.imap() functions. The default value of chunkSize is dependent on the value of &#39;inputDataMode&#39;.</p>
+<p>The mp.Pool.map() function, invoked during &#39;InMemory&#39; input data mode, automatically converts RDKit data iterable into a list, loads all data into memory, and calculates the default chunkSize using the following method as shown in its code:</p>
+<div class="OptionsBox">    chunkSize, extra = divmod(len(dataIterable), len(numProcesses) * 4)
+<br/>    if extra: chunkSize += 1</div>
+<p>For example, the default chunkSize will be 7 for a pool of 4 worker processes and 100 data items.</p>
+<p>The mp.Pool.imap() function, invoked during &#39;Lazy&#39; input data mode, employs &#39;lazy&#39; RDKit data iterable to retrieve data as needed, without loading all the data into memory. Consequently, the size of input data is not known a priori. It&#39;s not possible to estimate an optimal value for the chunkSize. The default chunkSize is set to 1.</p>
+<p>The default value for the chunkSize during &#39;Lazy&#39; data mode may adversely impact the performance due to the overhead associated with exchanging small chunks of data. It is generally a good idea to explicitly set chunkSize to a larger value during &#39;Lazy&#39; input data mode, based on the size of your input data and number of processes in the process pool.</p>
+<p>The mp.Pool.map() function waits for all worker processes to process all the data and return the results. The mp.Pool.imap() function, however, returns the the results obtained from worker processes as soon as the results become available for specified chunks of data.</p>
+<p>The order of data in the results returned by both mp.Pool.map() and mp.Pool.imap() functions always corresponds to the input data.</p>
+</dd>
+<dt id="n---negate-yes-or-no-default:-no"><b>-n, --negate</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Specify whether to filter molecules not matching the ChEMBL filters specified by SMARTS patterns.</p>
+</dd>
+<dt id="o---outfile-outfile"><b>-o, --outfile</b> &lt;outfile&gt;</dt>
+<dd>
+<p>Output file name.</p>
+</dd>
+<dt id="outfileFiltered-yes-or-no-default:-no"><b>--outfileFiltered</b> &lt;yes or no&gt; [default: no]</dt>
+<dd>
+<p>Write out a file containing filtered molecules. Its name is automatically generated from the specified output file. Default: &lt;OutfileRoot&gt;_ Filtered.&lt;OutfileExt&gt;.</p>
+</dd>
+<dt id="outfileParams-Name-Value-...-default:-auto"><b>--outfileParams</b> &lt;Name,Value,...&gt; [default: auto]</dt>
+<dd>
+<p>A comma delimited list of parameter name and value pairs for writing molecules to files. The supported parameter names for different file formats, along with their default values, are shown below:</p>
+<div class="OptionsBox">    SD: compute2DCoords,auto,kekulize,no
+<br/>    SMILES: kekulize,no,smilesDelimiter,space, smilesIsomeric,yes,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        smilesTitleLine,yes,smilesMolName,yes,smilesMolProps,no
+<br/>    </div>
+<p>Default value for compute2DCoords: yes for SMILES input file; no for all other file types.</p>
+</dd>
+<dt id="overwrite"><b>--overwrite</b></dt>
+<dd>
+<p>Overwrite existing files.</p>
+</dd>
+<dt id="w---workingdir-dir"><b>-w, --workingdir</b> &lt;dir&gt;</dt>
+<dd>
+<p>Location of working directory which defaults to the current directory.</p>
+</dd>
+</dl>
+<h1 id="EXAMPLES">EXAMPLES</h2>
+<p>To count the number of molecules not containing any substructure corresponding to any ChEMBL SMARTS patterns and write out SMILES files containing these molecules, type:</p>
+<div class="ExampleBox">    % RDKitFilterChEMBLAlerts.py -i Sample.smi -o SampleOut.smi</div>
+<p>To count the number of molecules not containing any substructure corresponding to ChEMBL SMARTS patterns, perform filtering in multiprocessing mode on all available CPUs without loading all data into memory, and write out a SMILES file, type:</p>
+<div class="ExampleBox">    % RDKitFilterChEMBLAlerts.py --mp yes -i Sample.smi -o SampleOut.smi</div>
+<p>To count the number of molecules not containing any substructure corresponding to ChEMBL SMARTS patterns, perform filtering in multiprocessing mode on all available CPUs by loading all data into memory, and write out a SMILES file, type:</p>
+<div class="ExampleBox">    % RDKitFilterChEMBLAlerts.py --mp yes --mpParams &quot;inputDataMode,
+      InMemory&quot; -i Sample.smi -o SampleOut.smi</div>
+<p>To count the number of molecules not containing any substructure corresponding to ChEMBL SMARTS patterns, perform filtering in multiprocessing mode on specific number of CPUs and chunk size without loading all data into memory, and write out a SMILES file, type:</p>
+<div class="ExampleBox">    % RDKitFilterChEMBLAlerts.py --mp yes --mpParams &quot;inputDataMode,Lazy,
+      numProcesses,4,chunkSize,8&quot; -i Sample.smi -o SampleOut.smi</div>
+<p>To count the number of molecules not containing any substructure corresponding to any ChEMBL SMARTS patterns and write out SMILES files containing these and filtered molecules, type:</p>
+<div class="ExampleBox">    % RDKitFilterChEMBLAlerts.py --outfileFiltered yes -i Sample.smi
+      -o SampleOut.smi</div>
+<p>To only count the number of molecules not containing any substructure corresponding to BMS ChEMBL SMARTS patterns without writing out any files, type:</p>
+<div class="ExampleBox">    % RDKitFilterChEMBLAlerts.py -m count -a BMS -i Sample.sdf
+      -o SampleOut.smi</div>
+<p>To count the number of molecules not containing any substructure corresponding to Pfizer LINT ChEMBL SMARTS patterns in a CSV SMILES file and write out a SD file, type:</p>
+<div class="ExampleBox">    % RDKitFilterChEMBLAlerts.py --altertsMode PfizerLINT --infileParams
+      &quot;smilesDelimiter,comma,smilesTitleLine,yes,smilesColumn,1,
+      smilesNameColumn,2&quot; --outfileParams &quot;compute2DCoords,yes&quot;
+      -i SampleSMILES.csv -o SampleOut.sdf</div>
+<h1 id="AUTHOR">AUTHOR</h2>
+<p><a href="mailto:msud@san.rr.com">Manish Sud</a></p>
+<h1 id="SEE-ALSO">SEE ALSO</h2>
+<p><a href="./RDKitFilterPAINS.html">RDKitFilterPAINS.py</a>, <a href="./RDKitConvertFileFormat.html">RDKitConvertFileFormat.py</a>, <a href="./RDKitSearchSMARTS.html">RDKitSearchSMARTS.py</a></p>
+<h1 id="COPYRIGHT">COPYRIGHT</h2>
+<p>Copyright (C) 2020 Manish Sud. All rights reserved.</p>
+<p>The functionality available in this script is implemented using RDKit, an open source toolkit for cheminformatics developed by Greg Landrum.</p>
+<p>This file is part of MayaChemTools.</p>
+<p>MayaChemTools is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.</p>
+<p>&nbsp</p><p>&nbsp</p><div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./RDKitEnumerateStereoisomers.html" title="RDKitEnumerateStereoisomers.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./RDKitFilterPAINS.html" title="RDKitFilterPAINS.html">Next</a></td><td width="34%" align="middle"><strong>August 27, 2020</strong></td><td width="33%" align="right"><strong>RDKitFilterChEMBLAlerts.py</strong></td></tr>
+</table>
+</div>
+<br />
+<center>
+<img src="../../images/h2o2.png">
+</center>
+</body>
+</html>

@@ -1,0 +1,136 @@
+NAME
+    PyMOLCalculateProperties.py - Calculate physicochemical properties
+
+SYNOPSIS
+    PyMOLCalculateProperties.py [--addHydrogens <yes or no>] [--chainIDs
+    <First, All or ID1,ID2...>] [--list] [--keepInorganics <yes or no>]
+    [--keepLigands <yes or no>] [--keepSolvents <yes or no>] [--mode <All or
+    Name1,Name2,Name3,...>] [--overwrite] [--precision <number>] [--quiet
+    <yes or no>] [-w <dir>] -i <infile1,infile2,infile3...> -o <outfile>
+
+    PyMOLCalculateProperties.py -l | --list
+
+    PyMOLCalculateProperties.py -h | --help | -e | --examples
+
+DESCRIPTION
+    Calculate physicochemical properties for macromolecules. The properties
+    may be calculated for the complete complex or a specified list of chain
+    IDs. Ligands, inorganics, and solvents may be optionally excluded during
+    the calculation of properties.
+
+    The supported input file format are: PDB (.pdb), mmCIF (.cif)
+
+    The supported output file formats are: CSV (.csv), TSV (.tsv, .txt)
+
+OPTIONS
+    -a, --addHydrogens <yes or no> [default: yes]
+        Add hydrogens before calculating physiochemical properties.
+
+    -c, --chainIDs <First, All or ID1,ID2...> [default: All]
+        List of chain IDs to use for calculating physicochemical properties.
+        Possible values: First, All, or a comma delimited list of chain IDs.
+        The default is to use all chain IDs in input file.
+
+    -e, --examples
+        Print examples.
+
+    -h, --help
+        Print this help message.
+
+    -i, --infiles <infile1,infile2,infile3...>
+        A comma delimited list of input files. The wildcards are also
+        allowed in file names.
+
+    --keepInorganics <yes or no> [default: yes]
+        Keep inorganic molecules during calculation of physiochemical
+        properties. The inorganic molecules are identified using inorganic
+        selection operator available in PyMOL.
+
+    --keepLigands <yes or no> [default: yes]
+        Keep ligand molecules during calculation of physiochemical
+        properties. The ligand molecules are identified using organic
+        selection operator available in PyMOL.
+
+    --keepSolvents <yes or no> [default: yes]
+        Keep solvent molecules during calculation of physiochemical
+        properties. The solvent molecules are identified using solvent
+        selection operator available in PyMOL.
+
+    -l, --list
+        List available property names without performing any calculations.
+
+    -m, --mode <All or Name1,Name2,Name3,...> [default: All]
+        Comma delimited lists of physicochemical properties to calculate.
+        Default: 'All'. The following properties may be calculated for
+        macromolecules:
+
+            CenterOfMass,MolecularWeight,MolecularSurfaceArea
+            SumOfFormalCharges,SumOfPartialCharges,SolventAccessibleSurfaceArea
+
+    -o, --outfile <outfile>
+        Output file name for writing out calculated values. Supported text
+        file extensions: csv, tsv or txt.
+
+    --overwrite
+        Overwrite existing files.
+
+    -p, --precision <number> [default: 3]
+        Floating point precision for writing the calculated property values.
+
+    -q, --quiet <yes or no> [default: yes]
+        Do not print information during the calculation of properties.
+
+    -w, --workingdir <dir>
+        Location of working directory which defaults to the current
+        directory.
+
+EXAMPLES
+    To calculate all available properties for all chains in input file along
+    with all ligands, inorganics and solvents after adding hydrogens and
+    write out a CSV file containing calculated values and PDB IDs, type:
+
+        % PyMOLCalculateProperties.py  -i Sample3.pdb -o Sample3Out.csv
+
+    To calculate specified properties for all chains in input file along
+    with all ligands, inorganics and solvents after adding hydrogens and
+    write out a CSV file containing calculated values and PDB IDs, type:
+
+        % PyMOLCalculateProperties.py  -m "MolecularWeight,CenterOfMass"
+          -i Sample3.pdb -o Sample3Out.csv
+
+    To calculate all available properties for chain E in input file without
+    including ligands, inorganics and solvents, and addition of hydrogens,
+    and write out a TSV file containing calculated values and PDB IDs, type:
+
+        % PyMOLCalculateProperties.py  --addHydrogens no -c E --keepLigands
+          no --keepInorganics  no --keepSolvents no -i Sample3.pdb -o
+          Sample3Out.tsv
+
+    To calculate all available properties for all chains in multiple files
+    along with all ligands, inorganics and solvents after adding hydrogens
+    and write out a CSV file containing calculated values and PDB IDs, type:
+
+        % PyMOLCalculateProperties.py  -i "Sample3.pdb,Sample4.pdb,Sample5.pdb"
+          -o SampleOut.csv
+
+AUTHOR
+    Manish Sud(msud@san.rr.com)
+
+SEE ALSO
+    PyMOLCalculateRMSD.py, PyMOLSplitChainsAndLigands.py,
+    PyMOLVisualizeMacromolecules.py
+
+COPYRIGHT
+    Copyright (C) 2020 Manish Sud. All rights reserved.
+
+    The functionality available in this script is implemented using PyMOL, a
+    molecular visualization system on an open source foundation originally
+    developed by Warren DeLano.
+
+    This file is part of MayaChemTools.
+
+    MayaChemTools is free software; you can redistribute it and/or modify it
+    under the terms of the GNU Lesser General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or (at
+    your option) any later version.
+

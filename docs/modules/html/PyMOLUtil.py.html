@@ -1,0 +1,918 @@
+<html>
+<head>
+<title>MayaChemTools:Documentation:Python/PyMOLUtil.py</title>
+<meta http-equiv="content-type" content="text/html;charset=utf-8">
+<link rel="stylesheet" type="text/css" href="../../css/MayaChemTools.css">
+</head>
+<body leftmargin="20" rightmargin="20" topmargin="10" bottommargin="10">
+<br/>
+<center>
+<a href="http://www.mayachemtools.org" title="MayaChemTools Home"><img src="../../images/MayaChemToolsLogo.gif" border="0" alt="MayaChemTools"></a>
+</center>
+<br/>
+<div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./MiscUtil.py.html" title="MiscUtil.py.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./RDKitUtil.py.html" title="RDKitUtil.py.html">Next</a></td><td width="34%" align="middle"><strong>Python/PyMOLUtil.py</strong></td><td width="33%" align="right"><a href="././code/PyMOLUtil.py.html" title="View source code">Code</a>&nbsp;|&nbsp;<a href="./../pdf/PyMOLUtil.py.pdf" title="PDF US Letter Size">PDF</a>&nbsp;|&nbsp;<a href="./../pdfa4/PyMOLUtil.py.pdf" title="PDF A4 Size">PDFA4</a></td></tr>
+</table>
+</div>
+<h1 id="NAME">NAME</h2>
+<p>PyMOLUtil</p>
+<h1 id="SYNOPSIS">SYNOPSIS</h2>
+<p>import PyMOLUtil</p>
+<h1 id="DESCRIPTION">DESCRIPTION</h2>
+<p><b>PyMOLUtil</b> module provides the following functions:</p>
+<p>
+ <a href="#AreAminoAcidResiduesPresent">AreAminoAcidResiduesPresent</a>, <a href="#AreNucleicAcidResiduesPresent">AreNucleicAcidResiduesPresent</a>, <a href="#CalculateCenterOfMass">CalculateCenterOfMass</a>, <a href="#ConvertFileFormat">ConvertFileFormat</a>, <a href="#ConvertPMLFileToPSEFile">ConvertPMLFileToPSEFile</a>, <a href="#GetAminoAcidResiduesInfo">GetAminoAcidResiduesInfo</a>, <a href="#GetChains">GetChains</a>, <a href="#GetChainsAndLigandsInfo">GetChainsAndLigandsInfo</a>, <a href="#GetInorganicResiduesInfo">GetInorganicResiduesInfo</a>, <a href="#GetInterfaceChainsResiduesByCAlphaAtomsDistance">GetInterfaceChainsResiduesByCAlphaAtomsDistance</a>, <a href="#GetInterfaceChainsResiduesBySASAChange">GetInterfaceChainsResiduesBySASAChange</a>, <a href="#GetLargestLigand">GetLargestLigand</a>, <a href="#GetLigandResiduesInfo">GetLigandResiduesInfo</a>, <a href="#GetLigands">GetLigands</a>, <a href="#GetMolecules">GetMolecules</a>, <a href="#GetNucleicAcidResiduesInfo">GetNucleicAcidResiduesInfo</a>, <a href="#GetPhiPsiCategoriesResiduesInfo">GetPhiPsiCategoriesResiduesInfo</a>, <a href="#GetPhiPsiChainsAndResiduesInfo">GetPhiPsiChainsAndResiduesInfo</a>, <a href="#GetPhiPsiResiduesInfo">GetPhiPsiResiduesInfo</a>, <a href="#GetPocketInorganicResiduesInfo">GetPocketInorganicResiduesInfo</a>, <a href="#GetPocketPolymerResiduesInfo">GetPocketPolymerResiduesInfo</a>, <a href="#GetPocketSolventResiduesInfo">GetPocketSolventResiduesInfo</a>, <a href="#GetPolymerResiduesInfo">GetPolymerResiduesInfo</a>, <a href="#GetSelectionResiduesInfo">GetSelectionResiduesInfo</a>, <a href="#GetSolventResiduesInfo">GetSolventResiduesInfo</a>, <a href="#GetSurfaceAndBuriedResiduesInfo">GetSurfaceAndBuriedResiduesInfo</a>, <a href="#GetnterfaceChainsResiduesByHeavyAtomsDistance">GetnterfaceChainsResiduesByHeavyAtomsDistance</a>, <a href="#ProcessChainSelectionsOptionsInfo">ProcessChainSelectionsOptionsInfo</a>, <a href="#ProcessChainsAndLigandsOptionsInfo">ProcessChainsAndLigandsOptionsInfo</a>, <a href="#ProcessResidueTypesOptionsInfo">ProcessResidueTypesOptionsInfo</a>, <a href="#ProcessSurfaceAtomTypesColorsOptionsInfo">ProcessSurfaceAtomTypesColorsOptionsInfo</a>, <a href="#SetupPMLForAlignment">SetupPMLForAlignment</a>, <a href="#SetupPMLForBFactorPuttyView">SetupPMLForBFactorPuttyView</a>, <a href="#SetupPMLForBallAndStickView">SetupPMLForBallAndStickView</a>, <a href="#SetupPMLForEnableDisable">SetupPMLForEnableDisable</a>, <a href="#SetupPMLForGroup">SetupPMLForGroup</a>, <a href="#SetupPMLForHydrophobicAndChargeSurfaceView">SetupPMLForHydrophobicAndChargeSurfaceView</a>, <a href="#SetupPMLForHydrophobicContactsView">SetupPMLForHydrophobicContactsView</a>, <a href="#SetupPMLForHydrophobicSurfaceView">SetupPMLForHydrophobicSurfaceView</a>, <a href="#SetupPMLForInorganicView">SetupPMLForInorganicView</a>, <a href="#SetupPMLForLigandPocketInorganicView">SetupPMLForLigandPocketInorganicView</a>, <a href="#SetupPMLForLigandPocketSolventView">SetupPMLForLigandPocketSolventView</a>, <a href="#SetupPMLForLigandPocketView">SetupPMLForLigandPocketView</a>, <a href="#SetupPMLForLigandView">SetupPMLForLigandView</a>, <a href="#SetupPMLForPolarContactsView">SetupPMLForPolarContactsView</a>, <a href="#SetupPMLForPolymerChainComplexView">SetupPMLForPolymerChainComplexView</a>, <a href="#SetupPMLForPolymerChainView">SetupPMLForPolymerChainView</a>, <a href="#SetupPMLForPolymerComplexView">SetupPMLForPolymerComplexView</a>, <a href="#SetupPMLForSelectionDisplayView">SetupPMLForSelectionDisplayView</a>, <a href="#SetupPMLForSolventView">SetupPMLForSolventView</a>, <a href="#SetupPMLForSurfaceView">SetupPMLForSurfaceView</a>, <a href="#SetupPMLHeaderInfo">SetupPMLHeaderInfo</a>
+</p><h1 id="FUNCTIONS">FUNCTIONS</h2>
+<dl>
+<dt id="AreAminoAcidResiduesPresent"><b>AreAminoAcidResiduesPresent</b></dt>
+<dd>
+<div class="OptionsBox">    AreAminoAcidResiduesPresent(MoleculeName, ChainName, Type = &quot;Any&quot;)</div>
+<p>Check for the presence of amino acid residues in a chain of a molecule. Chains are identified using PyMOL &#39;polymer&#39; selection. Nonstandard amino acid residues correspond to all residues other than the standard amino acids and nucleic acids. Any amino acid residues cover all residues other than the standard nucleic acids.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    MoleculeName (str): Name of a PyMOL molecule object.
+<br/>    ChainName (str): Name of a chain in a molecule.
+<br/>    Type (str): Types of amino acids: Standard, NonStandard, Any</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    boolean: True or False.</div>
+</dd>
+<dt id="AreNucleicAcidResiduesPresent"><b>AreNucleicAcidResiduesPresent</b></dt>
+<dd>
+<div class="OptionsBox">    AreNucleicAcidResiduesPresent(MoleculeName, ChainName)</div>
+<p>Check for the presence of nucleic acid residues in a chain of a molecule. Chains are identified using PyMOL &#39;polymer&#39; selection.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    MoleculeName (str): Name of a PyMOL molecule object.
+<br/>    ChainName (str): Name of a chain in a molecule.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    boolean: True or False.</div>
+</dd>
+<dt id="CalculateCenterOfMass"><b>CalculateCenterOfMass</b></dt>
+<dd>
+<div class="OptionsBox">    CalculateCenterOfMass(Selection = &quot;all&quot;, Quiet = 0)</div>
+<p>Calculate center of mass for a selection.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    Selection (str): A PyMOL selection.
+<br/>    Quiet (int): Print information.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    list: X, Y, Z coordinates for center of mass.</div>
+</dd>
+<dt id="ConvertFileFormat"><b>ConvertFileFormat</b></dt>
+<dd>
+<div class="OptionsBox">    ConvertFileFormat(Infile, Outfile, Reinitialize = True, OutputFeedback = True)</div>
+<p>Convert infile to outfile by automatically detecting their formats from the file extensions.</p>
+<p>The formats of both input and output files must be a valid format supported by PyMOL.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    Infile (str): Name of input file.
+<br/>    Outfile (str): Name of outfile file.
+<br/>    Reinitialize (bool): Reinitialize PyMOL before loading input file.
+<br/>    OutputFeedback (bool): Control output feedback.</div>
+</dd>
+<dt id="ConvertPMLFileToPSEFile"><b>ConvertPMLFileToPSEFile</b></dt>
+<dd>
+<div class="OptionsBox">    ConvertPMLFileToPSEFile(PMLFile, PSEFile, Reinitialize = True, OutputFeedback = True)</div>
+<p>Convert PML file to PME file.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    PMLFile (str): Name of PML file.
+<br/>    PSEFile (str): Name of PSE file.
+<br/>    Reinitialize (bool): Reinitialize PyMOL before loading PML file.
+<br/>    OutputFeedback (bool): Control output feedback.</div>
+</dd>
+<dt id="GetAminoAcidResiduesInfo"><b>GetAminoAcidResiduesInfo</b></dt>
+<dd>
+<div class="OptionsBox">    GetAminoAcidResiduesInfo(MoleculeName, ChainName, Type = &quot;Standard&quot;)</div>
+<p>Get information for amino acid residues present in a chain of a molecule. Chains are identified using PyMOL &#39;polymer&#39; selection. Nonstandard amino acid residues correspond to all residues other than the standard amino acids and nucleic acids. Any amino acid residues cover all residues other than the standard nucleic acids.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    MoleculeName (str): Name of a PyMOL molecule object.
+<br/>    ChainName (str): Name of a chain in a molecule.
+<br/>    Type (str): Types of amino acids: Standard, NonStandard, Any</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dict: A dictionary containing list of residue names and dictionaries of
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residue numbers and residue count for each residue. Names of 
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residues in the dictionary are not sorted.</div>
+<p><i>Example(s):</i></p>
+<div class="OptionsBox">    ResiduesInfo = GetPolymerResiduesInfo(MolName, ChainName)
+<br/>    for ResName in ResiduesInfo[&quot;ResNames&quot;]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResCount = ResiduesInfo[&quot;ResCount&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResNums = ResiduesInfo[&quot;ResNum&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        MiscUtil.PrintInfo(&quot;ResName: %s; ResCount: %s; ResNums: %s&quot; %
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            (ResName, ResCount, ResNums))</div>
+</dd>
+<dt id="GetChains"><b>GetChains</b></dt>
+<dd>
+<div class="OptionsBox">    GetChains(MoleculeName, RemoveEmpty = True)</div>
+<p>Get chain identifiers present in a molecule.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    MoleculeName (str): Name of a PyMOL molecule object.
+<br/>    RemoveEmpty (bool): Remove empty chain ID from the list of chain IDs
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        returned by PyMOL.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    list: Names of chains present in a molecule, sorted alphabetically in a
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ascending order.</div>
+</dd>
+<dt id="GetChainsAndLigandsInfo"><b>GetChainsAndLigandsInfo</b></dt>
+<dd>
+<div class="OptionsBox">    GetChainsAndLigandsInfo(Infile, MolName, Quite = False, LigandSortBy = &quot;Size&quot;, LigandSortOrder = &quot;Auto&quot;, LigandIgnoreHydrogens = &quot;Yes&quot;)</div>
+<p>Get chain identifiers present in a molecule along with names of the ligands present in chains. Ligands are identified using PyMOL &#39;organic&#39; selection.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    Infile (str) : Name of a file.
+<br/>    MolName (str) : Name to use for PyMOL molecule object.
+<br/>    Quite (bool) : Flag 
+<br/>    LigandSortBy (str): Sort ligand names alphabetically or by size. Possible
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        values: Alphabetical or Size
+<br/>    LigandSortOrder (str): Sort order for sorting ligands. Possible values:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        Ascending, Descending, Auto. The &#39;Auto&#39; value implies automatic
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        determination of sort order based on the value of &#39;SortBy&#39;.
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        Automatic defaults: Descending for SortBy value of Size; Ascending
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        for SortBy value of Alphabetical.
+<br/>    LigandIgnoreHydrogens (str): Ignore hydrogens during determination of ligand
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        size.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dict: A dictionary containing list of chain identifiers and dictionaries
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        of chains containing lists of ligand names for each chain. Names of
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ligands present in chain for a molecule sorted by size or
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        alphabetically.</div>
+<p><i>Example(s):</i></p>
+<div class="OptionsBox">    ChainsAndLigandsInfo = GetChainsAndLigandsInfo(Infile, MolName)
+<br/>    for ChainID in ChainsAndLigandsInfo[&quot;ChainIDs&quot;]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        for LigandID in ChainsAndLigandsInfo[&quot;LigandIDs&quot;][ChainID]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            MiscUtil.PrintInfo(&quot;ChainID: %s; LigandID: %s&quot; % (ChainID,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                LigandID))</div>
+</dd>
+<dt id="GetInorganicResiduesInfo"><b>GetInorganicResiduesInfo</b></dt>
+<dd>
+<div class="OptionsBox">    GetInorganicResiduesInfo(MoleculeName, ChainName)</div>
+<p>Get information for inorganic residues present in a chain of a molecule. Inorganic residues are identified using PyMOL &#39;inorganic&#39; selection.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    MoleculeName (str): Name of a PyMOL molecule object.
+<br/>    ChainName (str): Name of a chain in a molecule.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dict: A dictionary containing list of residue names and dictionaries of
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residue numbers and residue count for each residue. Names of 
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residues in the dictionary are not sorted.</div>
+<p><i>Example(s):</i></p>
+<div class="OptionsBox">    ResiduesInfo = GetInorganicResiduesInfo(MolName, ChainName)
+<br/>    for ResName in ResiduesInfo[&quot;ResNames&quot;]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResCount = ResiduesInfo[&quot;ResCount&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResNums = ResiduesInfo[&quot;ResNum&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        MiscUtil.PrintInfo(&quot;ResName: %s; ResCount: %s; ResNums: %s&quot; %
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            (ResName, ResCount, ResNums))</div>
+</dd>
+<dt id="GetInterfaceChainsResiduesByCAlphaAtomsDistance"><b>GetInterfaceChainsResiduesByCAlphaAtomsDistance</b></dt>
+<dd>
+<div class="OptionsBox">    GetInterfaceChainsResiduesByCAlphaAtomsDistance(MoleculeName1, ChainNames1, MoleculeName2, ChainNames2, DistanceCutoff = 8.0)</div>
+<p>Get information for interface residues between chains in two molecules based on the distance between CAlpha atoms. The chain specification for molecules may contain multiple chain names delimited by commas.</p>
+<p>The interface residues are identified using PyMOL &#39;bycalpha&#39; selection operator with in a specified distance.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    MoleculeName1 (str): Name of a PyMOL molecule object.
+<br/>    ChainNames1 (str): A chain name or comma delimited list of chain
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        names in a molecule.
+<br/>    MoleculeName2 (str): Name of a PyMOL molecule object.
+<br/>    ChainNames2 (str): A chain name or comma delimited list of chain
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        names in a molecule.
+<br/>    DistanceCutoff (float): Distance cutoff for distance between
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        any two CAlpha atoms in interface residues in different chains.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dict1: Interface residues in a chain for first molecule. It is a
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        dictionary containing list of residue names and dictionaries of
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residue numbers and residue count for each residue. Names of 
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residues in the dictionary are not sorted.
+<br/>    dict2: Interface residues in the chain for second molecule.</div>
+<p><i>Example(s):</i></p>
+<div class="OptionsBox">    ResiduesInfo1, ResiduesInfo2 = 
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        GetInterfaceResiduesByHeavyAtomsDistance(MolName1,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ChainName1, MolName2, ChainName2, DistanceCutoff)
+<br/>    for ChainID in ResiduesInfo1[&quot;ChainIDs&quot;]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        for ResName in ResiduesInfo1[&quot;ResNames&quot;][ChainID]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            ResCount = ResiduesInfo1[&quot;ResCount&quot;][ChainID][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            ResNums = ResiduesInfo1[&quot;ResNum&quot;][ChainID][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            MiscUtil.PrintInfo(&quot;ResName: %s; ResCount: %s; ResNums:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            %s&quot; % (ResName, ResCount, ResNums))</div>
+</dd>
+<dt id="GetInterfaceChainsResiduesBySASAChange"><b>GetInterfaceChainsResiduesBySASAChange</b></dt>
+<dd>
+<div class="OptionsBox">    GetInterfaceChainsResiduesBySASAChange(MoleculeName1, ChainNames1, MoleculeName2, ChainNames2, ChangeCutoff = 0.75)</div>
+<p>Get information for interface residues between chains in two molecules based on the change in solvent accessible surface area (SASA) of a residue in chains in a molecule and chain complex containing specified chains across both molecules. The chain specification for molecules may contain multiple chain names delimited by commas.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    MoleculeName1 (str): Name of a PyMOL molecule object.
+<br/>    ChainNames1 (str): A chain name or comma delimited list of chain
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        names in a molecule.
+<br/>    MoleculeName2 (str): Name of a PyMOL molecule object.
+<br/>    ChainNames2 (str): A chain name or comma delimited list of chain
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        names in a molecule.
+<br/>    ChangeCutoff (float): SASA change cutoff for heavy atoms in
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        a interface residue between an individual chain and a complex
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        containing both chains.  Units: Angstroms ** 2</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dict1: Interface residues in the chain for first molecule. It is a
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        dictionary containing list of residue names and dictionaries of
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residue numbers and residue count for each residue. Names of 
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residues in the dictionary are not sorted.
+<br/>    dict2: Interface residues in the chain for second molecule.</div>
+<p><i>Example(s):</i></p>
+<div class="OptionsBox">    ResiduesInfo1, ResiduesInfo2 = 
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        GetInterfaceResiduesBySASAChange(MolName1,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ChainName1, MolName2, ChainName2, DistanceCutoff)
+<br/>    for ResName in ResiduesInfo1[&quot;ResNames&quot;]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResCount = ResiduesInfo1[&quot;ResCount&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResNums = ResiduesInfo1[&quot;ResNum&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        MiscUtil.PrintInfo(&quot;ResName: %s; ResCount: %s; ResNums: %s&quot; %
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            (ResName, ResCount, ResNums))</div>
+</dd>
+<dt id="GetLargestLigand"><b>GetLargestLigand</b></dt>
+<dd>
+<div class="OptionsBox">    GetLargestLigand(MoleculeName, ChainName, IgnoreHydrogens = &#39;Yes&#39;)</div>
+<p>Get name of the largest ligand for a chain present in a molecule. Ligands are identified using PyMOL &#39;organic&#39; selection.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    IgnoreHydrogens (str): Ignore hydrogens during determination of ligand
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        size.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: Name of the largest ligand present in a chain. </div>
+</dd>
+<dt id="GetLigandResiduesInfo"><b>GetLigandResiduesInfo</b></dt>
+<dd>
+<div class="OptionsBox">    GetLigandResiduesInfo(MoleculeName, ChainName)</div>
+<p>Get information for ligand residues present in a chain of a molecule. Ligands are identified using PyMOL &#39;organic&#39; selection.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    MoleculeName (str): Name of a PyMOL molecule object.
+<br/>    ChainName (str): Name of a chain in a molecule.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dict: A dictionary containing list of residue names and dictionaries of
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residue numbers and residue count for each residue. Names of 
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residues in the dictionary are not sorted.</div>
+<p><i>Example(s):</i></p>
+<div class="OptionsBox">    ResiduesInfo = GetLigandResiduesInfo(MolName, ChainName)
+<br/>    for ResName in ResiduesInfo[&quot;ResNames&quot;]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResCount = ResiduesInfo[&quot;ResCount&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResNums = ResiduesInfo[&quot;ResNum&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        MiscUtil.PrintInfo(&quot;ResName: %s; ResCount: %s; ResNums: %s&quot; %
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            (ResName, ResCount, ResNums))</div>
+</dd>
+<dt id="GetLigands"><b>GetLigands</b></dt>
+<dd>
+<div class="OptionsBox">    GetLigands(MoleculeName, ChainName, SortBy = &quot;Size&quot;, SortOrder = &quot;Auto&quot;, IgnoreHydrogens = &quot;Yes&quot;)</div>
+<p>Get names of ligands present in a chain of a molecule. Ligands are identified using PyMOL &#39;organic&#39; selection.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    MoleculeName (str): Name of a PyMOL molecule object.
+<br/>    ChainName (str): Name of a chain in a molecule.
+<br/>    SortBy (str): Sort ligand names alphabetically or by size. Possible
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        values: Alphabetical or Size
+<br/>    SortOrder (str): Sort order for sorting ligands. Possible values:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        Ascending, Descending, Auto. The &#39;Auto&#39; value implies automatic
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        determination of sort order based on the value of &#39;SortBy&#39;.
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        Automatic defaults: Descending for SortBy value of Size; Ascending
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        for SortBy value of Alphabetical.
+<br/>    IgnoreHydrogens (str): Ignore hydrogens during determination of ligand
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        size.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    list: Names of ligands present in chain for a molecule sorted by size
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        or alphabetically.</div>
+</dd>
+<dt id="GetMolecules"><b>GetMolecules</b></dt>
+<dd>
+<div class="OptionsBox">    GetMolecules(Selection = &quot;all&quot;)</div>
+<p>Get names of molecule objects in a selection or all molecule objects.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    Selection: (str): A PyMOL selection.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    list: Names of molecule objects.</div>
+</dd>
+<dt id="GetNucleicAcidResiduesInfo"><b>GetNucleicAcidResiduesInfo</b></dt>
+<dd>
+<div class="OptionsBox">    GetNucleicAcidResiduesInfo(MoleculeName, ChainName)</div>
+<p>Get information for nucleic acid residues present in a chain of a molecule. Chains are identified using PyMOL &#39;polymer&#39; selection.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    MoleculeName (str): Name of a PyMOL molecule object.
+<br/>    ChainName (str): Name of a chain in a molecule.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dict: A dictionary containing list of residue names and dictionaries of
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residue numbers and residue count for each residue. Names of 
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residues in the dictionary are not sorted.</div>
+<p><i>Example(s):</i></p>
+<div class="OptionsBox">    ResiduesInfo = GetPolymerResiduesInfo(MolName, ChainName)
+<br/>    for ResName in ResiduesInfo[&quot;ResNames&quot;]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResCount = ResiduesInfo[&quot;ResCount&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResNums = ResiduesInfo[&quot;ResNum&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        MiscUtil.PrintInfo(&quot;ResName: %s; ResCount: %s; ResNums: %s&quot; %
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            (ResName, ResCount, ResNums))</div>
+</dd>
+<dt id="GetPhiPsiCategoriesResiduesInfo"><b>GetPhiPsiCategoriesResiduesInfo</b></dt>
+<dd>
+<div class="OptionsBox">    GetPhiPsiCategoriesResiduesInfo(MoleculeName, ChainName)</div>
+<p>Get phi and psi torsion angle information for residues in a chain of a molecule containing amino acids.</p>
+<p>The phi and psi angles are optionally categorized into the following groups corresponding to four types of Ramachandran plots:</p>
+<p>General: All residues except glycine, proline, or pre-proline Glycine: Only glycine residues Proline: Only proline residues Pre-Proline: Only residues before proline not including glycine or proline</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    MoleculeName (str): Name of a PyMOL molecule object.
+<br/>    ChainName (str): Name of a chain in a molecule.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dict1: Phi and psi angle information for residues in General category.
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        It&#39;s a dictionary containing sorted list of residue numbers and
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        dictionaries of residue names, phi and psi angles for each residue
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        number.
+<br/>    dict2: Phi and psi angle information for residues in Gly category.
+<br/>    dict3: Phi and psi angle information for residues in Pro category.
+<br/>    dict2: Phi and psi angle information for residues in Pre-Pro category.</div>
+<p><i>Example(s):</i></p>
+<div class="OptionsBox">    GeneralPhiPsiInfo, GlyPhiPsiInfo, ProPhiPsiInfo, PreProPhiPsiInfo =
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        GetPhiPsiCategoriesResiduesInfo(MolName, ChainID)
+<br/>    for ResNum in GeneralPhiPsiInfo[&quot;ResNums&quot;]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResName = GeneralPhiPsiInfo[&quot;ResName&quot;][ResNum]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        Phi = GeneralPhiPsiInfo[&quot;Phi&quot;][ResNum]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        Psi = GeneralPhiPsiInfo[&quot;Psi&quot;][ResNum]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        MiscUtil.PrintInfo(&quot;ResNum: %s; ResName: %s;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            Phi: %8.2f; Psi: %8.2f&quot; % (ResNum, ResName, Phi, Psi))</div>
+</dd>
+<dt id="GetPhiPsiChainsAndResiduesInfo"><b>GetPhiPsiChainsAndResiduesInfo</b></dt>
+<dd>
+<div class="OptionsBox">    GetPhiPsiChainsAndResiduesInfo(MoleculeName, Categorize = True)</div>
+<p>Get phi and psi torsion angle information for residues across chains in a molecule containing amino acids.</p>
+<p>The phi and psi angles are optionally categorized into the following groups corresponding to four types of Ramachandran plots:</p>
+<p>General: All residues except glycine, proline, or pre-proline Glycine: Only glycine residues Proline: Only proline residues Pre-Proline: Only residues before proline not including glycine or proline</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    MoleculeName (str): Name of a PyMOL molecule object.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dict: A dictionary containing sorted list of residue numbers for each
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        chain and dictionaries of residue names, phi and psi angles for each
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residue number.</div>
+<p><i>Example(s):</i></p>
+<div class="OptionsBox">    PhiPsiInfoMap = GetPhiPsiChainsAndResiduesInfo(MolName)
+<br/>    for ChainID in PhiPsiInfoMap[&quot;ChainIDs&quot;]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        for ResNum in PhiPsiInfoMap[&quot;ResNums&quot;][ChainID]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            ResName = PhiPsiInfoMap[&quot;ResName&quot;][ChainID][ResNum]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            Phi = PhiPsiInfoMap[&quot;Phi&quot;][ChainID][ResNum]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            Psi = PhiPsiInfoMap[&quot;Psi&quot;][ChainID][ResNum]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            Category = PhiPsiInfoMap[&quot;Category&quot;][ChainID][ResNum]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            MiscUtil.PrintInfo(&quot;ChainID: %s; ResNum: %s; ResName: %s; Phi: %8.2f;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                Psi: %8.2f; Category: %s&quot; % (ChainID, ResNum, ResName, Phi,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                Psi, Category))</div>
+</dd>
+<dt id="GetPhiPsiResiduesInfo"><b>GetPhiPsiResiduesInfo</b></dt>
+<dd>
+<div class="OptionsBox">    GetPhiPsiResiduesInfo(MoleculeName, ChainName, Categorize = True)</div>
+<p>Get phi and psi torsion angle information for residues in a chain of a molecule containing amino acids.</p>
+<p>The phi and psi angles are optionally categorized into the following groups corresponding to four types of Ramachandran plots:</p>
+<p>General: All residues except glycine, proline, or pre-proline Glycine: Only glycine residues Proline: Only proline residues Pre-Proline: Only residues before proline not including glycine or proline</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    MoleculeName (str): Name of a PyMOL molecule object.
+<br/>    ChainName (str): Name of a chain in a molecule.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dict: A dictionary containing sorted list of residue numbers and
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        dictionaries of residue names, phi and psi angles for each residue
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        number.</div>
+<p><i>Example(s):</i></p>
+<div class="OptionsBox">    PhiPsiInfoMap = GetPhiPsiResiduesInfo(MolName, ChainName, True)
+<br/>    for ResNum in PhiPsiInfoMap[&quot;ResNums&quot;]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResName = PhiPsiInfoMap[&quot;ResName&quot;][ResNum]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        Phi = PhiPsiInfoMap[&quot;Phi&quot;][ResNum]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        Psi = PhiPsiInfoMap[&quot;Psi&quot;][ResNum]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        Category = PhiPsiInfoMap[&quot;Category&quot;][ResNum]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        MiscUtil.PrintInfo(&quot;ResNum: %s; ResName: %s; Phi: %8.2f;
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            Psi: %8.2f; Category: %s&quot; % (ResNum, ResName, Phi, Psi,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            Categorize))</div>
+</dd>
+<dt id="GetPocketInorganicResiduesInfo"><b>GetPocketInorganicResiduesInfo</b></dt>
+<dd>
+<div class="OptionsBox">    GetPocketInorganicResiduesInfo(MoleculeName, ChainName, LigandResName, LigandResNum, PocketDistanceCutoff)</div>
+<p>Get information for inorganic residues present in a pocket around a ligand in a molecule. Inorganic residues are identified using PyMOL &#39;inorganic&#39; selection.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    MoleculeName (str): Name of a PyMOL molecule object.
+<br/>    ChainName (str): Name of a chain in a molecule.
+<br/>    LigandResName (str): Residue name of a ligand in a chain.
+<br/>    LigandResNum (str): Residue number of a ligand in a chain.
+<br/>    PocketDistanceCutoff (float): Distance around a ligand to identify
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        pocket residues.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dict: A dictionary containing list of residue names and dictionaries of
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residue numbers and residue count for each residue. Names of 
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residues in the dictionary are not sorted.</div>
+<p><i>Example(s):</i></p>
+<div class="OptionsBox">    ResiduesInfo = GetPocketInorganicResiduesInfo(MolName, ChainName)
+<br/>    for ResName in ResiduesInfo[&quot;ResNames&quot;]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResCount = ResiduesInfo[&quot;ResCount&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResNums = ResiduesInfo[&quot;ResNum&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        MiscUtil.PrintInfo(&quot;ResName: %s; ResCount: %s; ResNums: %s&quot; %
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            (ResName, ResCount, ResNums))</div>
+</dd>
+<dt id="GetPocketPolymerResiduesInfo"><b>GetPocketPolymerResiduesInfo</b></dt>
+<dd>
+<div class="OptionsBox">    GetPocketPolymerResiduesInfo(MoleculeName, ChainName, LigandResName, LigandResNum, PocketDistanceCutoff)</div>
+<p>Get information for chain residues present in a pocket around a ligand in a molecule. Polymer residues are identified using negation of PyMOL selection operators &#39;organic&#39;, &#39;solvent&#39;, and &#39;inorganic&#39;.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    MoleculeName (str): Name of a PyMOL molecule object.
+<br/>    ChainName (str): Name of a chain in a molecule.
+<br/>    LigandResName (str): Residue name of a ligand in a chain.
+<br/>    LigandResNum (str): Residue number of a ligand in a chain.
+<br/>    PocketDistanceCutoff (float): Distance around ligand to identify pocket
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residues.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dict: A dictionary containing list of residue names and dictionaries of
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residue numbers and residue count for each residue. Names of 
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residues in the dictionary are not sorted.</div>
+<p><i>Example(s):</i></p>
+<div class="OptionsBox">    ResiduesInfo = GetPocketPolymerResiduesInfo(MolName, ChainName)
+<br/>    for ResName in ResiduesInfo[&quot;ResNames&quot;]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResCount = ResiduesInfo[&quot;ResCount&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResNums = ResiduesInfo[&quot;ResNum&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        MiscUtil.PrintInfo(&quot;ResName: %s; ResCount: %s; ResNums: %s&quot; %
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            (ResName, ResCount, ResNums))</div>
+</dd>
+<dt id="GetPocketSolventResiduesInfo"><b>GetPocketSolventResiduesInfo</b></dt>
+<dd>
+<div class="OptionsBox">    GetPocketSolventResiduesInfo(MoleculeName, ChainName, LigandResName, LigandResNum, PocketDistanceCutoff)</div>
+<p>Get information for solvent residues present in a pocket around a ligand in a molecule. Solvent residues are identified using PyMOL &#39;solvent&#39; selection.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    MoleculeName (str): Name of a PyMOL molecule object.
+<br/>    ChainName (str): Name of a chain in a molecule.
+<br/>    LigandResName (str): Residue name of a ligand in a chain.
+<br/>    LigandResNum (str): Residue number of a ligand in a chain.
+<br/>    PocketDistanceCutoff (float): Distance around ligand to identify pocket
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residues.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dict: A dictionary containing list of residue names and dictionaries of
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residue numbers and residue count for each residue. Names of 
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residues in the dictionary are not sorted.</div>
+<p><i>Example(s):</i></p>
+<div class="OptionsBox">    ResiduesInfo = GetPocketSolventResiduesInfo(MolName, ChainName)
+<br/>    for ResName in ResiduesInfo[&quot;ResNames&quot;]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResCount = ResiduesInfo[&quot;ResCount&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResNums = ResiduesInfo[&quot;ResNum&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        MiscUtil.PrintInfo(&quot;ResName: %s; ResCount: %s; ResNums: %s&quot; %
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            (ResName, ResCount, ResNums))</div>
+</dd>
+<dt id="GetPolymerResiduesInfo"><b>GetPolymerResiduesInfo</b></dt>
+<dd>
+<div class="OptionsBox">    GetPolymerResiduesInfo(MoleculeName, ChainName)</div>
+<p>Get information for residues present in a chain of a molecule. Chains are identified using PyMOL &#39;polymer&#39; selection.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    MoleculeName (str): Name of a PyMOL molecule object.
+<br/>    ChainName (str): Name of a chain in a molecule.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dict: A dictionary containing list of residue names and dictionaries of
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residue numbers and residue count for each residue. Names of 
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residues in the dictionary are not sorted.</div>
+<p><i>Example(s):</i></p>
+<div class="OptionsBox">    ResiduesInfo = GetPolymerResiduesInfo(MolName, ChainName)
+<br/>    for ResName in ResiduesInfo[&quot;ResNames&quot;]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResCount = ResiduesInfo[&quot;ResCount&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResNums = ResiduesInfo[&quot;ResNum&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        MiscUtil.PrintInfo(&quot;ResName: %s; ResCount: %s; ResNums: %s&quot; %
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            (ResName, ResCount, ResNums))</div>
+</dd>
+<dt id="GetSelectionResiduesInfo"><b>GetSelectionResiduesInfo</b></dt>
+<dd>
+<div class="OptionsBox">    GetSelectionResiduesInfo(SelectionCmd)</div>
+<p>Get information for residues in a chain specified by a selection command.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    SelectionCmd (str): PyMOL selection command.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dict: A dictionary containing list of residue names and dictionaries of
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residue numbers and residue count for each residue. Names of 
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residues in the dictionary are not sorted.</div>
+<p><i>Example(s):</i></p>
+<div class="OptionsBox">    ResiduesInfo = GetSelectionResiduesInfo(SelectionCmd)
+<br/>    for ResName in ResiduesInfo[&quot;ResNames&quot;]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResCount = ResiduesInfo[&quot;ResCount&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResNums = ResiduesInfo[&quot;ResNum&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        MiscUtil.PrintInfo(&quot;ResName: %s; ResCount: %s; ResNums: %s&quot; %
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            (ResName, ResCount, ResNums))</div>
+</dd>
+<dt id="GetSolventResiduesInfo"><b>GetSolventResiduesInfo</b></dt>
+<dd>
+<div class="OptionsBox">    GetSolventResiduesInfo(MoleculeName, ChainName)</div>
+<p>Get information for solvent residues present in a chain of a molecule. Solvents are identified using PyMOL &#39;solvent&#39; selection.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    MoleculeName (str): Name of a PyMOL molecule object.
+<br/>    ChainName (str): Name of a chain in a molecule.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dict: A dictionary containing list of residue names and dictionaries of
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residue numbers and residue count for each residue. Names of 
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residues in the dictionary are not sorted.</div>
+<p><i>Example(s):</i></p>
+<div class="OptionsBox">    ResiduesInfo = GetSolventResiduesInfo(MolName, ChainName)
+<br/>    for ResName in ResiduesInfo[&quot;ResNames&quot;]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResCount = ResiduesInfo[&quot;ResCount&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResNums = ResiduesInfo[&quot;ResNum&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        MiscUtil.PrintInfo(&quot;ResName: %s; ResCount: %s; ResNums: %s&quot; %
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            (ResName, ResCount, ResNums))</div>
+</dd>
+<dt id="GetSurfaceAndBuriedResiduesInfo"><b>GetSurfaceAndBuriedResiduesInfo</b></dt>
+<dd>
+<div class="OptionsBox">    GetSurfaceAndBuriedResiduesInfo(MoleculeName, ChainName, SASACutoff = 2.5)</div>
+<p>Get information for surafce and buried residues present in a chain of a molecule. The surface residues correspond to residues with Solvent Accessible Surface Area (SASA) greater than or equal to the cutoff value. Otherwise, these residues are considered as buried residues.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    MoleculeName (str): Name of a PyMOL molecule object.
+<br/>    ChainName (str): Name of a chain in a molecule.
+<br/>    SASACutoff (float): SASA cutoff for heavy atoms corresponding to
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        surface residues in chain. Units: Angstroms ** 2</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dict: A dictionary containing list of residue names and dictionaries of
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residue numbers and residue count for each residue. Names of 
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residues in the dictionary are not sorted.
+<br/>    dict2: Buried residues in a chain.</div>
+<p><i>Example(s):</i></p>
+<div class="OptionsBox">    SurfaceResiduesInfo, BurriedResiduesInfo =
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        GetSurfaceResiduesInfo(MolName, ChainName, 2.5)
+<br/>    for ResName in SurfaceResiduesInfo[&quot;ResNames&quot;]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResCount = ResiduesInfo[&quot;ResCount&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ResNums = ResiduesInfo[&quot;ResNum&quot;][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        MiscUtil.PrintInfo(&quot;ResName: %s; ResCount: %s; ResNums: %s&quot; %
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            (ResName, ResCount, ResNums))</div>
+</dd>
+<dt id="GetnterfaceChainsResiduesByHeavyAtomsDistance"><b>GetnterfaceChainsResiduesByHeavyAtomsDistance</b></dt>
+<dd>
+<div class="OptionsBox">    GetnterfaceChainsResiduesByHeavyAtomsDistance(MoleculeName1, ChainNames1, MoleculeName2, ChainNames2, DistanceCutoff = 5.0)</div>
+<p>Get information for interface residues between chains in two molecules based on the distance between heavy atoms. The chain specification for molecules may contain multiple chain names delimited by commas.</p>
+<p>The interface residues are identified using PyMOL &#39;byresidue&#39; selection operator with in a specified distance.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    MoleculeName1 (str): Name of a PyMOL molecule object.
+<br/>    ChainNames1 (str): A chain name or comma delimited list of chain
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        names in a molecule.
+<br/>    MoleculeName2 (str): Name of a PyMOL molecule object.
+<br/>    ChainNames2 (str): A chain name or comma delimited list of chain
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        names in a molecule.
+<br/>    DistanceCutoff (float): Distance cutoff for distance between
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        any two heavy atoms in interface residues in different chains.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dict1: Interface residues in a chain for first molecule. It is a
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        dictionary containing list of residue names and dictionaries of
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residue numbers and residue count for each residue. Names of 
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residues in the dictionary are not sorted.
+<br/>    dict2: Interface residues in the chain for second molecule.</div>
+<p><i>Example(s):</i></p>
+<div class="OptionsBox">    ResiduesInfo1, ResiduesInfo2 = 
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        GetInterfaceResiduesByHeavyAtomsDistance(MolName1,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ChainName1, MolName2, ChainName2, DistanceCutoff)
+<br/>    for ChainID in ResiduesInfo1[&quot;ChainIDs&quot;]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        for ResName in ResiduesInfo1[&quot;ResNames&quot;][ChainID]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            ResCount = ResiduesInfo1[&quot;ResCount&quot;][ChainID][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            ResNums = ResiduesInfo1[&quot;ResNum&quot;][ChainID][ResName]
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            MiscUtil.PrintInfo(&quot;ResName: %s; ResCount: %s; ResNums:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            %s&quot; % (ResName, ResCount, ResNums))</div>
+</dd>
+<dt id="ProcessChainSelectionsOptionsInfo"><b>ProcessChainSelectionsOptionsInfo</b></dt>
+<dd>
+<div class="OptionsBox">    ProcessChainSelectionsOptionsInfo(SelectionOptionName, SelectionOptionValue)</div>
+<p>Process names and selections specified using command line option. It is a pairwise list comma delimited values corresponding to PyMOL object names and selection specification</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    SelectionOptionName (str): Name of command line  option.
+<br/>    SelectionOptionValue (str): Value for command line option.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dict: A dictionary containing lists f names and selection commands.</div>
+<p><i>Example(s):</i></p>
+<div class="OptionsBox">    ChainSelectionsInfo =
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        PyMOLUtil.ProcessChainSelectionsOptionsInfo(&quot;--selectionsChain&quot;,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        OptionsInfo[&quot;SelectionChains&quot;])</div>
+</dd>
+<dt id="ProcessChainsAndLigandsOptionsInfo"><b>ProcessChainsAndLigandsOptionsInfo</b></dt>
+<dd>
+<div class="OptionsBox">    ProcessChainsAndLigandsOptionsInfo(ChainsAndLigandsInfo, ChainsOptionName, ChainsOptionValue, LigandsOptionName = None, LigandsOptionValue = None)</div>
+<p>Process specified chain and ligand IDs using command line options.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    ChainsAndLigandsInfo (dict): A dictionary containing information
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        existing chains and ligands. 
+<br/>    ChainsOptionName (str): Name of command line chains option.
+<br/>    ChainsOptionValue (str): Value for command line chains option.
+<br/>    LigandsOptionName (str): Name of command line ligands option.
+<br/>    LigandsOptionValue (str): Value for command line ligands option.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dict: A dictionary containing list of chain identifiers and dictionaries
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        of chains containing lists of ligand names for each chain.</div>
+<p><i>Example(s):</i></p>
+<div class="OptionsBox">    ChainsAndLigandsInfo = ProcessChainsAndLigandsOptionsInfo(
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ChainsAndLigandsInfo, &quot;-c, --chainIDs&quot;, OptionsInfo[&quot;ChainIDs&quot;],
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &quot;-l, --ligandIDs&quot;, OptionsInfo[&quot;LigandIDs&quot;])
+<br/>    for ChainID in ChainsAndLigandsInfo[&quot;ChainIDs&quot;]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        for LigandID in ChainsAndLigandsInfo[&quot;LigandIDs&quot;][ChainID]:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;            MiscUtil.PrintInfo(&quot;ChainID: %s; LigandID: %s&quot; % (ChainID,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;                LigandID))</div>
+</dd>
+<dt id="ProcessResidueTypesOptionsInfo"><b>ProcessResidueTypesOptionsInfo</b></dt>
+<dd>
+<div class="OptionsBox">    ProcessResidueTypesOptionsInfo(ResidueTypesOptionName, ResidueTypesOptionValue)</div>
+<p>Process specified residue types using command line option.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    ResidueTypesOptionName (str): Name of command line  option.
+<br/>    ResidueTypesOptionValue (str): Value for command line option.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    list: A list containing names of valid residue types.
+<br/>    dict: A dictionary containing residue types pointing to dictionaries of
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        color names and list of residues for a residue type.</div>
+<p><i>Example(s):</i></p>
+<div class="OptionsBox">    ResidueTypesNamesInfo, ResidueTypesParamsInfo =
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        ProcessChainsAndLigandsOptionsInfo(&quot;-r, --residueTypes&quot;,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        OptionsInfo[&quot;ResidueTypes&quot;])
+<br/>    for ResidueTypeName in ResidueTypesNamesInfo:
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        MiscUtil.PrintInfo(&quot;ResidueType: %s; Color: %s; Residues: %s&quot; %
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        (ResidueTypeName, ResidueTypeName[ResidueTypeName][&quot;Color&quot;],
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &quot; &quot;.join(ResidueTypeName[ResidueTypeName][&quot;Residues&quot;]))</div>
+</dd>
+<dt id="ProcessSurfaceAtomTypesColorsOptionsInfo"><b>ProcessSurfaceAtomTypesColorsOptionsInfo</b></dt>
+<dd>
+<div class="OptionsBox">    ProcessSurfaceAtomTypesColorsOptionsInfo(ColorOptionName, ColorOptionValue)</div>
+<p>Process specified surafce atom types colors using command line option.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    ColorOptionName (str): Name of command line  option.
+<br/>    ColorOptionValue (str): Value for command line option.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    dict: A dictionary containing atom types and colors.</div>
+<p><i>Example(s):</i></p>
+<div class="OptionsBox">    AtomTypesColorNamesInfo =
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        PyMOLUtil.ProcessSurfaceAtomTypesColorsOptionsInfo(
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        &quot;--surfaceAtomTypesColors&quot;, OptionsInfo[&quot;SurfaceAtomTypesColors&quot;])</div>
+</dd>
+<dt id="SetupPMLForAlignment"><b>SetupPMLForAlignment</b></dt>
+<dd>
+<div class="OptionsBox">    SetupPMLForAlignment(Method, RefSelection, FitSelection)</div>
+<p>Setup PML commands for aligning a pair of selection using a specified alignment method.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    Method (str): Alignment method. Possible values: align, cealign, super.
+<br/>    RefSelection (str): Name of reference selection which stays stationary.
+<br/>    FitSelection (str): Name of selection to align to reference selection.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: PML commands for aligning  a pair of selections.</div>
+</dd>
+<dt id="SetupPMLForBFactorPuttyView"><b>SetupPMLForBFactorPuttyView</b></dt>
+<dd>
+<div class="OptionsBox">    SetupPMLForBFactorPuttyView(Name, Selection, ColorPalette = &quot;blue_white_red&quot;, Enable = True)</div>
+<p>Setup PML commands for creating a B factor putty view for a specified selection. The B factor values must be available for the atoms. The atoms are colored using a color spectrum corresponding to a specified color palette. Any valid PyMOL color palette name may be used.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    Name (str): Name of a new PyMOL B factor putty object.
+<br/>    Selection (str): Name of PyMOL selection.
+<br/>    ColorPalette (str): Name of color palette to use for color spectrum.
+<br/>    Enable (bool): Display status of B factor putty object.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: PML commands for B factor putty view.</div>
+</dd>
+<dt id="SetupPMLForBallAndStickView"><b>SetupPMLForBallAndStickView</b></dt>
+<dd>
+<div class="OptionsBox">    SetupPMLForBallAndStickView(Name, Selection, Enable = True, SphereScale = 0.3, StickRadius = 0.2)</div>
+<p>Setup PML commands for creating a ball and stick view for a specified selection.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    Name (str): Name of a new PyMOL ball and stick object.
+<br/>    Selection (str): Name of PyMOL selection.
+<br/>    Enable (bool): Display status of ball and stick object.
+<br/>    SphereScale (float): Scaling factor for sphere radii.
+<br/>    StickScale (float): Scaling factor for stick radii.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: PML commands for ball and stick view.</div>
+</dd>
+<dt id="SetupPMLForEnableDisable"><b>SetupPMLForEnableDisable</b></dt>
+<dd>
+<div class="OptionsBox">    SetupPMLForEnableDisable(Name, Enable = True)</div>
+<p>Setup PML command for enabling or disabling display of a PyMOL object.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    Name (str): Name of a PyMOL object.
+<br/>    Enable (bool): Display status.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: PML command for enabling or disabling display of an object.</div>
+</dd>
+<dt id="SetupPMLForGroup"><b>SetupPMLForGroup</b></dt>
+<dd>
+<div class="OptionsBox">    SetupPMLForGroup(GroupName, GroupMembersList, Enable = None, Action = None)</div>
+<p>Setup PML commands for creating a group from a list of group members. The display and open status of the group may be optionally set. The &#39;None&#39; values for Enable and Action imply usage of PyMOL defaults for the creation of group.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    GroupName (str): Name of a PyMOL group.
+<br/>    GroupMembersList (list): List of group member names.
+<br/>    Enable (bool): Display status of group.
+<br/>    Action (str): Open or close status of group object.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: PML commands for creating a group object.</div>
+</dd>
+<dt id="SetupPMLForHydrophobicAndChargeSurfaceView"><b>SetupPMLForHydrophobicAndChargeSurfaceView</b></dt>
+<dd>
+<div class="OptionsBox">    SetupPMLForHydrophobicAndChargeSurfaceView(Name, Selection, HydrophobicAtomsColor = &quot;yellow&quot;, NegativelyChargedAtomsColor = &quot;red&quot;, PositivelyChargedAtomsColor = &quot;blue&quot;, OtherAtomsColor = &quot;gray90&quot;, Enable = True, DisplayAs = &quot;cartoon&quot;)</div>
+<p>Setup PML commands for creating a surface colored by hydrophobic and charge [ REF 140] properties of atoms in amino acids. The atom names in standard amino acid residues are used to identify atom types as shown below:</p>
+<p>Hydrophobic: C atoms not bound to N or O atoms; NegativelyCharged: Side chain O atoms in ASP and GLU; PositivelyCharged: Side chain N atoms in ARG and LYS; Others: Remaining atoms in polar and other residues</p>
+<p>The amino acid atom names to color specific atoms are taken from YRB.py script [ REF 140]. The color values may also be specified as comma delimited RGB triplets. For example: HydrophobicAtomsColor = &quot;0.950 0.78 0.0&quot;, NegativelyChargedAtomsColor = &quot;1.0 0.4 0.4&quot;, PositivelyChargedAtomsColor = &quot;0.2 0.5 0.8&quot;, OtherAtomsColor = &quot;0.95 0.95 0.95&quot;</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    Name (str): Name of a new PyMOL hydrophobic surface object.
+<br/>    Selection (str): Name of PyMOL selection.
+<br/>    HydrophobicAtomsColor (str): Color name or space delimited RGB values
+<br/>    NegativelyChargedAtomsColor (str): Color name or space delimited RGB values
+<br/>    PositivelyChargedAtomsColor (str): Color name or space delimited RGB values
+<br/>    OtherAtomsColor (str): Color name or space delimited RGB values
+<br/>    Enable (bool): Display status of surface object.
+<br/>    DisplayAs (str): Any additional valid display type such as lines,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        sticks, ribbon, cartoon, or None. </div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: PML commands for hydrophobic and charge surface view.</div>
+</dd>
+<dt id="SetupPMLForHydrophobicContactsView"><b>SetupPMLForHydrophobicContactsView</b></dt>
+<dd>
+<div class="OptionsBox">    SetupPMLForHydrophobicContactsView(Name, Selection1, Selection2, Enable = True, Color = &quot;yellow&quot;, Cutoff = None)</div>
+<p>Setup PML commands for creating hydrophobic contacts view between a pair of selections. The hydrophobic contacts are shown between pairs of carbon atoms not connected to hydrogen bond donor or acceptors atoms as identified by PyMOL. The distance labels are shown by default.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    Name (str): Name of a new PyMOL polar contacts object.
+<br/>    Selection1 (str): First PyMOL selection.
+<br/>    Selection2 (str): Second PyMOL selection.
+<br/>    Enable (bool): Display status of polar contacts object.
+<br/>    Color (str): Color for polar contact lines and labels.
+<br/>    Cutoff (float): None or distance cutoff for hydrophobic contacts.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: PML commands for polar contacts view between a pair of selections.</div>
+</dd>
+<dt id="SetupPMLForHydrophobicSurfaceView"><b>SetupPMLForHydrophobicSurfaceView</b></dt>
+<dd>
+<div class="OptionsBox">    SetupPMLForHydrophobicSurfaceView(Name, Selection, ColorPalette = &quot;RedToWhite&quot;, Enable = True, DisplayAs = &quot;cartoon&quot;)</div>
+<p>Setup PML commands for creating a hydrophobic surface view for a specified selection. The surfaces are colored using a specified color palette. This is only valid for amino acids.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    Name (str): Name of a new PyMOL hydrophobic surface object.
+<br/>    Selection (str): Name of PyMOL selection.
+<br/>    ColorPalette (str): Name of color palette to use for coloring surfaces.
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        Possible values: RedToWhite or WhiteToGreen for most hydrophobic
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        to least hydrophobic amino acids.
+<br/>    Enable (bool): Display status of surface object.
+<br/>    DisplayAs (str): Any additional valid display type such as lines,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        sticks, ribbon, cartoon, or None. </div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: PML commands for hydrophobic surface view.</div>
+</dd>
+<dt id="SetupPMLForInorganicView"><b>SetupPMLForInorganicView</b></dt>
+<dd>
+<div class="OptionsBox">    SetupPMLForInorganicView(Name, Selection, Enable = True)</div>
+<p>Setup PML commands for creating a inorganic view corresponding to inorganic residues present in a selection. The inorganic residues are identified using inorganic selection operator available in PyMOL. The inorganic residues are displayed as &#39;lines&#39; and &#39;nonbonded&#39;.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    Name (str): Name of a new PyMOL inorganic object.
+<br/>    Selection (str): Name of PyMOL selection.
+<br/>    Enable (bool): Display status of inorganic object.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: PML commands for inorganic view.</div>
+</dd>
+<dt id="SetupPMLForLigandPocketInorganicView"><b>SetupPMLForLigandPocketInorganicView</b></dt>
+<dd>
+<div class="OptionsBox">    SetupPMLForLigandPocketInorganicView(Name, Selection, LigandSelection, DistanceCutoff, Enable = True)</div>
+<p>Setup PML commands for creating a ligand binding pocket view corresponding to only inorganic residues present in a selection within a specified distance from a ligand selection. The inorganic pocket residues are shown as &#39;lines&#39; and &#39;nonbonded&#39;.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    Name (str): Name of a new PyMOL solvent binding pocket object.
+<br/>    Selection (str): PyMOL selection containing binding pocket residues.
+<br/>    LigandSelection (str): PyMOL selection containing ligand.
+<br/>    DistanceCutoff (float): Distance cutoff from ligand for selecting
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        binding pocket inorganic residues.
+<br/>    Enable (bool): Display status of binding pocket object.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: PML commands for a ligand binding pocket view only showing inorganic
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residues.</div>
+</dd>
+<dt id="SetupPMLForLigandPocketSolventView"><b>SetupPMLForLigandPocketSolventView</b></dt>
+<dd>
+<div class="OptionsBox">    SetupPMLForLigandPocketSolventView(Name, Selection, LigandSelection, DistanceCutoff, Enable = True)</div>
+<p>Setup PML commands for creating a ligand binding pocket view corresponding to only solvent residues present in a selection within a specified distance from a ligand selection. The solvent pocket residues are shown as &#39;lines&#39; and &#39;nonbonded&#39;.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    Name (str): Name of a new PyMOL solvent binding pocket object.
+<br/>    Selection (str): PyMOL selection containing binding pocket residues.
+<br/>    LigandSelection (str): PyMOL selection containing ligand.
+<br/>    DistanceCutoff (float): Distance cutoff from ligand for selecting
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        binding pocket solvent residues.
+<br/>    Enable (bool): Display status of binding pocket object.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: PML commands for a ligand binding pocket view only showing solvent
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        residues.</div>
+</dd>
+<dt id="SetupPMLForLigandPocketView"><b>SetupPMLForLigandPocketView</b></dt>
+<dd>
+<div class="OptionsBox">    SetupPMLForLigandPocketView(Name, Selection, LigandSelection, DistanceCutoff, Enable = True)</div>
+<p>Setup PML commands for creating a ligand binding pocket view corresponding all residues present in a selection within a specified distance from a ligand selection. The solvent and inorganic portions of the selection are not included in the binding pocket. The pocket residues are shown as &#39;lines&#39;. The hydrogen atoms are not displayed.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    Name (str): Name of a new PyMOL binding pocket object.
+<br/>    Selection (str): PyMOL selection containing binding pocket residues.
+<br/>    LigandSelection (str): PyMOL selection containing ligand.
+<br/>    DistanceCutoff (float): Distance cutoff from ligand for selecting
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        binding pockect residues.
+<br/>    Enable (bool): Display status of binding pocket object.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: PML commands for a ligand binding pocket view.</div>
+</dd>
+<dt id="SetupPMLForLigandView"><b>SetupPMLForLigandView</b></dt>
+<dd>
+<div class="OptionsBox">    SetupPMLForLigandView(Name, Selection, LigandResName, Enable = True)</div>
+<p>Setup PML commands for creating a ligand view corresponding to a ligand present in a selection. The ligand is identified using organic selection operator available in PyMOL in conjunction with the specified ligand ID. The ligand is colored by atom types and displayed as &#39;sticks&#39;.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    Name (str): Name of a new PyMOL ligand object.
+<br/>    Selection (str): PyMOL selection containing ligand.
+<br/>    LigandResName (str): Ligand ID.
+<br/>    Enable (bool): Display status of ligand object.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: PML commands for a ligand view.</div>
+</dd>
+<dt id="SetupPMLForPolarContactsView"><b>SetupPMLForPolarContactsView</b></dt>
+<dd>
+<div class="OptionsBox">    SetupPMLForPolarContactsView(Name, Selection1, Selection2, Enable = True, Color = &quot;yellow&quot;, Cutoff = None)</div>
+<p>Setup PML commands for creating polar contacts view between a pair of selections. The polar contact view is generated using &#39;util.dist&#39; command. The distance labels are shown by default.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    Name (str): Name of a new PyMOL polar contacts object.
+<br/>    Selection1 (str): First PyMOL selection.
+<br/>    Selection2 (str): Second PyMOL selection.
+<br/>    Enable (bool): Display status of polar contacts object.
+<br/>    Color (str): Color for polar contact lines and labels.
+<br/>    DistanceCutoff (float): None or distance cutoff for polar contacts.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: PML commands for polar contacts view between a pair of selections.</div>
+</dd>
+<dt id="SetupPMLForPolymerChainComplexView"><b>SetupPMLForPolymerChainComplexView</b></dt>
+<dd>
+<div class="OptionsBox">    SetupPMLForPolymerChainComplexView(ChainComplexName, Selection, ChainName, Enable = True, ShowSolvent = True, ShowInorganic = True, ShowLines = True)</div>
+<p>Setup PML commands for creating a polymer chain complex view for a specified chain in a selection. The solvent and inorganic residues are also shown by default. The polymer chain is displayed as &#39;cartoon&#39;. The &#39;line&#39; display for the polymer chain is also shown and may be turned off. The organic residues are displayed as &#39;sticks&#39;. The solvent and inorganic residues are displayed as &#39;nonbonded&#39; and &#39;lines&#39;.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    ChainComplexName (str): Name of a new PyMOL polymer chain complex.
+<br/>    Selection (str): Name of PyMOL selection.
+<br/>    ChainName (str): Name of a chain.
+<br/>    Enable (bool): Display status of chain object.
+<br/>    ShowSolvent (bool): Display solvent residues.
+<br/>    ShowInorganic (bool): Display inorganic residues.
+<br/>    ShowLines (bool): Display lines for polymer chain.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: PML commands for polymer chain complex view.</div>
+</dd>
+<dt id="SetupPMLForPolymerChainView"><b>SetupPMLForPolymerChainView</b></dt>
+<dd>
+<div class="OptionsBox">    SetupPMLForPolymerChainView(Name, Selection, Enable = True)</div>
+<p>Setup PML commands for creating a polymer chain view corresponding to backbone and sidechain residues in a selection. The polymer chain is displayed as &#39;cartoon&#39;.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    Name (str): Name of a new PyMOL polymer chain object.
+<br/>    Selection (str): Name of PyMOL selection.
+<br/>    Enable (bool): Display status of chain object.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: PML commands for polymer chain view.</div>
+</dd>
+<dt id="SetupPMLForPolymerComplexView"><b>SetupPMLForPolymerComplexView</b></dt>
+<dd>
+<div class="OptionsBox">    SetupPMLForPolymerComplexView(MoleculeName, PDBFile, Enable = True, ShowSolvent = True, ShowInorganic = True, ShowLines = True)</div>
+<p>Setup PML commands for creating a polymer complex view for all chains in a PDB file. The solvent and inorganic residues are also shown by default. The polymer chains are displayed as &#39;cartoon&#39;. The &#39;line&#39; display for the polymer chains is also shown and may be turned off. The organic residues are displayed as &#39;sticks&#39;. The solvent and inorganic residues are displayed as &#39;nonbonded&#39; and &#39;lines&#39;.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    MoleculeName (str): Name of a new PyMOL molecule object.
+<br/>    PDBFile (str): Name of PDB file.
+<br/>    Enable (bool): Display status of chain object.
+<br/>    ShowSolvent (bool): Display solvent residues.
+<br/>    ShowInorganic (bool): Display inorganic residues.
+<br/>    ShowLines (bool): Display lines for polymer chains.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: PML commands for polymer complex view.</div>
+</dd>
+<dt id="SetupPMLForSelectionDisplayView"><b>SetupPMLForSelectionDisplayView</b></dt>
+<dd>
+<div class="OptionsBox">    SetupPMLForSelectionDisplayView(Name, Selection, DisplayAs, Color = None, Enable = True)</div>
+<p>Setup PML commands for creating a specific molecular display view for a selection.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    Name (str): Name of a new PyMOL object.
+<br/>    Selection (str): Name of PyMOL selection.
+<br/>    DisplayAs (str): Any valid display type such as lines, sticks, ribbon,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        cartoon, or surface
+<br/>    Color (str): Color name or use default color.
+<br/>    Enable (bool): Display status of object.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: PML commands for molecular selection view.</div>
+</dd>
+<dt id="SetupPMLForSolventView"><b>SetupPMLForSolventView</b></dt>
+<dd>
+<div class="OptionsBox">    SetupPMLForSolventView(Name, Selection, Enable = True)</div>
+<p>Setup PML commands for creating a solvent view corresponding to solvent residues present in a selection. The solvent residues are identified using solvent selection operator available in PyMOL. The solvent residues are displayed as &#39;nonbonded&#39;.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    Name (str): Name of a new PyMOL solvent object.
+<br/>    Selection (str): Name of PyMOL selection.
+<br/>    Enable (bool): Display status of inorganic object.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: PML commands for solvent view.</div>
+</dd>
+<dt id="SetupPMLForSurfaceView"><b>SetupPMLForSurfaceView</b></dt>
+<dd>
+<div class="OptionsBox">    SetupPMLForSurfaceView(Name, Selection, Enable = True, DisplayAs = &quot;cartoon&quot;, Color = &quot;None&quot;)</div>
+<p>Setup PML commands for creating a molecular surface view for a specified selection.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    Name (str): Name of a new PyMOL molecular surface object.
+<br/>    Selection (str): Name of PyMOL selection.
+<br/>    Enable (bool): Display status of surface object.
+<br/>    DisplayAs (str): Any additional valid display type such as lines,
+<br/>&nbsp;&nbsp;&nbsp;&nbsp;        sticks, ribbon, cartoon, or None. 
+<br/>    Color (str): Surafce color.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: PML commands for molecular surface view.</div>
+</dd>
+<dt id="SetupPMLHeaderInfo"><b>SetupPMLHeaderInfo</b></dt>
+<dd>
+<div class="OptionsBox">    SetupPMLHeaderInfo(ScriptName = None, IncludeLocalPython = True)</div>
+<p>Setup header information for generating PML files. The local Python functions are optionally embedded in the header information for their use in PML files.</p>
+<p><i>Arguments:</i></p>
+<div class="OptionsBox">    ScriptName (str): Name of script calling the function.
+<br/>    IncludeLocalPython (bool): Include local Python functions.</div>
+<p><i>Returns:</i></p>
+<div class="OptionsBox">    str: Text containing header information for generating PML files.</div>
+</dd>
+</dl>
+<h1 id="AUTHOR">AUTHOR</h2>
+<p><a href="mailto:msud@san.rr.com">Manish Sud</a></p>
+<h1 id="COPYRIGHT">COPYRIGHT</h2>
+<p>Copyright (C) 2020 Manish Sud. All rights reserved.</p>
+<p>The functionality available in this file is implemented using PyMOL, a molecular visualization system on an open source foundation originally developed by Warren DeLano.</p>
+<p>This file is part of MayaChemTools.</p>
+<p>MayaChemTools is free software; you can redistribute it and/or modify it under the terms of the GNU Lesser General Public License as published by the Free Software Foundation; either version 3 of the License, or (at your option) any later version.</p>
+<p>&nbsp</p><p>&nbsp</p><div class="DocNav">
+<table width="100%" border=0 cellpadding=0 cellspacing=2>
+<tr align="left" valign="top"><td width="33%" align="left"><a href="./MiscUtil.py.html" title="MiscUtil.py.html">Previous</a>&nbsp;&nbsp;<a href="./index.html" title="Table of Contents">TOC</a>&nbsp;&nbsp;<a href="./RDKitUtil.py.html" title="RDKitUtil.py.html">Next</a></td><td width="34%" align="middle"><strong>August 27, 2020</strong></td><td width="33%" align="right"><strong>Python/PyMOLUtil.py</strong></td></tr>
+</table>
+</div>
+<br />
+<center>
+<img src="../../images/h2o2.png">
+</center>
+</body>
+</html>
