@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 #
 # File: RDKitSearchSMARTS.py
 # Author: Manish Sud <msud@san.rr.com>
